@@ -16,11 +16,10 @@ def func(filename,
 
     for key in page.AXs:
         if key=='Notes':
-            txt = 'ID file : '
+            txt = 'some annotation'
+            txt += ' + subject type'
             txt += ' \n '
-            txt += 'ID animal :'
-            txt += ' \n '
-            txt += 'number of recordings :'
+            txt += 'some other annotation'
             page.AXs['Notes'].annotate(txt,
                                        (0, 1), va='top',
                                        xycoords='axes fraction')
@@ -33,7 +32,9 @@ def func(filename,
 
 
 if __name__=='__main__':
+         
     import os 
+         
     filename = os.path.join(os.path.expanduser('~'), 'DATA', 'Dataset1', 'test.pdf')
 
     func(filename)
