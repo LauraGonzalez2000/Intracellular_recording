@@ -33,8 +33,8 @@ def func(filename,
 
 
 if __name__=='__main__':
-    
-    filename = '/Users/yann/CURATED/NDNF-Wild-Type-2022/Test.hdf5'
+    import os 
+    filename = os.path.join(os.path.expanduser('~'), 'DATA', 'Dataset1', 'test.pdf')
 
     func(filename)
 
