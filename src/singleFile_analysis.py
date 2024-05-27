@@ -16,10 +16,11 @@ def func(filename,
 
     for key in page.AXs:
         if key=='Notes':
-            txt = 'some annotation'
-            txt += ' + subject type'
+            txt = 'ID file : '
             txt += ' \n '
-            txt += 'some other annotation'
+            txt += 'ID animal :'
+            txt += ' \n '
+            txt += 'number of recordings :'
             page.AXs['Notes'].annotate(txt,
                                        (0, 1), va='top',
                                        xycoords='axes fraction')
