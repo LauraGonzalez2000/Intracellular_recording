@@ -3,10 +3,14 @@ import matplotlib.pylab as plt
 class PdfPage:
 
     def __init__(self, 
-                 structure_dict={}):
+                 structure_dict={},
+                 debug=False):
         
         # figure in A0 format
-        self.fig = plt.figure(figsize=(8.41,11.90))
+        if debug:
+            self.fig = plt.figure(figsize=(8.41/1.4,11.90/1.4))
+        else:
+            self.fig = plt.figure(figsize=(8.41,11.90))
 
         # default start and width for axes
         X0, DX = 0.1, 0.85 # x coords

@@ -6,17 +6,18 @@ from PdfPage import PdfPage
 
 def func(filename, 
          params1=0,
-         params2=3):
+         params2=3,
+         debug=False):
 
     
-    page = PdfPage()
+    page = PdfPage(debug=debug)
 
     
     print(page.AXs)
 
     for key in page.AXs:
         if key=='Notes':
-            txt = 'some annotation'
+            txt = 'ID'
             txt += ' + subject type'
             txt += ' \n '
             txt += 'some other annotation'
@@ -37,7 +38,7 @@ if __name__=='__main__':
          
     filename = os.path.join(os.path.expanduser('~'), 'DATA', 'Dataset1', 'test.pdf')
 
-    func(filename)
+    func(filename, debug=True)
 
     plt.show()
 
