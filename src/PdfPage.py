@@ -2,7 +2,8 @@ import matplotlib.pylab as plt
 
 class PdfPage:
 
-    def __init__(self):
+    def __init__(self, 
+                 structure_dict={}):
         
         # figure in A0 format
         self.fig = plt.figure(figsize=(8.41,11.90))
@@ -14,7 +15,11 @@ class PdfPage:
         self.AXs = {}
 
         # build the axes one by one
-        Y0, DY = 0.05, 0.1
+        Y0, DY = 0.05, 0.05
+        self.AXs['Notes'] = self.create_panel([X0, Y0, DX, DY])
+        self.AXs['Notes'].axis('off')
+        Y0 += 0.04
+        DY = 0.05
         self.AXs['FullCmd'] = self.create_panel([X0, Y0, DX, DY])
         Y0 += DY+0.02
         DY = 0.15
@@ -23,11 +28,11 @@ class PdfPage:
         DY = 0.2
         self.AXs['MemTest'] = self.create_panel([X0, Y0, 0.35, DY])
         DY = 0.07
-        self.AXs['I0'] = self.create_panel([0.5, Y0, 0.45, DY])
+        self.AXs['I0'] = self.create_panel([0.55, Y0, 0.4, DY])
         Y0 += DY
-        self.AXs['Rm'] = self.create_panel([0.5, Y0, 0.45, DY])
+        self.AXs['Rm'] = self.create_panel([0.55, Y0, 0.4, DY])
         Y0 += DY
-        self.AXs['Rs'] = self.create_panel([0.5, Y0, 0.45, DY])
+        self.AXs['Rs'] = self.create_panel([0.55, Y0, 0.4, DY])
         Y0 += 0.1
         DY = 0.3
         self.AXs['RespAnalyzed'] = self.create_panel([X0, Y0, DX, DY])
