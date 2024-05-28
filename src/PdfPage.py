@@ -8,7 +8,7 @@ class PdfPage:
         
         # figure in A0 format
         if debug:
-            self.fig = plt.figure(figsize=(8.41/1.2,11.90/1.2))
+            self.fig = plt.figure(figsize=(8.41,11.90))
         else:
             self.fig = plt.figure(figsize=(8.41,11.90))
 
@@ -34,15 +34,29 @@ class PdfPage:
         Y0 += DY+0.04
         DY = 0.15
         self.AXs['FullResp'] = self.create_panel([X0, Y0, DX, DY])
+
         Y0 += DY+0.04
-        DY = 0.2
+        DY = 0.21
         self.AXs['MemTest'] = self.create_panel([X0, Y0, 0.35, DY])
+
+
+
+
+
         DY = 0.07
         self.AXs['I0'] = self.create_panel([0.55, Y0, 0.4, DY])
-        Y0 += DY
+
+        Y0 += 0.08
         self.AXs['Rm'] = self.create_panel([0.55, Y0, 0.4, DY])
-        Y0 += DY
+
+        Y0 += 0.08
         self.AXs['Rs'] = self.create_panel([0.55, Y0, 0.4, DY])
+
+
+
+
+
+
         Y0 += 0.1
         DY = 0.3
         self.AXs['RespAnalyzed'] = self.create_panel([X0, Y0, DX, DY])
