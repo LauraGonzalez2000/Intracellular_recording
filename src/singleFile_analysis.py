@@ -5,7 +5,12 @@ import statistics
 
 from PdfPage import PdfPage
 
+#CONSTANTS######################################################################
+#to remove artefact
+window = 1 #1ms
+
 ######################################################################
+
 
 def get_data(path):
     data = h5py.File(path)
@@ -78,8 +83,25 @@ def get_pulse(data, name):
         params_DAC1 = extract_params(pulse_DAC1, keys_DAC1)
         return params_DAC1
 
+def get_boundaries(data):
+    try: 
+        Stim_params = data['/nmMarieRecording_singleVCstim']  ##will not work with a different name!
+        pulse_DAC1 = Stim_params['DAC_1_pulse'][()]
+        keys_DAC1 = ['wave', 'train', 'tbgn', 'tend', 'interval', 'pulse', 'amp', 'width']
+        params_DAC1 = extract_params(pulse_DAC1, keys_DAC1)
+        start = params_DAC1['tbgn']
+        stop =  params_DAC1['tend']
+        start2 = start + params_DAC1['interval']
+        stop2 = stop + params_DAC1['interval']
+        #print("in loop: start :", start, ", stop : ", stop, ", start2 : ", start2, ", stop2 : ", stop2)  #erase when it is working
+        return start, stop, start2, stop2
+        
+    except:
+        print("stimulation parameters not found")
+        return 1000, 1050, 1051, 1099
 
-########################################################
+
+######################################################################################################
 
 def func(filename, 
          params1=0,
@@ -91,17 +113,19 @@ def func(filename,
     recordings_aligned = get_data_aligned(path)
 
     page = PdfPage(debug=debug)
-
+    
     
     print(page.AXs)
 
     for key in page.AXs:
         if key=='Notes':
-            txt = ' ID file'
+            txt = ' ID file : '
+            txt += path.split('\\')[-1]
             txt += ' \n '
-            txt += 'ID animal'
-            txt += ' \n '
-            txt += 'Number of recordings'
+            #txt += 'ID animal'
+            #txt += ' \n '
+            txt += 'Number of recordings : '
+            txt += str(len(get_recordings(data)))
             txt += ' \n '
             page.AXs['Notes'].annotate(txt,
                                        (0, 1), va='top',
@@ -133,12 +157,15 @@ def func(filename,
             page.AXs[key].set_ylabel(key)
             time = get_xscale(data)
             full_resp = recordings_aligned
-            page.AXs[key].plot(time, full_resp)  
+            stim1, stim2, _, _ = get_boundaries(data)
+            artefact_cond = ((time>stim1) & (time<stim1+window)) | ((time>stim2) & (time<stim2+window)) 
+
+            page.AXs[key].plot(time[~artefact_cond], full_resp[~artefact_cond])  
 
         elif key=='MemTest':
             page.AXs[key].set_ylabel(key)
-            time_mem = get_xscale(data)[0:30000]
-            resp_mem = recordings_aligned[0:30000]
+            time_mem = get_xscale(data)[1000:25000]
+            resp_mem = recordings_aligned[1000:25000]
             page.AXs[key].plot(time_mem, resp_mem)  
 
         elif key=='I0':
@@ -157,7 +184,9 @@ def func(filename,
             page.AXs[key].set_ylabel(key)
             time_stim = get_xscale(data)[95000:110000]
             resp_stim = recordings_aligned[95000:110000]
-            page.AXs[key].plot(time_stim, resp_stim)  
+            stim1, stim2, _, _ = get_boundaries(data)
+            artefact_cond = ((time_stim>stim1) & (time_stim<stim1+window)) | ((time_stim>stim2) & (time_stim<stim2+window))
+            page.AXs[key].plot(time_stim[~artefact_cond], resp_stim[~artefact_cond])  
 
             
     page.save(filename.replace('hdf5', 'pdf'))
