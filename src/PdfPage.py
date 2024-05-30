@@ -13,7 +13,7 @@ class PdfPage:
             self.fig = plt.figure(figsize=(8.41,11.90))
 
         # default start and width for axes
-        X0, DX = 0.1, 0.85 # x coords
+        X0, DX = 0.12, 0.85 # x coords
 
         # dictionary of axes
         self.AXs = {}
@@ -40,16 +40,16 @@ class PdfPage:
         self.AXs['MemTest'] = self.create_panel([X0, Y0, 0.35, DY])
 
         DY = 0.06
-        self.AXs['Id'] = self.create_panel([0.6, Y0, 0.35, DY])
+        self.AXs['Id'] = self.create_panel([0.62, Y0, 0.35, DY])
 
         Y0 += 0.06
-        self.AXs['Rm'] = self.create_panel([0.6, Y0, 0.35, DY])
+        self.AXs['Rm'] = self.create_panel([0.62, Y0, 0.35, DY])
 
         Y0 += 0.06
-        self.AXs['Ra'] = self.create_panel([0.6, Y0, 0.35, DY])
+        self.AXs['Ra'] = self.create_panel([0.62, Y0, 0.35, DY])
 
         Y0 += 0.06
-        self.AXs['Cm'] = self.create_panel([0.6, Y0, 0.35, DY])
+        self.AXs['Cm'] = self.create_panel([0.62, Y0, 0.35, DY])
 
         Y0 += 0.1
         DY = 0.3

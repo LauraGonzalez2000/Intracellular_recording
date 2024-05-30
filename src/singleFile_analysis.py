@@ -171,8 +171,6 @@ def get_pulse(data, name):
 def get_mem_values(data):
 
     peaks = get_peaks()
-    print("peaks",peaks)
-    print(data)
     Id = np.abs(data[peaks[0]*100+7])
 
     Ra = DELTA_V/Id
@@ -274,11 +272,11 @@ def fill_PDF(filename, debug=False):
             txt = "Id : "
             txt += str('%.4f'%(Id_avg))
             txt += '\n'
-            txt += "Ra : "
-            txt += str('%.4f'%(Ra_avg))
-            txt += '\n'
             txt += "Rm : "
             txt += str('%.4f'%(Rm_avg))
+            txt += '\n'
+            txt += "Ra : "
+            txt += str('%.4f'%(Ra_avg))
             txt += '\n'
             txt += "Cm : "
             txt += str('%.4f'%(Cm_avg))
@@ -302,8 +300,8 @@ def fill_PDF(filename, debug=False):
 
         elif key=='Cm':
             page.AXs[key].set_ylabel(key)
-            Rm_list = get_mem_values_across_time(data)[3]
-            page.AXs[key].plot(Rm_list) 
+            Cm_list = get_mem_values_across_time(data)[3]
+            page.AXs[key].plot(Cm_list)  
 
         elif key=='RespAnalyzed':
             page.AXs[key].set_ylabel(key)
