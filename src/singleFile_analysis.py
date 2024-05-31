@@ -3,6 +3,7 @@ import matplotlib.pylab as plt
 import h5py
 import statistics
 from scipy.optimize import curve_fit
+from scipy.signal import find_peaks
 
 from PdfPage import PdfPage
 
@@ -91,8 +92,11 @@ def get_boundaries(data):
         return 1000, 1050, 1051, 1099
 
 def get_peaks():  #to do: add generalized function to find peaks
-
     peaks = [100,200, 1000, 1050]  
+    return peaks
+
+def get_peaks_():  #to do: add generalized function to find peaks
+    peaks = [1007, 1057]  
     return peaks
 
 ################################################################################
@@ -114,6 +118,14 @@ def get_fit(subset_range, model_function, time, average_data_aligned):
     params, _ = curve_fit(model_function, x_subset, y_subset)   
     return x_subset, model_function(x_subset, *params)
 
+def get_params_function(model_function, range, time, data):
+    start, end = subset_range
+    x_subset = time[start:end]
+    y_subset = data[start:end]
+    params, _ = curve_fit(model_function, x_subset, y_subset)
+    return params
+
+
 def get_params(time, average_data_aligned): #add corresponding function
 
     subset_ranges = [(0, 10000), (10007, 20000)]                              #to do : generalize
@@ -125,6 +137,31 @@ def get_params(time, average_data_aligned): #add corresponding function
         start, end = subset_range
         x_subset = time[start:end]
         y_subset = average_data_aligned[start:end]
+        # Fit the model to the subset
+        popt, _ = curve_fit(model_function, x_subset, y_subset)
+        params.append(popt)
+        print("params", params)
+
+    return params
+
+
+def get_params_resp(time, average_data_aligned): #add corresponding function
+
+    subset_ranges = [(100000, 100050), (100050, 104999)]                              #to do : generalize
+    model_functions = [model_biexponential1, model_biexponential1]   
+
+    params = []
+    # Plot each subset and its corresponding fit
+    for subset_range, model_function in zip(subset_ranges, model_functions):
+        start, end = subset_range
+        print(start, end)
+        x_subset = time[start:end]
+        print(x_subset)
+        y_subset = average_data_aligned[start:end]
+        print(len(time))
+        print(len(average_data_aligned))
+        print(len(y_subset))
+        print(y_subset)
         # Fit the model to the subset
         popt, _ = curve_fit(model_function, x_subset, y_subset)
         params.append(popt)
@@ -208,6 +245,46 @@ def get_mem_values_across_time(data):
         Rm_list.append(get_mem_values(recording)[2])
         Cm_list.append(get_mem_values(recording)[3])
     return Id_list, Ra_list, Rm_list, Cm_list
+
+def get_rise_time(time_stim, params):
+ 
+    try: 
+        function = model_biexponential1(time_stim, params[1][0], params[1][1], params[1][2], params[1][3], params[1][4])
+
+        min = function[0]
+        max = params[1][4]
+        print("min", min)
+        print("max", max)
+        diff = abs(max - min)/10
+
+        ten_min = min + diff
+        ten_max = max - diff
+
+        i = 0
+        for value in function:
+            if value >= ten_min:
+                index_min = i
+                break
+            i+=1
+
+        j=0
+        for value in function:
+            if value >= ten_max:
+                index_max = j
+                break
+            j+=1
+
+        time_index = index_max - index_min 
+
+        rise_time = time_index*0.01
+        print("rise_time : ",rise_time)
+        return rise_time
+
+    except:
+        rise_time = 0
+        print("Error when getting the Rise time")
+
+    return rise_time
 
 ################################################################################
 #Fill PDF
@@ -310,6 +387,45 @@ def fill_PDF(filename, debug=False):
             stim1, stim2, _, _ = get_boundaries(data)
             artefact_cond = ((time_stim>stim1) & (time_stim<stim1+WINDOW)) | ((time_stim>stim2) & (time_stim<stim2+WINDOW))
             page.AXs[key].plot(time_stim[~artefact_cond], resp_stim[~artefact_cond])  
+
+            '''
+            subset_ranges = [(9900, 10000), (10007, 10500)]
+            model_functions = [model_function_constant, model_biexponential1]   #works better
+            for subset_range, model_function in zip(subset_ranges, model_functions):
+                x,y = get_fit(subset_range, model_function, time, recordings_avg_aligned)
+                page.AXs[key].plot(x,y, color="red", label = "fit")
+        
+            '''            
+            '''
+            params_resp = get_params_resp(time, recordings_avg_aligned)
+            #rise time
+            rise_time = get_rise_time(time_stim, params_resp)
+
+            #text
+            txt = "Peak1 : "
+            #txt += str('%.4f'%(Id_avg))
+            txt += '\n'
+            txt += "Peak2 : "
+            #txt += str('%.4f'%(Rm_avg))
+            txt += '\n'
+            txt += "Rise time : "
+            txt += str('%.4f'%(rise_time))
+            txt += '\n'
+            txt += "Decay time : "
+            #txt += str('%.4f'%(Cm_avg))
+            txt += '\n'
+            page.AXs[key].annotate(txt,(0.7, 0.5), va='top', xycoords='axes fraction')
+
+            #plot peaks
+            #peaks = my_find_peaks(resp_stim[~artefact_cond])
+            #print("peaks", peaks)
+            #peaks = get_peaks_()
+            #print("peaks", peaks)
+            #page.AXs[key].plot(peaks, resp_stim[peaks], "X")
+            '''
+            
+
+
 
             
     page.save(filename.replace('hdf5', 'pdf'))
