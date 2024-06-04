@@ -77,6 +77,6 @@ class PdfPage:
 if __name__=='__main__':
     
     page = PdfPage()
-    page.save('test.pdf')
+    page.save('nm03Jun2024c0_001_NMDA.pdf')
     plt.show()
 

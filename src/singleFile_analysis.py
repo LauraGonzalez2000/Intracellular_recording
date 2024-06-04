@@ -12,8 +12,10 @@ from PdfPage import PdfPage
 WINDOW = 1 #window to remove artefact (1ms)
 TIME_STEP = 0.01 #timestep data acquisition in Igor (0.01 ms)
 NUM_DATAPOINTS = 200000 #amount of datapoints acquired (200 000) #may vary
-STIM_PARAMS = '/nmMarieRecording_singleVCstim'  #Configuration of stimulation name  #may vary
-PATH = r'\\l2export\iss02.rebola\analyzed\Sofia\Analysis IGOR files\HDF5 files\nm18Feb2021c1_006_HDF5'
+#STIM_PARAMS = '/nmMarieRecording_singleVCstim'  #Configuration of stimulation name  #may vary
+STIM_PARAMS = '/nmStimSofia1' 
+#PATH = r'\\l2export\iss02.rebola\analyzed\Sofia\Analysis IGOR files\HDF5 files\nm18Feb2021c1_006_HDF5'
+PATH = r'C:\Users\laura.gonzalez\DATA\HDF5 files\nm03Jun2024c0_001_HDF5'
 DELTA_V = 1e-3
 
 ################################################################################
@@ -74,30 +76,82 @@ def get_average_recordings_aligned(data):
 ###############################################################################
 #methods to analyse recordings
 
-def get_boundaries(data):
+def extract_params(pulse_data, keys):
+    params = {}
+    for key in keys:
+        value = str(pulse_data[0]).split('%s=' % key)[1].split(';')[0]
+        if value.isdigit():
+            params[key] = int(value)
+        elif value.isalpha():
+            params[key] = value
+        else:
+            print("error: value is not an integer nor a string")
+    return params
+
+def get_boundaries(data): #to do: not working, always uses exception, to FIX
     try: 
-        Stim_params = data[STIM_PARAMS]  ##will not work with a different name!
+        Stim_params = data[STIM_PARAMS]  
+        #print("Stim params", Stim_params)
         pulse_DAC1 = Stim_params['DAC_1_pulse'][()]
+        #print("DAC1", pulse_DAC1)
         keys_DAC1 = ['wave', 'train', 'tbgn', 'tend', 'interval', 'pulse', 'amp', 'width']
         params_DAC1 = extract_params(pulse_DAC1, keys_DAC1)
+        print("params_DAC1", params_DAC1)
         start = params_DAC1['tbgn']
         stop =  params_DAC1['tend']
         start2 = start + params_DAC1['interval']
         stop2 = stop + params_DAC1['interval']
-        #print("in loop: start :", start, ", stop : ", stop, ", start2 : ", start2, ", stop2 : ", stop2)  #erase when it is working
-        return start, stop, start2, stop2
+        print("in loop: start :", start, ", stop : ", stop, ", start2 : ", start2, ", stop2 : ", stop2)  #erase when it is working
+        #return start, stop, start2, stop2   #use this when code is fixed
         
     except:
         print("stimulation parameters not found")
-        return 1000, 1050, 1051, 1099
+        #return 1000, 1050, 1051, 1099
+        return 600, 700, 701, 801
+    
+    return 600, 700, 701, 801 #remove this when code is fixed
 
 def get_peaks():  #to do: add generalized function to find peaks
-    peaks = [100,200, 1000, 1050]  
+    #peaks = [100,200, 1000, 1050]  
+    peaks = [100, 200, 600, 700]
     return peaks
 
 def get_peaks_():  #to do: add generalized function to find peaks
-    peaks = [1007, 1057]  
+    #peaks = [1007, 1057]  
+    peaks = [607, 707]
     return peaks
+
+#finds if peak is positive or negative
+def get_resp_nature(average_data_aligned):
+    
+    #min = np.min(average_data_aligned[100100:100500])
+    #max = np.max(average_data_aligned[100100:100500])
+    min = np.min(average_data_aligned[60100:69900])
+    max = np.max(average_data_aligned[60100:69900])
+
+    diff = max+min
+
+    if diff == 0 : 
+        print("Error : no peak")
+        
+    elif diff < 0 :  #negative peak
+        return True
+        
+    elif diff > 0 :  #positive peak
+        return False
+
+#returns value of index and of peak
+def get_peak_resp(average_data_aligned):
+
+    if get_resp_nature(average_data_aligned): 
+        peak = np.min(average_data_aligned[60100:69900])
+        peak_index = np.argmin(average_data_aligned[60100:69900])
+    else : 
+        peak = np.max(average_data_aligned[60100:69900])
+        peak_index = np.argmax(average_data_aligned[60100:69900])
+
+    return peak_index, peak
+
 
 ################################################################################
 #Models to fit the data
@@ -125,7 +179,6 @@ def get_params_function(model_function, range, time, data):
     params, _ = curve_fit(model_function, x_subset, y_subset)
     return params
 
-
 def get_params(time, average_data_aligned): #add corresponding function
 
     subset_ranges = [(0, 10000), (10007, 20000)]                              #to do : generalize
@@ -144,10 +197,10 @@ def get_params(time, average_data_aligned): #add corresponding function
 
     return params
 
-
 def get_params_resp(time, average_data_aligned): #add corresponding function
 
-    subset_ranges = [(100000, 100050), (100050, 104999)]                              #to do : generalize
+    #subset_ranges = [(100000, 100050), (100050, 104999)]                              #to do : generalize
+    subset_ranges = [(60000, 70000), (70000, 80000)]
     model_functions = [model_biexponential1, model_biexponential1]   
 
     params = []
@@ -175,7 +228,9 @@ def get_params_resp(time, average_data_aligned): #add corresponding function
 
 def get_pulse(data, name):
 
-    Stim_params = data['/nmMarieRecording_singleVCstim']
+    #Stim_params = data['/nmMarieRecording_singleVCstim']
+    Stim_params = data[STIM_PARAMS]
+
 
     if name == "dac0":
         pulse_DAC0 = Stim_params['DAC_0_pulse'][()]
@@ -212,10 +267,10 @@ def get_mem_values(data):
 
     Ra = DELTA_V/Id
 
-    Idss = 4  #Idss = params[2][4] - params[1][4]
+    Idss = np.abs(np.mean(data[16000:19000]))
     Rm = (DELTA_V - Ra * Idss) / Idss
 
-    tau = 5   #tau = params[2][2]  
+    tau = 5   #tau = params[2][2]  ############### FIX!
     Cm = tau / (1/(1/Ra + 1/Rm)) 
 
     ''' #alternative : calculate Cm with the area under the curve (decay)
@@ -246,46 +301,180 @@ def get_mem_values_across_time(data):
         Cm_list.append(get_mem_values(recording)[3])
     return Id_list, Ra_list, Rm_list, Cm_list
 
-def get_rise_time(time_stim, params):
- 
-    try: 
-        function = model_biexponential1(time_stim, params[1][0], params[1][1], params[1][2], params[1][3], params[1][4])
+def analyse_neg_peak(average_data_aligned, data):
+    peak = "negative"
+    
+    #data = get_data(path)
+    #average_data = get_average_recordings(get_recordings(data))
+    #average_data_aligned = get_data_aligned(average_data)
 
-        min = function[0]
-        max = params[1][4]
-        print("min", min)
-        print("max", max)
-        diff = abs(max - min)/10
+    start, stop, start2, stop2 = get_boundaries(data)
+    start_ = (start+1)*100
+    stop_ = (stop-1)*100
+    start2_ = (start2+1)*100
+    stop2_ = (stop2-1)*100
+    print(start_, stop_, start2_, stop2_)
 
-        ten_min = min + diff
-        ten_max = max - diff
+    #100500
+    amp_resp1 = np.min(average_data_aligned[start_:stop_])  ## stimulation at 100 000th datapoint aka 1 000 ms
+    time_peak_resp1 = np.argmin(average_data_aligned[start_:stop_])
+    print(time_peak_resp1)
+    #105500
+    amp_resp2 = np.min(average_data_aligned[start2_:stop2_])  ## stimulation at 105 000th datapoint aka 1 050 ms
 
-        i = 0
-        for value in function:
-            if value >= ten_min:
-                index_min = i
-                break
-            i+=1
+    '''
+    amp_resp1 = np.min(average_data_aligned[100100:100500])  ## stimulation at 100 000th datapoint aka 1 000 ms
+    time_peak_resp1 = np.argmin(average_data_aligned[100100:100500])
+    amp_resp2 = np.min(average_data_aligned[105100:105500])  ## stimulation at 105 000th datapoint aka 1 050 ms
+    '''
+    PPR = amp_resp2/amp_resp1
+      
+    
+    
+    #####################################################################
+    
+    ##rise time 10-90%
+    
+    bound1 = 0.1 * amp_resp1
+    bound2 = 0.9 * amp_resp1
+    
+    range = average_data_aligned[start_:stop_]
+    
+    i = 600.4
+    j = 600.4
+    time1 = 0
+    time2 = 0
+    for value in range : 
+        if value < bound2: 
+            time2 = i
+            break;
+        i+= 0.01   
+        
+    for value in range : 
+        if value < bound1: 
+            time1 = j
+            break;
+        j+= 0.01      
+        
+    rise_time = np.abs(time2-time1)    
+    
+    
+    
+    ##decay time 50%
+    
+    bound = 0.5 * amp_resp1
+    range = average_data_aligned[start_ + time_peak_resp1 :stop_]
+    
+    k = 601.70 
+    time = 0
+    for value in range : 
+        if value > bound:
+            time = k
+            break;
+        k+= 0.01 
+    
+    decay_time = np.abs(time - 601.70)
 
-        j=0
-        for value in function:
-            if value >= ten_max:
-                index_max = j
-                break
-            j+=1
+    '''
+    print("Amplitude response 1 (nA) : ", amp_resp1 )
+    print("Amplitude response 2 (nA) : ", amp_resp2 )
+    print("Paired pulse ratio Amp2/Amp1: ", PPR )
+    print("Rise_time 10-90% : ", rise_time, "ms.")
+    print("Decay time 50% : ", decay_time, " ms.")
+    '''
+    
+    return peak, amp_resp1,amp_resp2, PPR, rise_time, decay_time
 
-        time_index = index_max - index_min 
+def analyse_pos_peak(average_data_aligned, data):
+    
+    peak = "positive"
+    #data = get_data(path)
+    #average_data = get_average_recordings(get_recordings(data))
+    #average_data_aligned = get_data_aligned(average_data)
 
-        rise_time = time_index*0.01
-        print("rise_time : ",rise_time)
-        return rise_time
+    
+    start, stop, start2, stop2 = get_boundaries(data)
+    start_ = (start+1)*100   #usually, 100100
+    stop_ = (stop-1)*100     #usually, 104900
+    start2_ = (start2+1)*100 #usually, 105100
+    stop2_ = (stop2-1)*100   #usually, 109900
+    
+      
+    amp_resp1 = np.max(average_data_aligned[start_:stop_])  ## stimulation at 100 000th datapoint aka 1 000 ms   #changed to max
+    index_peak_resp1 = np.argmax(average_data_aligned[start_:stop_])  #not really
+    time_peak_resp1 = (start_ + index_peak_resp1)/100
+    
+    print(index_peak_resp1)
+    
+    print("time peak response 1: ", time_peak_resp1)
+    
+    amp_resp2 = np.max(average_data_aligned[start2_:stop2_])  ## stimulation at 105 000th datapoint aka 1 050 ms   #changed to max
+    PPR = amp_resp2/amp_resp1
+      
+    
+    
+    #####################################################################
+    
+    ##rise time 10-90%
+    
+    bound1 = 0.1 * amp_resp1
+    bound2 = 0.9 * amp_resp1
+    
+    range = average_data_aligned[start_:stop_]  #generalize boundaries
+    
+    l = 600.4  #generalize
+    m = 600.4  #generalize
+    time1 = 0
+    time2 = 0
+    
+    for value in range : 
+        if value > bound1: 
+            time1 = m
+            break;
+        m+= 0.01  
+        
+    for value in range : 
+        if value > bound2: 
+            time2 = l
+            break;
+        l+= 0.01   
+        
+    rise_time = np.abs(time2-time1)    
+    
+    
+    
+    #####################################################################
+    
+    ##decay time 50%
+    
+    bound = 0.5 * amp_resp1
+    range = average_data_aligned[int(time_peak_resp1*100) :stop_] #generalize boundaries
+    
+    print(start_)
+    print(start_ + index_peak_resp1)
+    print(stop_)
+    k = 605 
+    time = 0
+    for value in range : 
+        if value < bound:
+            time = k
+            break;
+        k+= 0.01 
+        
+    print("time50", time)
+    print("time peak", time_peak_resp1)
+    print("decay_time", time - time_peak_resp1)
+    decay_time = np.abs(time - time_peak_resp1)
 
-    except:
-        rise_time = 0
-        print("Error when getting the Rise time")
-
-    return rise_time
-
+    '''
+    print("Amplitude response 1 (nA) : ", amp_resp1 )
+    print("Amplitude response 2 (nA) : ", amp_resp2 )
+    print("Paired pulse ratio Amp2/Amp1: ", PPR )
+    print("Rise_time 10-90% : ", rise_time, "ms.")
+    print("Decay time 50% : ", decay_time, " ms.")
+    '''
+    
+    return peak, amp_resp1, amp_resp2, PPR, rise_time, decay_time
 ################################################################################
 #Fill PDF
 def fill_PDF(filename, debug=False):
@@ -312,14 +501,14 @@ def fill_PDF(filename, debug=False):
 
         elif key=='DAC0':
             page.AXs[key].set_ylabel(key)
-            Stim_params = data['/nmMarieRecording_singleVCstim']
+            Stim_params = data[STIM_PARAMS]
             Stim_params_ = Stim_params['DAC_0_0']
             dac0_pulse = np.array(Stim_params_)
             page.AXs[key].plot(time, dac0_pulse)  
         
         elif key=='DAC1':
             page.AXs[key].set_ylabel(key)
-            Stim_params = data['/nmMarieRecording_singleVCstim']
+            Stim_params = data[STIM_PARAMS]
             Stim_params_ = Stim_params['DAC_1_0']
             dac1_pulse = np.array(Stim_params_)
             page.AXs[key].plot(time, dac1_pulse)  
@@ -328,6 +517,7 @@ def fill_PDF(filename, debug=False):
             page.AXs[key].set_ylabel(key)
             full_resp = recordings_avg_aligned
             stim1, stim2, _, _ = get_boundaries(data)
+            print(stim1, stim2, WINDOW)
             artefact_cond = ((time>stim1) & (time<stim1+WINDOW)) | ((time>stim2) & (time<stim2+WINDOW)) 
             page.AXs[key].plot(time[~artefact_cond], full_resp[~artefact_cond])  
 
@@ -382,11 +572,31 @@ def fill_PDF(filename, debug=False):
 
         elif key=='RespAnalyzed':
             page.AXs[key].set_ylabel(key)
-            time_stim = time[95000:110000]
-            resp_stim = recordings_avg_aligned[95000:110000]
+            time_stim = time[55000:80000]
+            resp_stim = recordings_avg_aligned[55000:80000]
             stim1, stim2, _, _ = get_boundaries(data)
             artefact_cond = ((time_stim>stim1) & (time_stim<stim1+WINDOW)) | ((time_stim>stim2) & (time_stim<stim2+WINDOW))
             page.AXs[key].plot(time_stim[~artefact_cond], resp_stim[~artefact_cond])  
+
+            if get_resp_nature(recordings_avg_aligned) : 
+                peak, amp_resp1, amp_resp2, PPR, rise_time, decay_time = analyse_neg_peak(recordings_avg_aligned, data)
+            else : 
+                peak, amp_resp1, amp_resp2, PPR, rise_time, decay_time = analyse_pos_peak(recordings_avg_aligned, data)
+            
+            #text
+            txt = "Peak1 : "
+            txt += str('%.4f'%(amp_resp1))
+            txt += '\n'
+            txt += "Peak2 : "
+            txt += str('%.4f'%(amp_resp2))
+            txt += '\n'
+            txt += "Rise time : "
+            txt += str('%.4f'%(rise_time))
+            txt += '\n'
+            txt += "Decay time : "
+            txt += str('%.4f'%(decay_time))
+            txt += '\n'
+            page.AXs[key].annotate(txt,(0.7, 0.5), va='top', xycoords='axes fraction')
 
             '''
             subset_ranges = [(9900, 10000), (10007, 10500)]
@@ -401,21 +611,6 @@ def fill_PDF(filename, debug=False):
             #rise time
             rise_time = get_rise_time(time_stim, params_resp)
 
-            #text
-            txt = "Peak1 : "
-            #txt += str('%.4f'%(Id_avg))
-            txt += '\n'
-            txt += "Peak2 : "
-            #txt += str('%.4f'%(Rm_avg))
-            txt += '\n'
-            txt += "Rise time : "
-            txt += str('%.4f'%(rise_time))
-            txt += '\n'
-            txt += "Decay time : "
-            #txt += str('%.4f'%(Cm_avg))
-            txt += '\n'
-            page.AXs[key].annotate(txt,(0.7, 0.5), va='top', xycoords='axes fraction')
-
             #plot peaks
             #peaks = my_find_peaks(resp_stim[~artefact_cond])
             #print("peaks", peaks)
@@ -424,10 +619,6 @@ def fill_PDF(filename, debug=False):
             #page.AXs[key].plot(peaks, resp_stim[peaks], "X")
             '''
             
-
-
-
-            
     page.save(filename.replace('hdf5', 'pdf'))
 
 #for debug
@@ -435,7 +626,7 @@ if __name__=='__main__':
          
     import os 
          
-    filename = os.path.join(os.path.expanduser('~'), 'DATA', 'Dataset1', 'test.pdf')
+    filename = os.path.join(os.path.expanduser('~'), 'DATA', 'Dataset1', 'nm03Jun2024c0_001_NMDA.pdf')
 
     fill_PDF(filename, debug=True)
 
