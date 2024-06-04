@@ -16,7 +16,7 @@ NUM_DATAPOINTS = 200000 #amount of datapoints acquired (200 000) #may vary
 STIM_PARAMS = '/nmStimSofia1' 
 #PATH = r'\\l2export\iss02.rebola\analyzed\Sofia\Analysis IGOR files\HDF5 files\nm18Feb2021c1_006_HDF5'
 PATH = r'C:\Users\laura.gonzalez\DATA\HDF5 files\nm03Jun2024c0_001_HDF5'
-DELTA_V = 1e-3
+DELTA_V = 1e-3 #10 mV = 10^-3 V
 
 ################################################################################
 #Methods to process data
@@ -96,12 +96,12 @@ def get_boundaries(data): #to do: not working, always uses exception, to FIX
         #print("DAC1", pulse_DAC1)
         keys_DAC1 = ['wave', 'train', 'tbgn', 'tend', 'interval', 'pulse', 'amp', 'width']
         params_DAC1 = extract_params(pulse_DAC1, keys_DAC1)
-        print("params_DAC1", params_DAC1)
+        #print("params_DAC1", params_DAC1)
         start = params_DAC1['tbgn']
         stop =  params_DAC1['tend']
         start2 = start + params_DAC1['interval']
         stop2 = stop + params_DAC1['interval']
-        print("in loop: start :", start, ", stop : ", stop, ", start2 : ", start2, ", stop2 : ", stop2)  #erase when it is working
+        #print("in loop: start :", start, ", stop : ", stop, ", start2 : ", start2, ", stop2 : ", stop2)  #erase when it is working
         #return start, stop, start2, stop2   #use this when code is fixed
         
     except:
@@ -164,6 +164,7 @@ def model_biexponential1(t, A, B, C, D, E): #biexponential model 1
 def model_biexponential2(t, A, B, C, D, E): #biexponential model 2  #maybe useless if we use only first part
     return A * (B*np.exp(-(t-200)/C) + (1-B)*np.exp(-(t-200)/D)) + E
 
+#useless
 def get_fit(subset_range, model_function, time, average_data_aligned):
     params = []
     start, end = subset_range
@@ -172,13 +173,13 @@ def get_fit(subset_range, model_function, time, average_data_aligned):
     params, _ = curve_fit(model_function, x_subset, y_subset)   
     return x_subset, model_function(x_subset, *params)
 
-def get_params_function(model_function, range, time, data):
-    start, end = subset_range
+def get_params_function(model_function, start, end, recording, time):
     x_subset = time[start:end]
-    y_subset = data[start:end]
+    y_subset = recording[start:end]
     params, _ = curve_fit(model_function, x_subset, y_subset)
     return params
 
+#useless
 def get_params(time, average_data_aligned): #add corresponding function
 
     subset_ranges = [(0, 10000), (10007, 20000)]                              #to do : generalize
@@ -193,10 +194,11 @@ def get_params(time, average_data_aligned): #add corresponding function
         # Fit the model to the subset
         popt, _ = curve_fit(model_function, x_subset, y_subset)
         params.append(popt)
-        print("params", params)
+        #print("params", params)
 
     return params
 
+#useless
 def get_params_resp(time, average_data_aligned): #add corresponding function
 
     #subset_ranges = [(100000, 100050), (100050, 104999)]                              #to do : generalize
@@ -207,18 +209,18 @@ def get_params_resp(time, average_data_aligned): #add corresponding function
     # Plot each subset and its corresponding fit
     for subset_range, model_function in zip(subset_ranges, model_functions):
         start, end = subset_range
-        print(start, end)
+        #print(start, end)
         x_subset = time[start:end]
-        print(x_subset)
+        #print(x_subset)
         y_subset = average_data_aligned[start:end]
-        print(len(time))
-        print(len(average_data_aligned))
-        print(len(y_subset))
-        print(y_subset)
+        #print(len(time))
+        #print(len(average_data_aligned))
+        #print(len(y_subset))
+        #print(y_subset)
         # Fit the model to the subset
         popt, _ = curve_fit(model_function, x_subset, y_subset)
         params.append(popt)
-        print("params", params)
+        #print("params", params)
 
     return params
 
@@ -260,20 +262,27 @@ def get_pulse(data, name):
                 print("error: value is not an integer nor a string")
         return params_DAC1
 
-def get_mem_values(data):
+#from a recording or average of recordings and the timescale, output the membrane characteristics
+def get_mem_values(recording, time): 
 
     peaks = get_peaks()
-    Id = np.abs(data[peaks[0]*100+7])
+    Id = np.abs(recording[peaks[0]*100+7])  #in nano amperes
 
-    Ra = DELTA_V/Id
+    Id_A = Id * 1e-9   # in amperes
 
-    Idss = np.abs(np.mean(data[16000:19000]))
-    Rm = (DELTA_V - Ra * Idss) / Idss
+    Ra = np.abs(DELTA_V/Id_A)  #in ohm   (volts/amperes)
 
-    tau = 5   #tau = params[2][2]  ############### FIX!
-    Cm = tau / (1/(1/Ra + 1/Rm)) 
+    Idss = np.abs(np.mean(recording[16000:19000]))   # in nano amperes
+    Idss_A = Idss * 1e-9   # in amperes
 
-    ''' #alternative : calculate Cm with the area under the curve (decay)
+    Rm = (DELTA_V - Ra * Idss_A) / Idss_A #in Ohm
+
+    params_exp1 = get_params_function(model_biexponential1, 10007, 20000, recording, time)
+    tau = np.abs(params_exp1[2])  
+    Cm = np.abs(tau / (1/(1/Ra + 1/Rm)) )
+
+    ''' 
+    #alternative : calculate Cm with the area under the curve (decay)
     result_c2, error_c2 = integrate.quad(func_const2, 200, 300)
     result_d, error_d = integrate.quad(func2, 200, 300)
     AUC_d = result_d - result_c2
@@ -288,17 +297,17 @@ def get_mem_values(data):
     '''
     return Id, Ra, Rm, Cm
 
-def get_mem_values_across_time(data):
+def get_mem_values_across_time(data, time):
     recordings = get_recordings(data)
     Id_list = []
     Ra_list = []
     Rm_list = []
     Cm_list = []
     for recording in recordings: 
-        Id_list.append(get_mem_values(recording)[0])
-        Ra_list.append(get_mem_values(recording)[1])
-        Rm_list.append(get_mem_values(recording)[2])
-        Cm_list.append(get_mem_values(recording)[3])
+        Id_list.append(get_mem_values(recording, time)[0])
+        Ra_list.append(get_mem_values(recording, time)[1])
+        Rm_list.append(get_mem_values(recording, time)[2])
+        Cm_list.append(get_mem_values(recording, time)[3])
     return Id_list, Ra_list, Rm_list, Cm_list
 
 def analyse_neg_peak(average_data_aligned, data):
@@ -313,12 +322,12 @@ def analyse_neg_peak(average_data_aligned, data):
     stop_ = (stop-1)*100
     start2_ = (start2+1)*100
     stop2_ = (stop2-1)*100
-    print(start_, stop_, start2_, stop2_)
+    #print(start_, stop_, start2_, stop2_)
 
     #100500
     amp_resp1 = np.min(average_data_aligned[start_:stop_])  ## stimulation at 100 000th datapoint aka 1 000 ms
     time_peak_resp1 = np.argmin(average_data_aligned[start_:stop_])
-    print(time_peak_resp1)
+    #print(time_peak_resp1)
     #105500
     amp_resp2 = np.min(average_data_aligned[start2_:stop2_])  ## stimulation at 105 000th datapoint aka 1 050 ms
 
@@ -404,9 +413,9 @@ def analyse_pos_peak(average_data_aligned, data):
     index_peak_resp1 = np.argmax(average_data_aligned[start_:stop_])  #not really
     time_peak_resp1 = (start_ + index_peak_resp1)/100
     
-    print(index_peak_resp1)
+    #print(index_peak_resp1)
     
-    print("time peak response 1: ", time_peak_resp1)
+    #print("time peak response 1: ", time_peak_resp1)
     
     amp_resp2 = np.max(average_data_aligned[start2_:stop2_])  ## stimulation at 105 000th datapoint aka 1 050 ms   #changed to max
     PPR = amp_resp2/amp_resp1
@@ -450,9 +459,9 @@ def analyse_pos_peak(average_data_aligned, data):
     bound = 0.5 * amp_resp1
     range = average_data_aligned[int(time_peak_resp1*100) :stop_] #generalize boundaries
     
-    print(start_)
-    print(start_ + index_peak_resp1)
-    print(stop_)
+    #print(start_)
+    #print(start_ + index_peak_resp1)
+    #print(stop_)
     k = 605 
     time = 0
     for value in range : 
@@ -461,9 +470,9 @@ def analyse_pos_peak(average_data_aligned, data):
             break;
         k+= 0.01 
         
-    print("time50", time)
-    print("time peak", time_peak_resp1)
-    print("decay_time", time - time_peak_resp1)
+    #print("time50", time)
+    #print("time peak", time_peak_resp1)
+    #print("decay_time", time - time_peak_resp1)
     decay_time = np.abs(time - time_peak_resp1)
 
     '''
@@ -487,7 +496,7 @@ def fill_PDF(filename, debug=False):
     page = PdfPage(debug=debug)
     
     
-    print(page.AXs)
+    #print(page.AXs)
 
     for key in page.AXs:
         if key=='Notes':
@@ -517,57 +526,65 @@ def fill_PDF(filename, debug=False):
             page.AXs[key].set_ylabel(key)
             full_resp = recordings_avg_aligned
             stim1, stim2, _, _ = get_boundaries(data)
-            print(stim1, stim2, WINDOW)
+            #print(stim1, stim2, WINDOW)
             artefact_cond = ((time>stim1) & (time<stim1+WINDOW)) | ((time>stim2) & (time<stim2+WINDOW)) 
             page.AXs[key].plot(time[~artefact_cond], full_resp[~artefact_cond])  
 
         elif key=='MemTest':
             page.AXs[key].set_ylabel(key)
-            time_mem = time[9900:10500]
-            resp_mem = recordings_avg_aligned[9900:10500]
+            time_mem = time[9900:10600]
+            resp_mem = recordings_avg_aligned[9900:10600]
             page.AXs[key].plot(time_mem, resp_mem, label = "Data")
 
-            subset_ranges = [(9900, 10000), (10007, 10500)]
+            subset_ranges = [(9900, 10000), (10007, 10600)]
             model_functions = [model_function_constant, model_biexponential1]   #works better
             for subset_range, model_function in zip(subset_ranges, model_functions):
                 x,y = get_fit(subset_range, model_function, time, recordings_avg_aligned)
                 page.AXs[key].plot(x,y, color="red", label = "fit")
 
             
-            Id_avg, Ra_avg, Rm_avg, Cm_avg  = get_mem_values(recordings_avg_aligned)
+            Id_avg, Ra_avg, Rm_avg, Cm_avg  = get_mem_values(recordings_avg_aligned, time)
 
             txt = "Id : "
-            txt += str('%.4f'%(Id_avg))
+            txt += str('%.4f'%(Id_avg*1e3))
+            txt += " pA "
             txt += '\n'
             txt += "Rm : "
-            txt += str('%.4f'%(Rm_avg))
+            txt += str('%.4f'%(Rm_avg/1e6))
+            txt += " MOhm "
             txt += '\n'
             txt += "Ra : "
-            txt += str('%.4f'%(Ra_avg))
+            txt += str('%.4f'%(Ra_avg/1e6))
+            txt += " MOhm "
             txt += '\n'
             txt += "Cm : "
-            txt += str('%.4f'%(Cm_avg))
+            txt += str('%.4f'%(Cm_avg*1e6))
+            txt += " µF "
             txt += '\n'
-            page.AXs[key].annotate(txt,(0.5, 0.5), va='top', xycoords='axes fraction')
-            
+            page.AXs[key].annotate(txt,(0.35, 0.5), va='top', xycoords='axes fraction')
+
+            params_exp = get_params_function(model_biexponential1, 10007, 20000, recordings_avg_aligned, time)
+            page.AXs[key].fill_between(time_mem,model_biexponential1(time_mem,params_exp[0],params_exp[1],params_exp[2],params_exp[3],params_exp[4] ), model_function_constant(time_mem, params_exp[4] ),where=((time_mem >= 100) & (time_mem <= 200)), alpha=0.3, color='skyblue')
+
+
         elif key=='Id':
             page.AXs[key].set_ylabel(key)
-            Id_list = get_mem_values_across_time(data)[0]
+            Id_list = get_mem_values_across_time(data, time)[0]
             page.AXs[key].plot(Id_list) 
 
         elif key=='Rm':
             page.AXs[key].set_ylabel(key)
-            Rm_list = get_mem_values_across_time(data)[1]
+            Rm_list = get_mem_values_across_time(data, time)[1]
             page.AXs[key].plot(Rm_list)  
 
         elif key=='Ra':
             page.AXs[key].set_ylabel(key)
-            Ra_list = get_mem_values_across_time(data)[2]
+            Ra_list = get_mem_values_across_time(data, time)[2]
             page.AXs[key].plot(Ra_list)  
 
         elif key=='Cm':
             page.AXs[key].set_ylabel(key)
-            Cm_list = get_mem_values_across_time(data)[3]
+            Cm_list = get_mem_values_across_time(data, time)[3]
             page.AXs[key].plot(Cm_list)  
 
         elif key=='RespAnalyzed':
@@ -585,18 +602,22 @@ def fill_PDF(filename, debug=False):
             
             #text
             txt = "Peak1 : "
-            txt += str('%.4f'%(amp_resp1))
+            txt += str('%.4f'%(amp_resp1*1e3))
+            txt += " pA "
             txt += '\n'
             txt += "Peak2 : "
-            txt += str('%.4f'%(amp_resp2))
+            txt += str('%.4f'%(amp_resp2*1e3))
+            txt += " pA "
             txt += '\n'
             txt += "Rise time : "
             txt += str('%.4f'%(rise_time))
+            txt += " ms "
             txt += '\n'
             txt += "Decay time : "
             txt += str('%.4f'%(decay_time))
+            txt += " ms "
             txt += '\n'
-            page.AXs[key].annotate(txt,(0.7, 0.5), va='top', xycoords='axes fraction')
+            page.AXs[key].annotate(txt,(0.65, 0.3), va='top', xycoords='axes fraction')
 
             '''
             subset_ranges = [(9900, 10000), (10007, 10500)]
