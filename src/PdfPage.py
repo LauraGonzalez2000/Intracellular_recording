@@ -20,16 +20,16 @@ class PdfPage:
 
         # build the axes one by one
         Y0, DY = 0.05, 0.2
-        self.AXs['Notes'] = self.create_panel([X0, Y0, DX, DY], 'Notes')
+        self.AXs['Notes'] = self.create_panel([X0+0.2, Y0, DX, DY], 'Notes')
         self.AXs['Notes'].axis('off')
 
         Y0 += 0.04
         DY = 0.04
-        self.AXs['DAC0'] = self.create_panel([X0, Y0, DX, DY], 'DAC0')
+        self.AXs['V_cmd0'] = self.create_panel([X0, Y0, DX, DY], 'V cmd 0')
 
         Y0 += 0.08
         DY = 0.04
-        self.AXs['DAC1'] = self.create_panel([X0, Y0, DX, DY], 'DAC1')
+        self.AXs['V_cmd1'] = self.create_panel([X0, Y0, DX, DY], 'C cmd 1')
 
         Y0 += DY+0.04
         DY = 0.10
@@ -40,16 +40,16 @@ class PdfPage:
         self.AXs['MemTest'] = self.create_panel([X0, Y0, 0.35, DY], 'Membrane Characteristics')
 
         DY = 0.06
-        self.AXs['Id'] = self.create_panel([0.60, Y0, 0.37, DY])
+        self.AXs['Id (pA)'] = self.create_panel([0.60, Y0, 0.37, DY])
 
         Y0 += 0.06
-        self.AXs['Rm'] = self.create_panel([0.60, Y0, 0.37, DY])
+        self.AXs['Rm (MOhm)'] = self.create_panel([0.60, Y0, 0.37, DY])
 
         Y0 += 0.06
-        self.AXs['Ra'] = self.create_panel([0.60, Y0, 0.37, DY])
+        self.AXs['Ra (MOhm)'] = self.create_panel([0.60, Y0, 0.37, DY])
 
         Y0 += 0.06
-        self.AXs['Cm'] = self.create_panel([0.60, Y0, 0.37, DY])
+        self.AXs['Cm (pF)'] = self.create_panel([0.60, Y0, 0.37, DY])
 
         Y0 += 0.1
         DY = 0.3
@@ -79,6 +79,6 @@ class PdfPage:
 if __name__=='__main__':
     
     page = PdfPage()
-    page.save('nm03Jun2024c0_001_NMDA.pdf')
+    page.save('nm03Jun2024c0_000_AMPA.pdf')
     plt.show()
 

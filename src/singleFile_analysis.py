@@ -15,8 +15,8 @@ NUM_DATAPOINTS = 200000 #amount of datapoints acquired (200 000) #may vary
 #STIM_PARAMS = '/nmMarieRecording_singleVCstim'  #Configuration of stimulation name  #may vary
 STIM_PARAMS = '/nmStimSofia1' 
 #PATH = r'\\l2export\iss02.rebola\analyzed\Sofia\Analysis IGOR files\HDF5 files\nm18Feb2021c1_006_HDF5'
-PATH = r'C:\Users\laura.gonzalez\DATA\HDF5 files\nm03Jun2024c0_001_HDF5'
-DELTA_V = 1e-3 #10 mV = 10^-3 V
+PATH = r'C:\Users\laura.gonzalez\DATA\HDF5 files\nm03Jun2024c0_000_HDF5'
+DELTA_V = 1e-2 #10 mV = 10^-2 V
 
 ################################################################################
 #Methods to process data
@@ -32,7 +32,7 @@ def get_time(data):
         tot_time = np.round(timestep * datapoints).astype(int) 
         time = np.linspace(0, tot_time, num=datapoints)
         return time
-    except: ## if information not present in file for some reason
+    except BaseException: ## if information not present in file for some reason
         timestep_ = TIME_STEP 
         datapoints_ = NUM_DATAPOINTS     
         tot_time_ = np.round(timestep_ * datapoints_).astype(int) 
@@ -278,8 +278,9 @@ def get_mem_values(recording, time):
     Rm = (DELTA_V - Ra * Idss_A) / Idss_A #in Ohm
 
     params_exp1 = get_params_function(model_biexponential1, 10007, 20000, recording, time)
-    tau = np.abs(params_exp1[2])  
-    Cm = np.abs(tau / (1/(1/Ra + 1/Rm)) )
+    tau = np.abs(params_exp1[2])  #in ms
+    tau_s = tau * 1e-3  #in s
+    Cm = np.abs(tau_s / (1/(1/Ra + 1/Rm)) ) #in F
 
     ''' 
     #alternative : calculate Cm with the area under the curve (decay)
@@ -295,7 +296,7 @@ def get_mem_values(recording, time):
     Cm_c = Cm / (correction*correction)
     values = [Ra, Ra_c, Rm, Rm_c, Cm, Cm_c]
     '''
-    return Id, Ra, Rm, Cm
+    return Id_A, Ra, Rm, Cm
 
 def get_mem_values_across_time(data, time):
     recordings = get_recordings(data)
@@ -304,10 +305,10 @@ def get_mem_values_across_time(data, time):
     Rm_list = []
     Cm_list = []
     for recording in recordings: 
-        Id_list.append(get_mem_values(recording, time)[0])
-        Ra_list.append(get_mem_values(recording, time)[1])
-        Rm_list.append(get_mem_values(recording, time)[2])
-        Cm_list.append(get_mem_values(recording, time)[3])
+        Id_list.append(get_mem_values(recording, time)[0]*1e12)
+        Ra_list.append(get_mem_values(recording, time)[1]/1e6)
+        Rm_list.append(get_mem_values(recording, time)[2]/1e6)
+        Cm_list.append(get_mem_values(recording, time)[3]*1e12)
     return Id_list, Ra_list, Rm_list, Cm_list
 
 def analyse_neg_peak(average_data_aligned, data):
@@ -486,9 +487,9 @@ def analyse_pos_peak(average_data_aligned, data):
     return peak, amp_resp1, amp_resp2, PPR, rise_time, decay_time
 ################################################################################
 #Fill PDF
-def fill_PDF(filename, debug=False):
+def fill_PDF(filename, path = PATH, debug=False):
 
-    path = PATH
+    
     data = get_raw_data(path)
     recordings_avg_aligned = get_average_recordings_aligned(data)
     time = get_time(data)
@@ -508,22 +509,25 @@ def fill_PDF(filename, debug=False):
             txt += ' \n '
             page.AXs[key].annotate(txt,(0, 1), va='top', xycoords='axes fraction')
 
-        elif key=='DAC0':
-            page.AXs[key].set_ylabel(key)
+        elif key=='V_cmd0':
+            #page.AXs[key].set_ylabel(key)
+            page.AXs[key].annotate("voltage (V)", (-0.12, -0.1), xycoords='axes fraction', rotation=90)
             Stim_params = data[STIM_PARAMS]
             Stim_params_ = Stim_params['DAC_0_0']
             dac0_pulse = np.array(Stim_params_)
             page.AXs[key].plot(time, dac0_pulse)  
         
-        elif key=='DAC1':
-            page.AXs[key].set_ylabel(key)
+        elif key=='V_cmd1':
+            #page.AXs[key].set_ylabel(key)
+            page.AXs[key].annotate("voltage (V)", (-0.12, -0.2), xycoords='axes fraction', rotation=90)
             Stim_params = data[STIM_PARAMS]
             Stim_params_ = Stim_params['DAC_1_0']
             dac1_pulse = np.array(Stim_params_)
             page.AXs[key].plot(time, dac1_pulse)  
 
         elif key=='FullResp':
-            page.AXs[key].set_ylabel(key)
+            #page.AXs[key].set_ylabel(key)
+            page.AXs[key].annotate("current (A)", (-0.12, 0.1), xycoords='axes fraction', rotation=90)
             full_resp = recordings_avg_aligned
             stim1, stim2, _, _ = get_boundaries(data)
             #print(stim1, stim2, WINDOW)
@@ -531,7 +535,8 @@ def fill_PDF(filename, debug=False):
             page.AXs[key].plot(time[~artefact_cond], full_resp[~artefact_cond])  
 
         elif key=='MemTest':
-            page.AXs[key].set_ylabel(key)
+            #page.AXs[key].set_ylabel(key)
+            page.AXs[key].annotate("current (A)", (-0.30, 0.4), xycoords='axes fraction', rotation=90)
             time_mem = time[9900:10600]
             resp_mem = recordings_avg_aligned[9900:10600]
             page.AXs[key].plot(time_mem, resp_mem, label = "Data")
@@ -546,20 +551,20 @@ def fill_PDF(filename, debug=False):
             Id_avg, Ra_avg, Rm_avg, Cm_avg  = get_mem_values(recordings_avg_aligned, time)
 
             txt = "Id : "
-            txt += str('%.4f'%(Id_avg*1e3))
+            txt += str('%.1f'%(Id_avg*1e12))
             txt += " pA "
             txt += '\n'
             txt += "Rm : "
-            txt += str('%.4f'%(Rm_avg/1e6))
-            txt += " MOhm "
+            txt += str('%.1f'%(Rm_avg/1e6))
+            txt += " M$\\Omega$ "
             txt += '\n'
             txt += "Ra : "
-            txt += str('%.4f'%(Ra_avg/1e6))
+            txt += str('%.1f'%(Ra_avg/1e6))
             txt += " MOhm "
             txt += '\n'
             txt += "Cm : "
-            txt += str('%.4f'%(Cm_avg*1e6))
-            txt += " µF "
+            txt += str('%.1f'%(Cm_avg*1e12))
+            txt += " pF "
             txt += '\n'
             page.AXs[key].annotate(txt,(0.35, 0.5), va='top', xycoords='axes fraction')
 
@@ -567,28 +572,50 @@ def fill_PDF(filename, debug=False):
             page.AXs[key].fill_between(time_mem,model_biexponential1(time_mem,params_exp[0],params_exp[1],params_exp[2],params_exp[3],params_exp[4] ), model_function_constant(time_mem, params_exp[4] ),where=((time_mem >= 100) & (time_mem <= 200)), alpha=0.3, color='skyblue')
 
 
-        elif key=='Id':
+        elif key=='Id (pA)':
             page.AXs[key].set_ylabel(key)
             Id_list = get_mem_values_across_time(data, time)[0]
             page.AXs[key].plot(Id_list) 
 
-        elif key=='Rm':
+            mean_Id_list = np.full((40,1), np.mean(Id_list))
+            page.AXs[key].plot(np.linspace(0,40,40), mean_Id_list, color="lightblue")
+            
+            print(np.mean(Id_list))
+
+        elif key=='Rm (MOhm)':
             page.AXs[key].set_ylabel(key)
             Rm_list = get_mem_values_across_time(data, time)[1]
             page.AXs[key].plot(Rm_list)  
 
-        elif key=='Ra':
+            mean_Rm_list = np.full((40,1), np.mean(Rm_list))
+            page.AXs[key].plot(np.linspace(0,40,40), mean_Rm_list, color="lightblue")
+            
+            print(np.mean(Rm_list))
+
+
+        elif key=='Ra (MOhm)':
             page.AXs[key].set_ylabel(key)
             Ra_list = get_mem_values_across_time(data, time)[2]
             page.AXs[key].plot(Ra_list)  
 
-        elif key=='Cm':
+            mean_Ra_list = np.full((40,1), np.mean(Ra_list))
+            page.AXs[key].plot(np.linspace(0,40,40), mean_Ra_list, color="lightblue")
+            
+            print(np.mean(Ra_list))
+
+        elif key=='Cm (pF)':
             page.AXs[key].set_ylabel(key)
             Cm_list = get_mem_values_across_time(data, time)[3]
             page.AXs[key].plot(Cm_list)  
 
+            mean_Cm_list = np.full((40,1), np.mean(Cm_list))
+            page.AXs[key].plot(np.linspace(0,40,40), mean_Cm_list, color="lightblue")
+            
+            print(np.mean(Cm_list))
+
         elif key=='RespAnalyzed':
-            page.AXs[key].set_ylabel(key)
+            #page.AXs[key].set_ylabel(key)
+            page.AXs[key].annotate("current (A)", (-0.12, 0.4), xycoords='axes fraction', rotation=90)
             time_stim = time[55000:80000]
             resp_stim = recordings_avg_aligned[55000:80000]
             stim1, stim2, _, _ = get_boundaries(data)
@@ -646,8 +673,8 @@ def fill_PDF(filename, debug=False):
 if __name__=='__main__':
          
     import os 
-         
-    filename = os.path.join(os.path.expanduser('~'), 'DATA', 'Dataset1', 'nm03Jun2024c0_001_NMDA.pdf')
+
+    filename = os.path.join(os.path.expanduser('~'), 'DATA', 'Dataset1', 'nm03Jun2024c0_000_AMPA.pdf')
 
     fill_PDF(filename, debug=True)
 
