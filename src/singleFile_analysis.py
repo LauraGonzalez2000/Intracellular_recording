@@ -15,7 +15,7 @@ NUM_DATAPOINTS = 200000 #amount of datapoints acquired (200 000) #may vary
 #STIM_PARAMS = '/nmMarieRecording_singleVCstim'  #Configuration of stimulation name  #may vary
 STIM_PARAMS = '/nmStimSofia1' 
 #PATH = r'\\l2export\iss02.rebola\analyzed\Sofia\Analysis IGOR files\HDF5 files\nm18Feb2021c1_006_HDF5'
-PATH = r'C:\Users\laura.gonzalez\DATA\HDF5 files\nm03Jun2024c0_001_HDF5'
+PATH = r'C:\Users\laura.gonzalez\DATA\HDF5 files\nm29May2024c1_000'
 DELTA_V = 1e-2 #10 mV = 10^-2 V
 
 ################################################################################
@@ -713,7 +713,7 @@ if __name__=='__main__':
          
     import os 
 
-    filename = os.path.join(os.path.expanduser('~'), 'DATA', 'Dataset1', 'nm03Jun2024c0_001_NMDA.pdf')
+    filename = os.path.join(os.path.expanduser('~'), 'DATA', 'Dataset1', 'nm29May2024c1_000_AMPA.pdf')
 
     fill_PDF(filename, debug=True)
 
