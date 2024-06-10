@@ -15,7 +15,7 @@ NUM_DATAPOINTS = 200000 #amount of datapoints acquired (200 000) #may vary
 #STIM_PARAMS = '/nmMarieRecording_singleVCstim'  #Configuration of stimulation name  #may vary
 STIM_PARAMS = '/nmStimSofia1' 
 #PATH = r'\\l2export\iss02.rebola\analyzed\Sofia\Analysis IGOR files\HDF5 files\nm18Feb2021c1_006_HDF5'
-PATH = r'C:\Users\laura.gonzalez\DATA\HDF5 files\nm03Jun2024c0_000_HDF5'
+PATH = r'C:\Users\laura.gonzalez\DATA\HDF5 files\nm03Jun2024c0_001_HDF5'
 DELTA_V = 1e-2 #10 mV = 10^-2 V
 
 ################################################################################
@@ -49,7 +49,7 @@ def get_recordings(data):
             recordings.append(recording)
     return recordings
 
-def get_recordings_aligned(record_data):
+def get_recordings_aligned(record_data):  #useless?
     record_data_aligned = []
     for recording in record_data: 
         recording_baseline = recording[0:50]
@@ -57,6 +57,14 @@ def get_recordings_aligned(record_data):
         recording_aligned = record_data - average_baseline
         record_data_aligned.append[recording_aligned]
     return record_data_aligned
+
+def get_baseline(record_data):
+    averages_baselines = []
+    for recording in record_data: 
+        recording_baseline = recording[0:50]
+        average_baseline = statistics.mean(recording_baseline)
+        averages_baselines.append(average_baseline)
+    return averages_baselines
 
 def get_average_recordings(recordings):
 
@@ -511,7 +519,8 @@ def fill_PDF(filename, path = PATH, debug=False):
 
         elif key=='V_cmd0':
             #page.AXs[key].set_ylabel(key)
-            page.AXs[key].annotate("voltage (V)", (-0.12, -0.1), xycoords='axes fraction', rotation=90)
+            page.AXs[key].set_xlabel("time (ms)")
+            page.AXs[key].annotate("voltage (V)", (-0.12, -0.2), xycoords='axes fraction', rotation=90)
             Stim_params = data[STIM_PARAMS]
             Stim_params_ = Stim_params['DAC_0_0']
             dac0_pulse = np.array(Stim_params_)
@@ -519,14 +528,15 @@ def fill_PDF(filename, path = PATH, debug=False):
         
         elif key=='V_cmd1':
             #page.AXs[key].set_ylabel(key)
-            page.AXs[key].annotate("voltage (V)", (-0.12, -0.2), xycoords='axes fraction', rotation=90)
+            page.AXs[key].set_xlabel("time (ms)")
+            page.AXs[key].annotate("voltage (V)", (-0.12, -0.8), xycoords='axes fraction', rotation=90)
             Stim_params = data[STIM_PARAMS]
             Stim_params_ = Stim_params['DAC_1_0']
             dac1_pulse = np.array(Stim_params_)
             page.AXs[key].plot(time, dac1_pulse)  
 
         elif key=='FullResp':
-            #page.AXs[key].set_ylabel(key)
+            page.AXs[key].set_xlabel("time (ms)")
             page.AXs[key].annotate("current (A)", (-0.12, 0.1), xycoords='axes fraction', rotation=90)
             full_resp = recordings_avg_aligned
             stim1, stim2, _, _ = get_boundaries(data)
@@ -536,6 +546,7 @@ def fill_PDF(filename, path = PATH, debug=False):
 
         elif key=='MemTest':
             #page.AXs[key].set_ylabel(key)
+            page.AXs[key].set_xlabel("time (ms)")
             page.AXs[key].annotate("current (A)", (-0.30, 0.4), xycoords='axes fraction', rotation=90)
             time_mem = time[9900:10600]
             resp_mem = recordings_avg_aligned[9900:10600]
@@ -572,7 +583,21 @@ def fill_PDF(filename, path = PATH, debug=False):
             page.AXs[key].fill_between(time_mem,model_biexponential1(time_mem,params_exp[0],params_exp[1],params_exp[2],params_exp[3],params_exp[4] ), model_function_constant(time_mem, params_exp[4] ),where=((time_mem >= 100) & (time_mem <= 200)), alpha=0.3, color='skyblue')
 
 
-        elif key=='Id (pA)':
+        elif key=='Leak (pA)':
+            txt = 'Leak '
+            txt+= '\n'
+            txt += '(A)'
+            page.AXs[key].annotate(txt, (-0.28, 0.2), xycoords='axes fraction', rotation=90)
+
+            recordings = get_recordings(data)
+            averages_baselines = get_baseline(recordings)
+            #page.AXs[key].set_ylabel(key)
+            page.AXs[key].plot(averages_baselines) 
+
+            mean_leak = np.full((40,1), np.mean(averages_baselines))
+            page.AXs[key].plot(np.linspace(0,40,40), mean_leak, color="lightblue")
+
+            '''
             page.AXs[key].set_ylabel(key)
             Id_list = get_mem_values_across_time(data, time)[0]
             page.AXs[key].plot(Id_list) 
@@ -581,9 +606,13 @@ def fill_PDF(filename, path = PATH, debug=False):
             page.AXs[key].plot(np.linspace(0,40,40), mean_Id_list, color="lightblue")
             
             print(np.mean(Id_list))
-
+            '''
         elif key=='Rm (MOhm)':
-            page.AXs[key].set_ylabel(key)
+            txt = 'Rm '
+            txt+= '\n'
+            txt += '(MOhm)'
+            page.AXs[key].annotate(txt, (-0.28, 0.2), xycoords='axes fraction', rotation=90)
+            #page.AXs[key].set_ylabel(key)
             Rm_list = get_mem_values_across_time(data, time)[1]
             page.AXs[key].plot(Rm_list)  
 
@@ -594,7 +623,11 @@ def fill_PDF(filename, path = PATH, debug=False):
 
 
         elif key=='Ra (MOhm)':
-            page.AXs[key].set_ylabel(key)
+            txt = 'Ra '
+            txt+= '\n'
+            txt += '(MOhm)'
+            page.AXs[key].annotate(txt, (-0.28, 0.2), xycoords='axes fraction', rotation=90)
+            #page.AXs[key].set_ylabel(key)
             Ra_list = get_mem_values_across_time(data, time)[2]
             page.AXs[key].plot(Ra_list)  
 
@@ -604,7 +637,12 @@ def fill_PDF(filename, path = PATH, debug=False):
             print(np.mean(Ra_list))
 
         elif key=='Cm (pF)':
-            page.AXs[key].set_ylabel(key)
+            txt = 'Cm '
+            txt+= '\n'
+            txt += '(pF)'
+            page.AXs[key].annotate(txt, (-0.28, 0.2), xycoords='axes fraction', rotation=90)
+            page.AXs[key].set_xlabel("sweep")
+            #page.AXs[key].set_ylabel(key)
             Cm_list = get_mem_values_across_time(data, time)[3]
             page.AXs[key].plot(Cm_list)  
 
@@ -615,6 +653,7 @@ def fill_PDF(filename, path = PATH, debug=False):
 
         elif key=='RespAnalyzed':
             #page.AXs[key].set_ylabel(key)
+            page.AXs[key].set_xlabel("time (ms)")
             page.AXs[key].annotate("current (A)", (-0.12, 0.4), xycoords='axes fraction', rotation=90)
             time_stim = time[55000:80000]
             resp_stim = recordings_avg_aligned[55000:80000]
@@ -674,7 +713,7 @@ if __name__=='__main__':
          
     import os 
 
-    filename = os.path.join(os.path.expanduser('~'), 'DATA', 'Dataset1', 'nm03Jun2024c0_000_AMPA.pdf')
+    filename = os.path.join(os.path.expanduser('~'), 'DATA', 'Dataset1', 'nm03Jun2024c0_001_NMDA.pdf')
 
     fill_PDF(filename, debug=True)
 
