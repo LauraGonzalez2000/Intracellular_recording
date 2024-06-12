@@ -4,17 +4,7 @@ import os
 
 from igor2.packed import load as loadpxp
 
-#data = loadpxp('C:/Users/laura.gonzalez/DATA/nm28May2024c0/nm28May2024c0_000.pxp')
-
-#files = os.listdir('C:/Users/laura.gonzalez/DATA')
-#for file in files:
-#    if 'nm' in file:
-#        print('- ', file)
-
-
-#data = loadpxp('C:/Users/laura.gonzalez/DATA/nm28May2024c0/nm28May2024c0_000.pxp')
-#print('hey', data, 'hey')
-
+from trace_analysis import trace_analysis 
 
 def find_nm_files(root_folder):
     nm_paths = []
@@ -43,25 +33,20 @@ def load_data(file):
     except:
         print("data was not loaded")
 
-###### MAIN
+###### MAIN ######################################################
 
 files = find_nm_files('C:/Users/laura.gonzalez/DATA/RAW_DATA')
 for file in files:
     data = load_data(file)
+
+
     #analyse each file to create a pdf
+    if __name__=='__main__':
+    filename = os.path.join(os.path.expanduser('~'), 'DATA', 'PDFs', file,'.pdf')
+    fill_PDF(filename, debug=True)
+
 
     #analyse each file to create excel
 
     #analyse each file to plot
 
-
-'''
-print('C:/Users/laura.gonzalez/DATA/nm03Jun2024c0/nm03Jun2024c0_000.pxp')
-print(files[0])
-print(str(files[0]))
-
-data = loadpxp('C:/Users/laura.gonzalez/DATA/nm28May2024c0/nm28May2024c0_000.pxp')
-print(data)
-#data = loadpxp(str(files[0]))
-#print(data)
-'''
