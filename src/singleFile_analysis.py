@@ -497,7 +497,6 @@ def analyse_pos_peak(average_data_aligned, data):
 #Fill PDF
 def fill_PDF(filename, path = PATH, debug=False):
 
-    
     data = get_raw_data(path)
     recordings_avg_aligned = get_average_recordings_aligned(data)
     time = get_time(data)

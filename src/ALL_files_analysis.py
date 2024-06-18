@@ -30,20 +30,33 @@ def find_nm_files(root_folder):
 
 files = find_nm_files('C:/Users/laura.gonzalez/DATA/RAW_DATA')
 
-
+'''
 for file in files:
     datafile = DataFile(file)
 
-    '''
-    fill_PDF(filename, debug=True)
-    '''
+    #fill_PDF(filename, debug=True)
+   
     #analyse each file to create excel
 
     #analyse each file to plot
 
-
+'''
 #### try with one file, then put this inside the loop:
 #datafile = DataFile('C:/Users/laura.gonzalez/DATA/RAW_DATA/nm12Jun2024c0/nm12Jun2024c0_000.pxp')
+#pdf = PdfPage(debug=True)
+#print(pdf)
+#fill_PDF("nm12Jun2024c0_000", debug=True)
+
+
+#Execute if the Python script is being executed as the main program. 
+#If the script is being imported as a module in another script, not execute.
+if __name__=='__main__':
+    #filename is the full path to the PDF file 
+    filename = os.path.join(os.path.expanduser('~'), 'DATA', 'Dataset1', 'nm12Jun2024c0_000_AMPA.pdf')
+    datafile = DataFile('C:/Users/laura.gonzalez/DATA/RAW_DATA/nm12Jun2024c0/nm12Jun2024c0_000.pxp')
+    pdf = PdfPage(debug=True)
+    pdf.fill_PDF(datafile, debug=True)
+    plt.show()
 
 
 
