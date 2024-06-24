@@ -1,7 +1,8 @@
 import numpy as np
 import matplotlib.pylab as plt
 import statistics
-from scipy.optimize import curve_fit #to fit
+#from scipy.optimize import curve_fit #to fit
+import Curve_fit as cf
 
 from igor2.packed import load as loadpxp
 
@@ -102,40 +103,60 @@ class DataFile:
     def get_boundaries(self): #to FIX
         return 600, 699, 700, 799
 
-    def get_mem_values(self, recording, time, delta_v = 1e-2): 
+    def get_mem_values(self, recording, time, delta_v = 5*1e-3): 
 
-        Id = np.abs(np.min(recording[10000: 11000])) #in nano amperes, check if works
+        Id = np.abs(np.min(recording[10000:11000])) #in nano amperes, check if work
         Id_A = Id * 1e-9   # in amperes
 
         Ra = np.abs(delta_v/Id_A)  #in ohm   (volts/amperes)
 
-        Idss = np.abs(np.mean(recording[16000:19000]))   # in nano amperes
-        Idss_A = Idss * 1e-9   # in amperes
-        Rm = (delta_v - Ra * Idss_A) / Idss_A #in Ohm
+        baseline = np.abs(statistics.mean(recording[0:50]))
+        Idss = np.abs(statistics.mean(recording[16000:19000]))   # in nano amperes
+        print("Idss ",Idss)
+        Idss2 = Idss - baseline
+        print("Idss2 ",Idss2)
+        Idss_A = Idss2 * 1e-9   # in amperes
 
-        #params_exp1 = self.get_params_function(self.model_biexponential1, 10007, 20000, recording, time)
-        #tau = np.abs(params_exp1[2])  #in ms
-        tau = 5  #change!
+        
+        #Rm = (delta_v - Ra * Idss_A) / Idss_A #in Ohm
+        Rm = delta_v / Idss_A #in Ohm
+
+
+        try:
+            params_exp1 = cf.get_params_function(cf.model_biexponential1, 10007, 20000, recording, time)
+            
+        except: 
+            params_exp1 = cf.get_params_function(cf.model_exponential, 10007, 20000, recording, time)
+        
+        print( params_exp1[2])
+        tau = np.abs(params_exp1[2])  #in ms
         tau_s = tau * 1e-3  #in s
+        print(tau)
         Cm = np.abs(tau_s / (1/(1/Ra + 1/Rm)) ) #in F
 
-        '''
+
         print("mem values")
-        print(Id_A)
-        print(Ra)
-        print(Rm)
-        print(Cm)
-        '''
+        print("Id ", Id_A)
+        print("Rm ", Rm)
+        print("Ra ", Ra)
+        print("Cm", Cm)
+
 
         return Id_A, Ra, Rm, Cm
 
     def get_mem_values_across_time(self, time):
         Id_list, Ra_list, Rm_list, Cm_list = [], [], [], []
+        #i = 0
         for recording in self.response: 
-            Id_list.append(self.get_mem_values(recording, time)[0]*1e12)
-            Ra_list.append(self.get_mem_values(recording, time)[1]/1e6)
-            Rm_list.append(self.get_mem_values(recording, time)[2]/1e6)
-            Cm_list.append(self.get_mem_values(recording, time)[3]*1e12)
+            #print(i)
+            values = self.get_mem_values(recording, time)
+            Id_list.append(values[0]*1e12)
+            Ra_list.append(values[1]/1e6)
+            Rm_list.append(values[2]/1e6)
+            Cm_list.append(values[3]*1e12)
+            #i+=1
+        
+        #print(Id_list)
         return Id_list, Ra_list, Rm_list, Cm_list
 
     def get_resp_nature(self):
@@ -323,49 +344,6 @@ class DataFile:
         '''
         
         return peak, amp_resp1, amp_resp2, PPR, rise_time, decay_time
-
-
-    ##################   mathematical tools, make another class?
-
-    def model_function_constant(t, Iprev): #constant
-        return 0*t + Iprev
-
-    def model_exponential(t, A, B, C, D):
-        return A * (B*np.exp(-(t-100)/C)) + D
-
-    def model_biexponential1(t, A, B, C, D, E): #biexponential model 1
-        return A * (B*np.exp(-(t-100)/C) + (1-B)*np.exp(-(t-100)/D)) + E
-
-    def get_fit(self, subset_range, model_function, time, average_data_aligned):
-        
-        #print("hey")
-        params = []
-        #print("hey1")
-        start, end = subset_range
-        #print("hey2")
-        x_subset = time[start:end]
-        #print("hey3")
-        y_subset = average_data_aligned[start:end]
-        #print("hey4")
-        #print(model_function)
-        #print(x_subset)
-        #print(y_subset)
-
-        #print(len(x_subset))
-        #print(len(y_subset))
-        #plt.plot(x_subset, y_subset)
-        #plt.show()
-        params, _ = curve_fit(model_function, x_subset, y_subset)  
-        #print("hey5") 
-        return x_subset, model_function(x_subset, *params)
-        
-    def get_params_function(self, model_function, start, end, recording, time):
-        x_subset = time[start:end]
-        y_subset = recording[start:end]
-        params, _ = curve_fit(model_function, x_subset, y_subset)
-        return params
-
-    ####################
 
 
     '''
