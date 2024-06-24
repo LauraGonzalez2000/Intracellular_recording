@@ -5,6 +5,7 @@ from PdfPage import PdfPage
 from trace_analysis import DataFile
 from igor2.packed import load as loadpxp
 import pprint
+import matplotlib.pylab as plt
 
 def find_nm_files(root_folder):
     nm_paths = []
@@ -52,11 +53,12 @@ for file in files:
 #If the script is being imported as a module in another script, not execute.
 if __name__=='__main__':
     #filename is the full path to the PDF file 
-    filename = os.path.join(os.path.expanduser('~'), 'DATA', 'Dataset1', 'nm12Jun2024c0_000_AMPA.pdf')
+    #filename = os.path.join(os.path.expanduser('~'), 'DATA', 'Dataset1', 'nm12Jun2024c0_000_AMPA.pdf')
     datafile = DataFile('C:/Users/laura.gonzalez/DATA/RAW_DATA/nm12Jun2024c0/nm12Jun2024c0_000.pxp')
     pdf = PdfPage(debug=True)
     pdf.fill_PDF(datafile, debug=True)
     plt.show()
+    
 
 
 

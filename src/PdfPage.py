@@ -80,16 +80,19 @@ class PdfPage:
             if key=='Notes':
                 txt = f"ID file: {datafile.file_path} \n Number of recordings: {len(datafile.response)} \n"
                 self.AXs[key].annotate(txt,(0, 1), va='top', xycoords='axes fraction')
+                print("Notes")
 
             elif key=='V_cmd0':
                 self.AXs[key].set_xlabel("time (ms)")
                 self.AXs[key].annotate("voltage (V)", (-0.12, -0.2), xycoords='axes fraction', rotation=90)
                 self.AXs[key].plot(time, datafile.stim['Cmd1'])  
+                print("V_cmd0")
             
             elif key=='V_cmd1':
                 self.AXs[key].set_xlabel("time (ms)")
                 self.AXs[key].annotate("voltage (V)", (-0.12, -0.8), xycoords='axes fraction', rotation=90)
                 self.AXs[key].plot(time, datafile.stim['Cmd2'])  
+                print("V_cmd1")
 
             elif key=='FullResp':
                 self.AXs[key].set_xlabel("time (ms)")
@@ -97,8 +100,10 @@ class PdfPage:
                 stim1, _, stim2, _ = datafile.get_boundaries()
                 artefact_cond = ((time>stim1) & (time<stim1+1)) | ((time>stim2) & (time<stim2+1)) 
                 self.AXs[key].plot(time[~artefact_cond], datafile.avg_response[~artefact_cond]) 
-                plt.plot(time[~artefact_cond], datafile.avg_response[~artefact_cond]) 
-                plt.show()
+                print("Full_resp")
+                #plt.plot(time[~artefact_cond], datafile.avg_response[~artefact_cond]) 
+                #plt.show()
+                
 
             elif key=='MemTest':
                 self.AXs[key].set_xlabel("time (ms)")
@@ -106,12 +111,16 @@ class PdfPage:
                 time_mem = time[9900:10600]
                 resp_mem = datafile.avg_response[9900:10600]
                 self.AXs[key].plot(time_mem, resp_mem, label = "Data")
-                '''
+                print("mem_test")
+                
                 my_range = (10007, 10600)
-                my_func = datafile.model_exponential  
+                my_func = datafile.model_biexponential1  
+                
                 x,y = datafile.get_fit(my_range, my_func, time, datafile.avg_response)
+                '''
                 self.AXs[key].plot(x,y, color="red", label = "fit")
                 Id_avg, Ra_avg, Rm_avg, Cm_avg  = datafile.get_mem_values(datafile.avg_response, time)
+                
                 txt = (f"Id : {Id_avg*1e12:.1f} pA \n"
                        f"Rm : {Rm_avg/1e6:.1f} M$\\Omega$ \n"
                        f"Ra : {Ra_avg/1e6:.1f} MOhm \n"
@@ -120,6 +129,7 @@ class PdfPage:
                 params_exp = datafile.get_params_function(model_biexponential1, 10007, 20000, datafile.avg_response, time)
                 self.AXs[key].fill_between(time_mem,model_biexponential1(time_mem,params_exp[0],params_exp[1],params_exp[2],params_exp[3],params_exp[4] ), model_function_constant(time_mem, params_exp[4] ),where=((time_mem >= 100) & (time_mem <= 200)), alpha=0.3, color='skyblue')
                 '''
+
             elif key=='Leak (pA)':
                 txt = f"Leak \n (A)"
                 self.AXs[key].annotate(txt, (-0.28, 0.2), xycoords='axes fraction', rotation=90)
@@ -127,6 +137,7 @@ class PdfPage:
                 self.AXs[key].plot(averages_baselines) 
                 mean_leak = np.full((40,1), np.mean(averages_baselines))
                 self.AXs[key].plot(np.linspace(0,40,40), mean_leak, color="lightblue")
+                print("leak")
 
             elif key=='Rm (MOhm)':
                 txt = 'Rm '
@@ -137,6 +148,7 @@ class PdfPage:
                 self.AXs[key].plot(Rm_list)  
                 mean_Rm_list = np.full((40,1), np.mean(Rm_list))
                 self.AXs[key].plot(np.linspace(0,40,40), mean_Rm_list, color="lightblue")
+                print("Rm")
 
             elif key=='Ra (MOhm)':
                 txt = 'Ra '
@@ -147,6 +159,7 @@ class PdfPage:
                 self.AXs[key].plot(Ra_list)  
                 mean_Ra_list = np.full((40,1), np.mean(Ra_list))
                 self.AXs[key].plot(np.linspace(0,40,40), mean_Ra_list, color="lightblue")
+                print("Ra")
                 
             elif key=='Cm (pF)':
                 txt = 'Cm '
@@ -159,6 +172,7 @@ class PdfPage:
                 mean_Cm_list = np.full((40,1), np.mean(Cm_list))
                 self.AXs[key].plot(np.linspace(0,40,40), mean_Cm_list, color="lightblue")
                 print(np.mean(Cm_list))
+                print("Cm")
 
             elif key=='RespAnalyzed':
                 self.AXs[key].set_xlabel("time (ms)")
@@ -175,13 +189,13 @@ class PdfPage:
                        f"Rise time  : {rise_time:.2f} ms \n"
                        f"Decay time : {decay_time:.2f} ms \n")
                 self.AXs[key].annotate(txt,(0.65, 0.3), va='top', xycoords='axes fraction')
-                
-        self.fig.savefig(datafile.file_path)
+                print("response")
+        
     
-
 if __name__=='__main__':
-    
+
+    datafile = DataFile('C:/Users/laura.gonzalez/DATA/RAW_DATA/nm12Jun2024c0/nm12Jun2024c0_000.pxp')
     page = PdfPage()
-    page.save('nm29May2024c1_000_AMPA.pdf')
+    page.fill_PDF(datafile)
     plt.show()
 

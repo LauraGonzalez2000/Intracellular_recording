@@ -338,25 +338,25 @@ class DataFile:
 
     def get_fit(self, subset_range, model_function, time, average_data_aligned):
         
-        print("hey")
+        #print("hey")
         params = []
-        print("hey1")
+        #print("hey1")
         start, end = subset_range
-        print("hey2")
+        #print("hey2")
         x_subset = time[start:end]
-        print("hey3")
+        #print("hey3")
         y_subset = average_data_aligned[start:end]
-        print("hey4")
-        print(model_function)
-        print(x_subset)
-        print(y_subset)
+        #print("hey4")
+        #print(model_function)
+        #print(x_subset)
+        #print(y_subset)
 
-        print(len(x_subset))
-        print(len(y_subset))
-        plt.plot(x_subset, y_subset)
-        plt.show()
+        #print(len(x_subset))
+        #print(len(y_subset))
+        #plt.plot(x_subset, y_subset)
+        #plt.show()
         params, _ = curve_fit(model_function, x_subset, y_subset)  
-        print("hey5") 
+        #print("hey5") 
         return x_subset, model_function(x_subset, *params)
         
     def get_params_function(self, model_function, start, end, recording, time):
