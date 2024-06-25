@@ -128,7 +128,7 @@ class PdfPage:
                     self.AXs[key].fill_between(time_mem, cf.model_biexponential1(time_mem,params_exp[0],params_exp[1],params_exp[2],params_exp[3],params_exp[4]), cf.model_function_constant(time_mem, params_exp[4] ),where=((time_mem >= 100) & (time_mem <= 200)), alpha=0.3, color='skyblue')
                 except: 
                     params_exp = cf.get_params_function(cf.model_exponential, 10007, 20000, datafile.avg_response, time)
-                    print(params_exp)
+                    #print(params_exp)
                     self.AXs[key].fill_between(time_mem,cf.model_exponential(time_mem,params_exp[0],params_exp[1],params_exp[2],params_exp[3]), cf.model_function_constant(time_mem, params_exp[3] ),where=((time_mem >= 100) & (time_mem <= 200)), alpha=0.3, color='skyblue')
                 
             elif key=='Leak (pA)':
@@ -173,10 +173,10 @@ class PdfPage:
                 artefact_cond = ((time_stim>stim1) & (time_stim<stim1+1)) | ((time_stim>stim2) & (time_stim<stim2+1))
                 self.AXs[key].plot(time_stim[~artefact_cond], resp_stim[~artefact_cond])  
                 if datafile.get_resp_nature() : 
-                    print("analyse neg peak")
+                    #print("analyse neg peak")
                     peak, amp_resp1, amp_resp2, PPR, rise_time, decay_time = datafile.analyse_neg_peak()
                 else : 
-                    print("analyse pos peak")
+                    #print("analyse pos peak")
                     peak, amp_resp1, amp_resp2, PPR, rise_time, decay_time = datafile.analyse_pos_peak()
                 txt = (f"Peak1 : {amp_resp1*1e3:.2f} pA \n"
                        f"Peak2 : {amp_resp2*1e3:.2f} pA \n"

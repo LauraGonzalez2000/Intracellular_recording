@@ -6,6 +6,8 @@ from trace_analysis import DataFile
 from igor2.packed import load as loadpxp
 import pprint
 import matplotlib.pylab as plt
+import pandas as pd
+from openpyxl import load_workbook
 
 def find_nm_files(root_folder):
     nm_paths = []
@@ -27,28 +29,80 @@ def find_nm_files(root_folder):
 
     return nm_paths
 
+'''
+def auto_adjust_column_widths(filepath):
+    workbook = load_workbook(filepath)
+    for sheet in workbook.sheetnames:
+        worksheet = workbook[sheet]
+        for column_cells in worksheet.columns:
+            max_length = 0
+            column = column_cells[0].column_letter
+            for cell in column_cells:
+                try:
+                    if len(str(cell.value)) > max_length:
+                        max_length = len(cell.value)
+                except:
+                    pass
+            adjusted_width = (max_length + 2)
+            worksheet.column_dimensions[column].width = adjusted_width
+    workbook.save(filepath)
+'''
 ###### MAIN ######################################################
 
 #files = find_nm_files('C:/Users/laura.gonzalez/DATA/DATA_TO_ANALYSE')
 files = find_nm_files('D:\Internship_Rebola_ICM\RAW_DATA_TO_ANALYSE')
 
+data_mem_list = []
+data_resp_list = []
 
+#PDF creation per file
 for file in files:
-    #PDF creation
     try:
         datafile = DataFile(file)
         pdf = PdfPage(debug=False)
         pdf.fill_PDF(datafile, debug=False)
         plt.savefig(f'C:/Users/laura.gonzalez/DATA/PDFs/{datafile.filename}.pdf')
         print("File saved successfully :", file, '\n')
-        #plt.show()
+
+        
+        data_mem_dict = {'Filename': datafile.filename,
+                        'Id (pA)': datafile.Id_A,
+                        'Rm (MOhm)': datafile.Rm,
+                        'Ra (MOhm)': datafile.Ra,
+                        'Cm (pF)': datafile.Cm}
+        data_mem_list.append(data_mem_dict)
+
+        data_resp_dict = {'Filename': datafile.filename,
+                          'Peak type' : datafile.type,
+                          'Amplitude response 1 (pA)': datafile.amp_resp1,
+                          'Amplitude response 2 (pA)': datafile.amp_resp2,
+                          'Paired pulse ratio Amp2/Amp1': datafile.PPR,
+                          'Rise_time 10-90% (ms)': datafile.rise_time,
+                          'Decay time 50% (ms)': datafile.decay_time}
+        data_resp_list.append(data_resp_dict)
+
     except:
         print("Error analysing this file :", file, '\n')
 
-    #Excel creation
+#Excel creation
+
+try: 
+    data_mem_for_excel = pd.DataFrame(data_mem_list)
+    data_resp_for_excel = pd.DataFrame(data_resp_list)  
+    print(data_mem_for_excel) 
+    print(data_resp_for_excel)
+    with pd.ExcelWriter('C:/Users/laura.gonzalez/DATA/output.xlsx', engine='openpyxl') as writer:
+        data_mem_for_excel.to_excel(writer, sheet_name='Membrane characteristics', index=False)
+        data_resp_for_excel.to_excel(writer, sheet_name='Response', index=False)
+    #auto_adjust_column_widths('C:/Users/laura.gonzalez/DATA/output.xlsx')
+
+    print("Excel file saved successfully.")
+except:
+    print("ERROR when saving the file to excel")
 
 
-    #analyse each file to plot
+
+#analyse each file to plot
 
 
 

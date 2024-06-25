@@ -6,6 +6,7 @@ import Curve_fit as cf
 
 from igor2.packed import load as loadpxp
 
+
 class DataFile:
 
     #Constructor
@@ -28,7 +29,7 @@ class DataFile:
 
         try:
             self.pxp = loadpxp(self.file_path)
-            print("data was loaded")
+            print("OK data was loaded")
         except:
             print("data was not loaded")
             return -1
@@ -42,7 +43,7 @@ class DataFile:
                           'FileDate' : self.pxp[1]['root'][b'FileDate'],
                           'FileTime' : self.pxp[1]['root'][b'FileTime'],
                           }
-            print('infos were filled correctly')
+            print('OK infos were filled correctly')
         except:
             print('infos were not filled correctly')
 
@@ -52,11 +53,12 @@ class DataFile:
             pulse_DAC1 = self.pxp[1]['root'][b'nmStimSofia1'][b'DAC_1_0'].wave['wave']['wData']
             self.stim = {'Cmd1' : pulse_DAC0,
                          'Cmd2' : pulse_DAC1}
-            print("stimulation traces found")
+            print("OK stimulation traces found")
         except:
             print("stimulation parameters not found")
         
     #Trace analysis
+    '''
     def get_recordings(self):
         try:
             DATA = []
@@ -68,6 +70,24 @@ class DataFile:
         except:
             print('recordings were not loaded')
             return -1
+    '''
+    def get_recordings(self):
+        try:
+            DATA = []
+            i = 0
+            while True:
+                key = b'RecordA%i' % i
+                if key in self.pxp[1]['root']:
+                    DATA.append(self.pxp[1]['root'][key].wave['wave']['wData'])
+                    i += 1
+                else:
+                    break
+            self.response = np.array(DATA)
+            print('OK Recordings were loaded')
+            return self.response
+        except Exception as e:
+            print(f'Recordings were not loaded: {e}')
+            return -1
 
     def get_average_recordings_aligned(self):
         try:
@@ -75,6 +95,7 @@ class DataFile:
             avg_baseline = statistics.mean(avg_data[0:50])
             average_data_aligned = avg_data - avg_baseline
             self.avg_response = average_data_aligned
+            print("OK average_recordings_aligned found")
         except: 
             print("Error method get_average_recordings_aligned(self)")
             return -1
@@ -94,6 +115,7 @@ class DataFile:
             datapoints = self.infos['SamplesPerWave'].astype(int)  #amount of datapoints acquired (200 000)
             tot_time = np.round(timestep * datapoints).astype(int) 
             time = np.linspace(0, tot_time, num=datapoints)
+            print("OK time scale found")
             return time
         except BaseException: ## if information not present in file for some reason    
             tot_time_ = np.round(timestep_ * datapoints_).astype(int) 
@@ -142,6 +164,11 @@ class DataFile:
         #print("Ra ", Ra)
         #print("Cm", Cm)
 
+        #assign attribute values
+        self.Id_A = Id_A
+        self.Ra = Ra
+        self.Rm = Rm
+        self.Cm = Cm
 
         return Id_A, Ra, Rm, Cm
 
@@ -167,7 +194,7 @@ class DataFile:
 
         diff = max+min
 
-        if diff == 0 : 
+        if diff == 0 : #arrange
             print("Error : no peak")
             
         elif diff < 0 :  #negative peak
@@ -176,7 +203,7 @@ class DataFile:
         elif diff > 0 :  #positive peak
             self.type = False
         
-        print("Negative peak : ", self.type)
+        #print("Negative peak : ", self.type)
         return self.type
 
     def analyse_neg_peak(self):
@@ -252,7 +279,12 @@ class DataFile:
         print("Rise_time 10-90% : ", rise_time, "ms.")
         print("Decay time 50% : ", decay_time, " ms.")
         '''
-        
+        self.amp_resp1 = amp_resp1
+        self.amp_resp2 = amp_resp2
+        self.PPR = PPR
+        self.rise_time = rise_time
+        self.decay_time = decay_time
+
         return peak, amp_resp1,amp_resp2, PPR, rise_time, decay_time
 
     def analyse_pos_peak(self):
@@ -346,7 +378,15 @@ class DataFile:
         print("Paired pulse ratio Amp2/Amp1: ", PPR )
         print("Rise_time 10-90% : ", rise_time, "ms.")
         print("Decay time 50% : ", decay_time, " ms.")
+
+
         '''
+
+        self.amp_resp1 = amp_resp1
+        self.amp_resp2 = amp_resp2
+        self.PPR = PPR
+        self.rise_time = rise_time
+        self.decay_time = decay_time
         
         return peak, amp_resp1, amp_resp2, PPR, rise_time, decay_time
 
