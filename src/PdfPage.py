@@ -4,6 +4,7 @@ from trace_analysis import DataFile
 import Curve_fit as cf
 import numpy as np
 
+from igor2.packed import load as loadpxp
 
 class PdfPage:
 
@@ -79,7 +80,7 @@ class PdfPage:
 
         for key in self.AXs:
             if key=='Notes':
-                txt = f"ID file: {datafile.file_path} \n Number of recordings: {len(datafile.response)} \n"
+                txt = f"ID file: {datafile.filename} \n Number of recordings: {len(datafile.response)} \n"
                 self.AXs[key].annotate(txt,(0, 1), va='top', xycoords='axes fraction')
                 
             elif key=='V_cmd0':
@@ -171,8 +172,12 @@ class PdfPage:
                 stim1, _, stim2, _ = datafile.get_boundaries()
                 artefact_cond = ((time_stim>stim1) & (time_stim<stim1+1)) | ((time_stim>stim2) & (time_stim<stim2+1))
                 self.AXs[key].plot(time_stim[~artefact_cond], resp_stim[~artefact_cond])  
-                if datafile.get_resp_nature() : peak, amp_resp1, amp_resp2, PPR, rise_time, decay_time = datafile.analyse_neg_peak()
-                else : peak, amp_resp1, amp_resp2, PPR, rise_time, decay_time = datafile.analyse_pos_peak()
+                if datafile.get_resp_nature() : 
+                    print("analyse neg peak")
+                    peak, amp_resp1, amp_resp2, PPR, rise_time, decay_time = datafile.analyse_neg_peak()
+                else : 
+                    print("analyse pos peak")
+                    peak, amp_resp1, amp_resp2, PPR, rise_time, decay_time = datafile.analyse_pos_peak()
                 txt = (f"Peak1 : {amp_resp1*1e3:.2f} pA \n"
                        f"Peak2 : {amp_resp2*1e3:.2f} pA \n"
                        f"Rise time  : {rise_time:.2f} ms \n"
@@ -180,11 +185,10 @@ class PdfPage:
                 self.AXs[key].annotate(txt,(0.65, 0.3), va='top', xycoords='axes fraction')
         
 if __name__=='__main__':
-
     #datafile = DataFile('C:/Users/laura.gonzalez/DATA/RAW_DATA/nm14Jun2024c0/nm14Jun2024c0_000.pxp')
-    datafile = DataFile('C:/Users/laura.gonzalez/DATA/RAW_DATA/model_cell/nm24Jun2024c0_000.pxp')
+    #datafile = DataFile('C:/Users/laura.gonzalez/DATA/RAW_DATA/model_cell/nm24Jun2024c0_000.pxp')
+    datafile = DataFile('D:/Internship_Rebola_ICM/DATA_TO_ANALYSE/nm28May2024c1/nm28May2024c1_001.pxp')
     page = PdfPage()
     page.fill_PDF(datafile)
-    plt.savefig('output.pdf')
+    plt.savefig(f'C:/Users/laura.gonzalez/DATA/PDFs/{datafile.filename}.pdf')
     plt.show()
-

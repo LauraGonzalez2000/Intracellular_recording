@@ -29,37 +29,42 @@ def find_nm_files(root_folder):
 
 ###### MAIN ######################################################
 
-files = find_nm_files('C:/Users/laura.gonzalez/DATA/RAW_DATA')
+#files = find_nm_files('C:/Users/laura.gonzalez/DATA/DATA_TO_ANALYSE')
+files = find_nm_files('D:\Internship_Rebola_ICM\RAW_DATA_TO_ANALYSE')
 
-'''
+
 for file in files:
-    datafile = DataFile(file)
+    #PDF creation
+    try:
+        datafile = DataFile(file)
+        pdf = PdfPage(debug=False)
+        pdf.fill_PDF(datafile, debug=False)
+        plt.savefig(f'C:/Users/laura.gonzalez/DATA/PDFs/{datafile.filename}.pdf')
+        print("File saved successfully :", file, '\n')
+        #plt.show()
+    except:
+        print("Error analysing this file :", file, '\n')
 
-    #fill_PDF(filename, debug=True)
-   
-    #analyse each file to create excel
+    #Excel creation
+
 
     #analyse each file to plot
 
-'''
-#### try with one file, then put this inside the loop:
-#datafile = DataFile('C:/Users/laura.gonzalez/DATA/RAW_DATA/nm12Jun2024c0/nm12Jun2024c0_000.pxp')
-#pdf = PdfPage(debug=True)
-#print(pdf)
-#fill_PDF("nm12Jun2024c0_000", debug=True)
 
 
 #Execute if the Python script is being executed as the main program. 
 #If the script is being imported as a module in another script, not execute.
+
+'''
 if __name__=='__main__':
-    #filename is the full path to the PDF file 
+    
     #filename = os.path.join(os.path.expanduser('~'), 'DATA', 'Dataset1', 'nm12Jun2024c0_000_AMPA.pdf')
-    #datafile = DataFile('C:/Users/laura.gonzalez/DATA/RAW_DATA/nm14Jun2024c0/nm14Jun2024c0_000.pxp')
-    datafile = DataFile('C:/Users/laura.gonzalez/DATA/RAW_DATA/model_cell/nm24Jun2024c0_000.pxp')
+    datafile = DataFile('D:/Internship_Rebola_ICM/DATA_TO_ANALYSE/nm28May2024c1/nm28May2024c1_001.pxp')
+    #datafile = DataFile('C:/Users/laura.gonzalez/DATA/RAW_DATA/model_cell/nm24Jun2024c0_000.pxp')
     pdf = PdfPage(debug=True)
     pdf.fill_PDF(datafile, debug=True)
     plt.show()
-    
+'''
 
 
 

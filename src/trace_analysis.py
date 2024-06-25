@@ -11,6 +11,7 @@ class DataFile:
     #Constructor
     def __init__(self, file_path):
         self.file_path = file_path
+        self.filename = self.file_path.split('/')[-1].replace('.pxp', '')
         self.infos = {}
         self.stim = {}
         self.response = None
@@ -112,9 +113,9 @@ class DataFile:
 
         baseline = np.abs(statistics.mean(recording[0:50]))
         Idss = np.abs(statistics.mean(recording[16000:19000]))   # in nano amperes
-        print("Idss ",Idss)
+        #print("Idss ",Idss)
         Idss2 = Idss - baseline
-        print("Idss2 ",Idss2)
+        #print("Idss2 ",Idss2)
         Idss_A = Idss2 * 1e-9   # in amperes
 
         
@@ -128,18 +129,18 @@ class DataFile:
         except: 
             params_exp1 = cf.get_params_function(cf.model_exponential, 10007, 20000, recording, time)
         
-        print( params_exp1[2])
+        #print( params_exp1[2])
         tau = np.abs(params_exp1[2])  #in ms
         tau_s = tau * 1e-3  #in s
-        print(tau)
+        #print(tau)
         Cm = np.abs(tau_s / (1/(1/Ra + 1/Rm)) ) #in F
 
 
-        print("mem values")
-        print("Id ", Id_A)
-        print("Rm ", Rm)
-        print("Ra ", Ra)
-        print("Cm", Cm)
+        #print("mem values")
+        #print("Id ", Id_A)
+        #print("Rm ", Rm)
+        #print("Ra ", Ra)
+        #print("Cm", Cm)
 
 
         return Id_A, Ra, Rm, Cm
@@ -262,22 +263,26 @@ class DataFile:
         #average_data_aligned = get_data_aligned(average_data)
 
         
-        start, stop, start2, stop2 = self.get_boundaries(data)
+        start, stop, start2, stop2 = self.get_boundaries()
         start_ = (start+1)*100   #usually, 100100
         stop_ = (stop-1)*100     #usually, 104900
         start2_ = (start2+1)*100 #usually, 105100
         stop2_ = (stop2-1)*100   #usually, 109900
         
-        
-        amp_resp1 = np.max(self.response[start_:stop_])  ## stimulation at 100 000th datapoint aka 1 000 ms   #changed to max
-        index_peak_resp1 = np.argmax(self.response[start_:stop_])  #not really
+        #print("hey")
+        #print("start_ : ", start_, "stop_ : ", stop_)
+        #print("len ",len(self.avg_response))
+        #print(self.avg_response[start_:stop_])
+        amp_resp1 = np.max(self.avg_response[start_:stop_])  ## stimulation at 100 000th datapoint aka 1 000 ms   #changed to max
+        #print(amp_resp1)
+        index_peak_resp1 = np.argmax(self.avg_response[start_:stop_])  
         time_peak_resp1 = (start_ + index_peak_resp1)/100
         
         #print(index_peak_resp1)
         
         #print("time peak response 1: ", time_peak_resp1)
         
-        amp_resp2 = np.max(self.response[start2_:stop2_])  ## stimulation at 105 000th datapoint aka 1 050 ms   #changed to max
+        amp_resp2 = np.max(self.avg_response[start2_:stop2_])  ## stimulation at 105 000th datapoint aka 1 050 ms   #changed to max
         PPR = amp_resp2/amp_resp1
         
         
@@ -289,7 +294,7 @@ class DataFile:
         bound1 = 0.1 * amp_resp1
         bound2 = 0.9 * amp_resp1
         
-        range = self.response[start_:stop_]  #generalize boundaries
+        range = self.avg_response[start_:stop_]  #generalize boundaries
         
         l = 600.4  #generalize
         m = 600.4  #generalize
@@ -317,7 +322,7 @@ class DataFile:
         ##decay time 50%
         
         bound = 0.5 * amp_resp1
-        range = self.response[int(time_peak_resp1*100) :stop_] #generalize boundaries
+        range = self.avg_response[int(time_peak_resp1*100) :stop_] #generalize boundaries
         
         #print(start_)
         #print(start_ + index_peak_resp1)

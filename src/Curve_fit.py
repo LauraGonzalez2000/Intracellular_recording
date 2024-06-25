@@ -6,10 +6,10 @@ from scipy.optimize import curve_fit
 def model_function_constant(t, Iprev): #constant
     return 0*t + Iprev
 
-def model_exponential(t, A, B, C, D): 
+def model_exponential(t, A, B, C, D): #exponential model
     return A * (B*np.exp(-(t-100)/C)) + D
 
-def model_biexponential1(t, A, B, C, D, E): #biexponential model 1
+def model_biexponential1(t, A, B, C, D, E): #biexponential model
     return A * (B*np.exp(-(t-100)/C) + (1-B)*np.exp(-(t-100)/D)) + E
 
 def get_fit(subset_range, model_function, time, average_data_aligned):
