@@ -718,3 +718,47 @@ if __name__=='__main__':
 
     plt.show()
 
+
+
+
+'''
+#print(datafile.response)
+#pprint.pp(datafile)
+
+#data = File('C:/Users/laura.gonzalez/DATA/RAW_DATA/nm02May2024c0/nm02May2024c0_000.pxp')  #in loop put "file"
+#data.load_data()
+
+#data_test = loadpxp('C:/Users/laura.gonzalez/DATA/RAW_DATA/nm12Jun2024c0/nm12Jun2024c0_000.pxp')
+#print(data_test)
+#print(data_test[0])
+#print(len(data_test))   #len = 2 , first item? second item is a dict
+
+#print(data_test[1].items())
+
+'''
+'''
+recordings = data_test[1]['root'][b'RecordA0']
+for value in recordings:
+    print(value)
+
+
+print(len(recordings
+print(recordings)
+'''
+'''
+#data_test[1][b'SampleInterval']
+#print(data_test[1]['V_Flag'])
+#print(data_test[1])
+
+
+#recordings = get_recordings(data)
+
+
+#record_a0 = data_test[1]['root'][b'RecordA0'] #['wave']['wData']
+#print("RecordA0:", record_a0)
+
+# Iterating over all RecordA keys
+#record_keys = [key for key in data_test[1]['root'].keys() if key.startswith(b'RecordA')]
+#for record_key in record_keys:
+#    print(f"{record_key.decode('utf-8')}: {data['root'][record_key]}")
+'''

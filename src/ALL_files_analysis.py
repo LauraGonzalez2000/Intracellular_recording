@@ -7,7 +7,9 @@ from igor2.packed import load as loadpxp
 import pprint
 import matplotlib.pylab as plt
 import pandas as pd
-from openpyxl import load_workbook
+import openpyxl
+from openpyxl.utils import get_column_letter
+#from openpyxl import load_workbook
 
 def find_nm_files(root_folder):
     nm_paths = []
@@ -29,24 +31,7 @@ def find_nm_files(root_folder):
 
     return nm_paths
 
-'''
-def auto_adjust_column_widths(filepath):
-    workbook = load_workbook(filepath)
-    for sheet in workbook.sheetnames:
-        worksheet = workbook[sheet]
-        for column_cells in worksheet.columns:
-            max_length = 0
-            column = column_cells[0].column_letter
-            for cell in column_cells:
-                try:
-                    if len(str(cell.value)) > max_length:
-                        max_length = len(cell.value)
-                except:
-                    pass
-            adjusted_width = (max_length + 2)
-            worksheet.column_dimensions[column].width = adjusted_width
-    workbook.save(filepath)
-'''
+
 ###### MAIN ######################################################
 
 #files = find_nm_files('C:/Users/laura.gonzalez/DATA/DATA_TO_ANALYSE')
@@ -66,49 +51,59 @@ for file in files:
 
         
         data_mem_dict = {'Filename': datafile.filename,
-                        'Id (pA)': datafile.Id_A,
-                        'Rm (MOhm)': datafile.Rm,
-                        'Ra (MOhm)': datafile.Ra,
-                        'Cm (pF)': datafile.Cm}
+                        'Id (A)': datafile.Id_A,
+                        'Rm (Ohm)': datafile.Rm,
+                        'Ra (Ohm)': datafile.Ra,
+                        'Cm (F)': datafile.Cm}
         data_mem_list.append(data_mem_dict)
 
         data_resp_dict = {'Filename': datafile.filename,
                           'Peak type' : datafile.type,
-                          'Amplitude response 1 (pA)': datafile.amp_resp1,
-                          'Amplitude response 2 (pA)': datafile.amp_resp2,
+                          'Amplitude response 1 (nA)': datafile.amp_resp1,
+                          'Amplitude response 2 (nA)': datafile.amp_resp2,
                           'Paired pulse ratio Amp2/Amp1': datafile.PPR,
                           'Rise_time 10-90% (ms)': datafile.rise_time,
                           'Decay time 50% (ms)': datafile.decay_time}
         data_resp_list.append(data_resp_dict)
-
-    except:
-        print("Error analysing this file :", file, '\n')
+    except Exception as e:
+        print(f"Error analysing this file : {e}")
 
 #Excel creation
 
-try: 
+try:
     data_mem_for_excel = pd.DataFrame(data_mem_list)
-    data_resp_for_excel = pd.DataFrame(data_resp_list)  
-    print(data_mem_for_excel) 
-    print(data_resp_for_excel)
+    data_resp_for_excel = pd.DataFrame(data_resp_list)
+
+    # Create a Pandas Excel writer using openpyxl as the engine
     with pd.ExcelWriter('C:/Users/laura.gonzalez/DATA/output.xlsx', engine='openpyxl') as writer:
         data_mem_for_excel.to_excel(writer, sheet_name='Membrane characteristics', index=False)
         data_resp_for_excel.to_excel(writer, sheet_name='Response', index=False)
-    #auto_adjust_column_widths('C:/Users/laura.gonzalez/DATA/output.xlsx')
+
+        # Access the workbook and the sheets
+        workbook  = writer.book
+        worksheet_mem = writer.sheets['Membrane characteristics']
+        worksheet_resp = writer.sheets['Response']
+
+        # Adjust column widths for data_mem_for_excel
+        for column in data_mem_for_excel:
+            column_length = max(data_mem_for_excel[column].astype(str).map(len).max(), len(column))
+            col_idx = data_mem_for_excel.columns.get_loc(column)
+            worksheet_mem.column_dimensions[openpyxl.utils.get_column_letter(col_idx + 1)].width = column_length
+
+        # Adjust column widths for data_resp_for_excel
+        for column in data_resp_for_excel:
+            column_length = max(data_resp_for_excel[column].astype(str).map(len).max(), len(column))
+            col_idx = data_resp_for_excel.columns.get_loc(column)
+            worksheet_resp.column_dimensions[openpyxl.utils.get_column_letter(col_idx + 1)].width = column_length
 
     print("Excel file saved successfully.")
-except:
-    print("ERROR when saving the file to excel")
-
+except Exception as e:
+    print(f"ERROR when saving the file to excel: {e}")
 
 
 #analyse each file to plot
 
-
-
-#Execute if the Python script is being executed as the main program. 
-#If the script is being imported as a module in another script, not execute.
-
+#Execute only if the Python script is being executed as the main program. 
 '''
 if __name__=='__main__':
     
@@ -118,54 +113,4 @@ if __name__=='__main__':
     pdf = PdfPage(debug=True)
     pdf.fill_PDF(datafile, debug=True)
     plt.show()
-'''
-
-
-
-
-
-
-
-
-
-'''
-#print(datafile.response)
-#pprint.pp(datafile)
-
-#data = File('C:/Users/laura.gonzalez/DATA/RAW_DATA/nm02May2024c0/nm02May2024c0_000.pxp')  #in loop put "file"
-#data.load_data()
-
-#data_test = loadpxp('C:/Users/laura.gonzalez/DATA/RAW_DATA/nm12Jun2024c0/nm12Jun2024c0_000.pxp')
-#print(data_test)
-#print(data_test[0])
-#print(len(data_test))   #len = 2 , first item? second item is a dict
-
-#print(data_test[1].items())
-
-'''
-'''
-recordings = data_test[1]['root'][b'RecordA0']
-for value in recordings:
-    print(value)
-
-
-print(len(recordings
-print(recordings)
-'''
-'''
-#data_test[1][b'SampleInterval']
-#print(data_test[1]['V_Flag'])
-#print(data_test[1])
-
-
-#recordings = get_recordings(data)
-
-
-#record_a0 = data_test[1]['root'][b'RecordA0'] #['wave']['wData']
-#print("RecordA0:", record_a0)
-
-# Iterating over all RecordA keys
-#record_keys = [key for key in data_test[1]['root'].keys() if key.startswith(b'RecordA')]
-#for record_key in record_keys:
-#    print(f"{record_key.decode('utf-8')}: {data['root'][record_key]}")
 '''
