@@ -37,12 +37,13 @@ class PdfPage:
         DY = 0.03
         self.AXs['V_cmd1'] = self.create_panel([X0, Y0, DX, DY], 'V cmd 1')
 
+        DY = 0.06
+        Y0 += 0.06
+        self.AXs['Id (nA)'] = self.create_panel([X0, Y0, DX, DY])
 
         DY = 0.06
         Y0 += 0.06
-        #self.AXs['Id (Access) (pA)'] = self.create_panel([X0, Y0, DX, DY])
-
-        self.AXs['Leak (pA)'] = self.create_panel([X0, Y0, DX, DY])
+        self.AXs['Leak (nA)'] = self.create_panel([X0, Y0, DX, DY])
 
         Y0 += 0.12
         DY = 0.24
@@ -67,8 +68,13 @@ class PdfPage:
 
         for key in self.AXs:
             if key=='Notes': ##includes metadata
-                txt = f"ID file: {datafile.filename}\nNumber of recordings: {len(datafile.recordings)}\nEuthanize method: {datafile.infos['Euthanize method']}\nHolding:{datafile.infos['Holding (mV)']}\nInfusion:{datafile.infos['Infusion substance']}\nInfusion concentration:{datafile.infos['Infusion concentration']}\nInfusion start:{datafile.infos['Infusion start']}\nInfusion end:{datafile.infos['Infusion end']}\n"
+                txt = f"ID file: {datafile.filename}\nNumber of recordings: {len(datafile.recordings)}\n"
                 self.AXs[key].annotate(txt,(0, 1), va='top', xycoords='axes fraction')
+                try:
+                    txt2 = f"ID file: {datafile.infos['Files']}\nEuthanize method: {datafile.infos['Euthanize method']}\nHolding:{datafile.infos['Holding (mV)']}\nInfusion:{datafile.infos['Infusion substance']}\nInfusion concentration:{datafile.infos['Infusion concentration']}\nInfusion start:{datafile.infos['Infusion start']}\nInfusion end:{datafile.infos['Infusion end']}\n"
+                    self.AXs[key].annotate(txt2,(0, 1), va='top', xycoords='axes fraction')
+                except:
+                    print("metadata not added correctly")
                 
             elif key=='V_cmd0':
                 #self.AXs[key].set_xlabel("time (ms)")
@@ -81,7 +87,7 @@ class PdfPage:
                 self.AXs[key].plot(time, datafile.stim['Cmd2'])  
                 
                 
-            elif key=='Leak (pA)':
+            elif key=='Leak (nA)':
                 #txt = f"Leak \n(A)"
                 #self.AXs[key].annotate(txt, (-0.29, 0.2), xycoords='axes fraction', rotation=0)
                 baselines = datafile.get_baselines()
@@ -102,6 +108,19 @@ class PdfPage:
                 #self.AXs[key].plot(averages_baselines) 
                 #self.AXs[key].plot(mean_leak, color="lightblue")
 
+            elif key=='Id (nA)':
+                Ids = datafile.get_Ids()
+                Ids_m, Ids_std = datafile.get_batches(Ids)
+
+                self.AXs[key].plot(Ids_m, marker="o", linewidth=0.5, markersize=2)
+                self.AXs[key].errorbar(range(len(Ids_m)), Ids_m, yerr=Ids_std, linestyle='None', marker='_', color='blue', capsize=3, linewidth = 0.5)
+                self.AXs[key].set_xlim(-1, 50 )
+                #self.AXs[key].set_ylim( 0, 140)
+                self.AXs[key].set_ylabel("Id (=acces) (nA)")
+                self.AXs[key].set_xlabel("time (min)")
+                self.AXs[key].set_xticks(np.arange(0, 51, 5))
+                self.AXs[key].axvspan(datafile.infos["Infusion start"], datafile.infos["Infusion end"], color='lightgrey')
+                
                 
             elif key=='RespAnalyzed':
                 self.AXs[key].set_xlabel("time (ms)")

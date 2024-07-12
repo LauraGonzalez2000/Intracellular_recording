@@ -147,10 +147,10 @@ class DataFile_washout:
                 diffs.append(diff)
         return diffs
 
-    def get_Ids(recordings):
+    def get_Ids(self):
 
         Ids = []
-        for recording in recordings:
+        for recording in self.recordings:
             baseline = recording[12000:19000]
             max = np.max(recording[19000:21000])
             Ids.append(max-baseline)
