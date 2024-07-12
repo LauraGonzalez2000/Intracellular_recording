@@ -1,6 +1,6 @@
 import os
 import matplotlib.pylab as plt
-from trace_analysis import DataFile
+from washout_trace_analysis import DataFile_washout
 import Curve_fit as cf
 import numpy as np
 
@@ -29,7 +29,7 @@ class PdfPage:
         self.AXs['Notes'] = self.create_panel([X0, Y0, DX, DY], 'Notes')
         self.AXs['Notes'].axis('off')
 
-        Y0 += 0.06
+        Y0 += 0.16
         DY = 0.03
         self.AXs['V_cmd0'] = self.create_panel([X0, Y0, DX, DY], 'V cmd 0')
 
@@ -37,25 +37,12 @@ class PdfPage:
         DY = 0.03
         self.AXs['V_cmd1'] = self.create_panel([X0, Y0, DX, DY], 'V cmd 1')
 
-        Y0 += 0.08
-        DY = 0.08
-        self.AXs['FullResp'] = self.create_panel([X0, Y0, DX, DY], 'Full Response')
-
-        Y0 += 0.14
-        DY = 0.24
-        self.AXs['MemTest'] = self.create_panel([X0, Y0, 0.35, DY], 'Membrane Characteristics')
 
         DY = 0.06
-        self.AXs['Leak (pA)'] = self.create_panel([0.60, Y0, 0.37, DY])
-
         Y0 += 0.06
-        self.AXs['Rm (MOhm)'] = self.create_panel([0.60, Y0, 0.37, DY])
+        #self.AXs['Id (Access) (pA)'] = self.create_panel([X0, Y0, DX, DY])
 
-        Y0 += 0.06
-        self.AXs['Ra (MOhm)'] = self.create_panel([0.60, Y0, 0.37, DY])
-
-        Y0 += 0.06
-        self.AXs['Cm (pF)'] = self.create_panel([0.60, Y0, 0.37, DY])
+        self.AXs['Leak (pA)'] = self.create_panel([X0, Y0, DX, DY])
 
         Y0 += 0.12
         DY = 0.24
@@ -79,115 +66,74 @@ class PdfPage:
         time = datafile.get_time()
 
         for key in self.AXs:
-            if key=='Notes':
-                txt = f"ID file: {datafile.filename} \n Number of recordings: {len(datafile.response)} \n"
+            if key=='Notes': ##includes metadata
+                txt = f"ID file: {datafile.filename}\nNumber of recordings: {len(datafile.recordings)}\nEuthanize method: {datafile.infos['Euthanize method']}\nHolding:{datafile.infos['Holding (mV)']}\nInfusion:{datafile.infos['Infusion substance']}\nInfusion concentration:{datafile.infos['Infusion concentration']}\nInfusion start:{datafile.infos['Infusion start']}\nInfusion end:{datafile.infos['Infusion end']}\n"
                 self.AXs[key].annotate(txt,(0, 1), va='top', xycoords='axes fraction')
                 
             elif key=='V_cmd0':
-                self.AXs[key].set_xlabel("time (ms)")
+                #self.AXs[key].set_xlabel("time (ms)")
                 self.AXs[key].annotate("voltage (V)", (-0.12, -0.2), xycoords='axes fraction', rotation=90)
                 self.AXs[key].plot(time, datafile.stim['Cmd1'])  
                 
             elif key=='V_cmd1':
-                self.AXs[key].set_xlabel("time (ms)")
+                #self.AXs[key].set_xlabel("time (ms)")
                 self.AXs[key].annotate("voltage (V)", (-0.12, -0.8), xycoords='axes fraction', rotation=90)
                 self.AXs[key].plot(time, datafile.stim['Cmd2'])  
                 
-            elif key=='FullResp':
-                self.AXs[key].set_xlabel("time (ms)")
-                self.AXs[key].annotate("current (A)", (-0.12, 0.1), xycoords='axes fraction', rotation=90)
-                stim1, _, stim2, _ = datafile.get_boundaries()
-                artefact_cond = ((time>stim1) & (time<stim1+1)) | ((time>stim2) & (time<stim2+1)) 
-                self.AXs[key].plot(time[~artefact_cond], datafile.avg_response[~artefact_cond]) 
-                
-            elif key=='MemTest':
-                self.AXs[key].set_xlabel("time (ms)")
-                self.AXs[key].annotate("current (A)", (-0.30, 0.4), xycoords='axes fraction', rotation=90)
-                time_mem = time[9900:11000]
-                resp_mem = datafile.avg_response[9900:11000]
-                self.AXs[key].plot(time_mem, resp_mem, label = "Data")
-                my_range = (10007, 11000)
-                try :
-                    my_func = cf.model_biexponential1  
-                    x,y = cf.get_fit(my_range, my_func, time, datafile.avg_response)
-                    self.AXs[key].plot(x,y, color="red", label = "fit")
-                except: 
-                    print("error with curve fitting with biexponential")
-                    try : 
-                        my_func = cf.model_exponential
-                        x,y = cf.get_fit(my_range, my_func, time, datafile.avg_response)
-                        self.AXs[key].plot(x,y, color="red", label = "fit")
-                    except: 
-                        print("error with curve fitting with exponential")
-                
-                Id_avg, Ra_avg, Rm_avg, Cm_avg  = datafile.get_mem_values(datafile.avg_response, time)
-                txt = (f"Id : {Id_avg*1e12:.1f} pA \n Rm : {Rm_avg/1e6:.1f} M$\\Omega$ \n Ra : {Ra_avg/1e6:.1f} M$\\Omega$ \n Cm : {Cm_avg*1e12:.1f} pF \n")
-                self.AXs[key].annotate(txt,(0.35, 0.5), va='top', xycoords='axes fraction')
-                try: 
-                    params_exp = cf.get_params_function(cf.model_biexponential1, 10007, 20000, datafile.avg_response, time)
-                    self.AXs[key].fill_between(time_mem, cf.model_biexponential1(time_mem,params_exp[0],params_exp[1],params_exp[2],params_exp[3],params_exp[4]), cf.model_function_constant(time_mem, params_exp[4] ),where=((time_mem >= 100) & (time_mem <= 200)), alpha=0.3, color='skyblue')
-                except: 
-                    params_exp = cf.get_params_function(cf.model_exponential, 10007, 20000, datafile.avg_response, time)
-                    #print(params_exp)
-                    self.AXs[key].fill_between(time_mem,cf.model_exponential(time_mem,params_exp[0],params_exp[1],params_exp[2],params_exp[3]), cf.model_function_constant(time_mem, params_exp[3] ),where=((time_mem >= 100) & (time_mem <= 200)), alpha=0.3, color='skyblue')
                 
             elif key=='Leak (pA)':
-                txt = f"Leak \n(A)"
-                self.AXs[key].annotate(txt, (-0.29, 0.2), xycoords='axes fraction', rotation=0)
-                averages_baselines = datafile.get_baselines()
-                mean_leak = [np.mean(averages_baselines)] * len(averages_baselines)
-                self.AXs[key].plot(averages_baselines) 
-                self.AXs[key].plot(mean_leak, color="lightblue")
+                #txt = f"Leak \n(A)"
+                #self.AXs[key].annotate(txt, (-0.29, 0.2), xycoords='axes fraction', rotation=0)
+                baselines = datafile.get_baselines()
+                #print("baselines ",baselines)
+                #print(len(baselines))
+            
+                baselines_m, baselines_std = datafile.get_batches(baselines)
+                self.AXs[key].plot(baselines_m, marker="o", linewidth=0.5, markersize=2)
+                self.AXs[key].errorbar(range(len(baselines_m)), baselines_m, yerr=baselines_std, linestyle='None', marker='_', color='blue', capsize=3, linewidth = 0.5)
+                self.AXs[key].set_xlim(-1, 50 )
+                #self.AXs[key].set_ylim( -0.6, 0.1)
+                self.AXs[key].set_ylabel("Baseline (=leak) (nA)")
+                self.AXs[key].set_xlabel("time (min)")
+                self.AXs[key].set_xticks(np.arange(0, 51, 5))
+                self.AXs[key].axvspan(datafile.infos["Infusion start"], datafile.infos["Infusion end"], color='lightgrey')
+                #averages_baselines = datafile.get_baselines()
+                #mean_leak = [np.mean(averages_baselines)] * len(averages_baselines)
+                #self.AXs[key].plot(averages_baselines) 
+                #self.AXs[key].plot(mean_leak, color="lightblue")
 
-            elif key=='Rm (MOhm)':
-                txt = f'Rm \n(M$\\Omega$)'
-                self.AXs[key].annotate(txt, (-0.29, 0.2), xycoords='axes fraction', rotation=0)
-                Rm_list = datafile.get_mem_values_across_time(time)[2]
-                mean_Rm_list = [np.mean(Rm_list)] * len(Rm_list)
-                self.AXs[key].plot(Rm_list)  
-                self.AXs[key].plot(mean_Rm_list, color="lightblue")
-
-            elif key=='Ra (MOhm)':
-                txt = 'Ra \n(M$\\Omega$)'
-                self.AXs[key].annotate(txt, (-0.29, 0.2), xycoords='axes fraction', rotation=0)
-                Ra_list = datafile.get_mem_values_across_time(time)[1]
-                mean_Ra_list = [np.mean(Ra_list)] * len(Ra_list)
-                self.AXs[key].plot(Ra_list)  
-                self.AXs[key].plot(mean_Ra_list, color="lightblue")
                 
-            elif key=='Cm (pF)':
-                txt = 'Cm \n(pF) '
-                self.AXs[key].annotate(txt, (-0.29, 0.2), xycoords='axes fraction', rotation=0)
-                self.AXs[key].set_xlabel("sweep")
-                Cm_list = datafile.get_mem_values_across_time(time)[3]
-                mean_Cm_list = [np.mean(Cm_list)] * len(Cm_list)
-                self.AXs[key].plot(Cm_list)  
-                self.AXs[key].plot(mean_Cm_list, color="lightblue")
-
             elif key=='RespAnalyzed':
                 self.AXs[key].set_xlabel("time (ms)")
-                self.AXs[key].annotate("current (A)", (-0.12, 0.4), xycoords='axes fraction', rotation=90)
-                time_stim = time[55000:80000]
-                resp_stim = datafile.avg_response[55000:80000]
-                stim1, _, stim2, _ = datafile.get_boundaries()
-                artefact_cond = ((time_stim>stim1) & (time_stim<stim1+1)) | ((time_stim>stim2) & (time_stim<stim2+1))
-                self.AXs[key].plot(time_stim[~artefact_cond], resp_stim[~artefact_cond])  
-                if datafile.get_resp_nature() : 
-                    #print("analyse neg peak")
-                    peak, amp_resp1, amp_resp2, PPR, rise_time, decay_time = datafile.analyse_neg_peak()
-                else : 
-                    #print("analyse pos peak")
-                    peak, amp_resp1, amp_resp2, PPR, rise_time, decay_time = datafile.analyse_pos_peak()
-                txt = (f"Peak1 : {amp_resp1*1e3:.2f} pA \n"
-                       f"Peak2 : {amp_resp2*1e3:.2f} pA \n"
-                       f"Rise time  : {rise_time:.2f} ms \n"
-                       f"Decay time : {decay_time:.2f} ms \n")
-                self.AXs[key].annotate(txt,(0.65, 0.3), va='top', xycoords='axes fraction')
+                #self.AXs[key].annotate("current (A)", (-0.12, 0.4), xycoords='axes fraction', rotation=90)
+
+                diffs = datafile.get_diffs3() #noise was removed here
+                #print(diffs[datafile.infos["Infusion start"][i]*6:datafile.infos["Infusion end"][i]*6])
+                #print(diffs)
+                #print(len(diffs))
+                batches_m, batches_std = datafile.get_batches(diffs)
+
+                 # Standardization by baseline mean (Baseline at 100%)
+                #print(datafile.infos["Infusion start"])
+                baseline_m = np.mean(batches_m[(datafile.infos["Infusion start"]-5):datafile.infos["Infusion start"]])  #to fix
+                batches_m_norm = (batches_m / baseline_m) * 100  
+                batches_std_norm = (batches_std / baseline_m) * 100  
+                
+                self.AXs[key].plot(batches_m_norm, marker="o", linewidth=0.5, markersize=2)
+                self.AXs[key].errorbar(range(len(batches_m_norm)), batches_m_norm, yerr=batches_std_norm, linestyle='None', marker='_', color='blue', capsize=3, linewidth = 0.5)
+                self.AXs[key].set_xlim(-1, 50 )
+                self.AXs[key].set_ylim( -10, 140)
+                self.AXs[key].set_ylabel("Normalized NMDAR-eEPSCs (%)")
+                self.AXs[key].set_xlabel("time (min)")
+                self.AXs[key].set_xticks(np.arange(0, 51, 5))
+                self.AXs[key].axvspan(datafile.infos["Infusion start"], datafile.infos["Infusion end"], color='lightgrey') #to fix
+                self.AXs[key].axhline(100, color="grey", linestyle="--")
+
         
 if __name__=='__main__':
     #datafile = DataFile('C:/Users/laura.gonzalez/DATA/RAW_DATA/nm14Jun2024c0/nm14Jun2024c0_000.pxp')
     #datafile = DataFile('C:/Users/laura.gonzalez/DATA/RAW_DATA/model_cell/nm24Jun2024c0_000.pxp')
-    datafile = DataFile('D:/Internship_Rebola_ICM/DATA_TO_ANALYSE/nm28May2024c1/nm28May2024c1_001.pxp')
+    datafile = DataFile_washout('D:/Internship_Rebola_ICM/EXP-recordings/RAW-DATA-TO-ANALYSE-WASHOUT/nm04Jul2024c1/nm04Jul2024c1_000.pxp')
     page = PdfPage()
     page.fill_PDF(datafile)
     plt.savefig(f'C:/Users/laura.gonzalez/DATA/PDFs/{datafile.filename}.pdf')
