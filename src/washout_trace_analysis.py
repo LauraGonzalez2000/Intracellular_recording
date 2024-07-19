@@ -78,13 +78,16 @@ class DataFile_washout:
         i=0
         for recording in self.recordings:
             diff = self.find_diff2(recording)
-            diffs.append(diff)
-            #print(i)
             noise = self.find_noise(recording)
+
+            if diff>=noise:
+                diffs.append(diff)
             
             if diff<noise:
                 diffs.append(0)
                 #print("difference is actually noise")  
+                
+            #print(i)
             i+=1
             #print("diff : ", diff)
         
@@ -170,25 +173,32 @@ class DataFile_washout:
             print("Error getting time scale, by default 0-2000 ms with 0.01 timestep")
             return time_
         
-    def fill_infos(self):  #####fix
+    def fill_infos(self):  #####fix to not use i
         try:
             file_meta_info = open('C:/Users/laura.gonzalez/Programming/Intracellular_recording/src/Files1.csv', 'r')  
             info_df = pd.read_csv(file_meta_info, header=0, sep=';')
+            info_df_datafile = info_df.loc[info_df['Files'] == self.filename]
+
+            if len(info_df_datafile) != 1:
+                raise ValueError(f"Expected one matching row for filename {self.filename}, but found {len(info_df_datafile)}.")
+        
+
             self.infos = {'SampleInterval' : self.pxp[1]['root'][b'SampleInterval'],
                           'SamplesPerWave' : self.pxp[1]['root'][b'SamplesPerWave'],
                           'FileDate' : self.pxp[1]['root'][b'FileDate'],
                           'FileTime' : self.pxp[1]['root'][b'FileTime'],
-                          #'File': info_df["Files"][0],
-                          #'Euthanize method':info_df["euthanize method"][0],
-                          #'Holding (mV)': info_df["Holding (mV)"][0],
-                          #'Infusion substance':info_df["infusion"][0],
-                          #'Infusion concentration': info_df["infusion concentration"][0],
-                          #'Infusion start':info_df["infusion start"][0],
-                          #'Infusion end':info_df["infusion end"][0],
+                          'File': str(info_df_datafile["Files"].item()),
+                          'Euthanize method':str(info_df_datafile["euthanize method"].item()),
+                          'Holding (mV)': str(info_df_datafile["Holding (mV)"].item()),
+                          'Infusion substance':str(info_df_datafile["infusion"].item()),
+                          'Infusion concentration': str(info_df_datafile["infusion concentration"].item()),
+                          'Infusion start':str(info_df_datafile["infusion start"].item()),
+                          'Infusion end':str(info_df_datafile["infusion end"].item()),
+                          'Group':str(info_df_datafile["Group"].item())
                           }
             print('OK infos were filled correctly')
-        except:
-            print('infos were not filled correctly')
+        except Exception as e:
+            print(f"Infos were not filled correctly: {e}")
 
     def fill_stim(self):
         try: 

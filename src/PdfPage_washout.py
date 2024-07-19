@@ -47,6 +47,10 @@ class PdfPage:
 
         Y0 += 0.12
         DY = 0.24
+        self.AXs['Difference_peak_baseline'] = self.create_panel([X0, Y0, DX, DY], 'Response')
+
+        Y0 += 0.12
+        DY = 0.24
         self.AXs['RespAnalyzed'] = self.create_panel([X0, Y0, DX, DY], 'Response')
 
     def create_panel(self, coords, title=None):
@@ -102,7 +106,10 @@ class PdfPage:
                 self.AXs[key].set_ylabel("Baseline (=leak) (nA)")
                 self.AXs[key].set_xlabel("time (min)")
                 self.AXs[key].set_xticks(np.arange(0, 51, 5))
-                self.AXs[key].axvspan(datafile.infos["Infusion start"], datafile.infos["Infusion end"], color='lightgrey')
+                try:
+                    self.AXs[key].axvspan(datafile.infos["Infusion start"], datafile.infos["Infusion end"], color='lightgrey')
+                except:
+                    print("metadata not added correctly - or no infusion")
                 #averages_baselines = datafile.get_baselines()
                 #mean_leak = [np.mean(averages_baselines)] * len(averages_baselines)
                 #self.AXs[key].plot(averages_baselines) 
@@ -119,8 +126,30 @@ class PdfPage:
                 self.AXs[key].set_ylabel("Id (=acces) (nA)")
                 self.AXs[key].set_xlabel("time (min)")
                 self.AXs[key].set_xticks(np.arange(0, 51, 5))
-                self.AXs[key].axvspan(datafile.infos["Infusion start"], datafile.infos["Infusion end"], color='lightgrey')
-                
+                try:
+                    self.AXs[key].axvspan(datafile.infos["Infusion start"], datafile.infos["Infusion end"], color='lightgrey')
+                except:
+                    print("metadata not added correctly or no infusion")
+
+            elif key=='Difference_peak_baseline':
+                self.AXs[key].set_xlabel("time (ms)")
+                diffs = datafile.get_diffs3() #noise was removed here
+                batches_m, batches_std = datafile.get_batches(diffs)
+
+
+                self.AXs[key].plot(batches_m, marker="o", linewidth=0.5, markersize=2)
+                self.AXs[key].errorbar(range(len(batches_m)), batches_m, yerr=batches_std, linestyle='None', marker='_', color='blue', capsize=3, linewidth = 0.5)
+                self.AXs[key].set_xlim(-1, 50 )
+                #self.AXs[key].set_ylim( -10, 140)
+                self.AXs[key].set_ylabel("Difference_peak_baseline (nA)")
+                self.AXs[key].set_xlabel("time (min)")
+                self.AXs[key].set_xticks(np.arange(0, 51, 5))
+                try:
+                    self.AXs[key].axvspan(datafile.infos["Infusion start"], datafile.infos["Infusion end"], color='lightgrey') #to fix
+                except:
+                    print("no infusion")
+
+
                 
             elif key=='RespAnalyzed':
                 self.AXs[key].set_xlabel("time (ms)")
@@ -145,7 +174,10 @@ class PdfPage:
                 self.AXs[key].set_ylabel("Normalized NMDAR-eEPSCs (%)")
                 self.AXs[key].set_xlabel("time (min)")
                 self.AXs[key].set_xticks(np.arange(0, 51, 5))
-                self.AXs[key].axvspan(datafile.infos["Infusion start"], datafile.infos["Infusion end"], color='lightgrey') #to fix
+                try:
+                    self.AXs[key].axvspan(datafile.infos["Infusion start"], datafile.infos["Infusion end"], color='lightgrey') #to fix
+                except:
+                    print("no infusion")
                 self.AXs[key].axhline(100, color="grey", linestyle="--")
 
         
