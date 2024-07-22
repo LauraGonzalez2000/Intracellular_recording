@@ -29,7 +29,7 @@ class PdfPage:
         self.AXs['Notes'] = self.create_panel([X0, Y0, DX, DY], 'Notes')
         self.AXs['Notes'].axis('off')
 
-        Y0 += 0.16
+        Y0 += 0.14
         DY = 0.03
         self.AXs['V_cmd0'] = self.create_panel([X0, Y0, DX, DY], 'V cmd 0')
 
@@ -37,21 +37,21 @@ class PdfPage:
         DY = 0.03
         self.AXs['V_cmd1'] = self.create_panel([X0, Y0, DX, DY], 'V cmd 1')
 
+        Y0 += 0.08
         DY = 0.06
-        Y0 += 0.06
         self.AXs['Id (nA)'] = self.create_panel([X0, Y0, DX, DY])
 
+        Y0 += 0.10
         DY = 0.06
-        Y0 += 0.06
         self.AXs['Leak (nA)'] = self.create_panel([X0, Y0, DX, DY])
 
-        Y0 += 0.12
-        DY = 0.24
+        Y0 += 0.10
+        DY = 0.18
         self.AXs['Difference_peak_baseline'] = self.create_panel([X0, Y0, DX, DY], 'Response')
 
-        Y0 += 0.12
-        DY = 0.24
-        self.AXs['RespAnalyzed'] = self.create_panel([X0, Y0, DX, DY], 'Response')
+        Y0 += 0.22
+        DY = 0.18
+        self.AXs['RespAnalyzed'] = self.create_panel([X0, Y0, DX, DY])
 
     def create_panel(self, coords, title=None):
         """ 
@@ -68,30 +68,36 @@ class PdfPage:
 
     def fill_PDF(self, datafile, debug=False): 
 
+
         time = datafile.get_time()
 
         for key in self.AXs:
+            
             if key=='Notes': ##includes metadata
-                txt = f"ID file: {datafile.filename}\nNumber of recordings: {len(datafile.recordings)}\n"
+
+                txt = f"ID file data: {datafile.filename}\nNumber of recordings: {len(datafile.recordings)}\nID file excel: {datafile.infos['File']}\nEuthanize method: {datafile.infos['Euthanize method']}\nHolding:{datafile.infos['Holding (mV)']}\nInfusion:{datafile.infos['Infusion substance']}\nInfusion concentration:{datafile.infos['Infusion concentration']}\nInfusion start:{datafile.infos['Infusion start']}\nInfusion end:{datafile.infos['Infusion end']}\n"
                 self.AXs[key].annotate(txt,(0, 1), va='top', xycoords='axes fraction')
-                try:
-                    txt2 = f"ID file: {datafile.infos['Files']}\nEuthanize method: {datafile.infos['Euthanize method']}\nHolding:{datafile.infos['Holding (mV)']}\nInfusion:{datafile.infos['Infusion substance']}\nInfusion concentration:{datafile.infos['Infusion concentration']}\nInfusion start:{datafile.infos['Infusion start']}\nInfusion end:{datafile.infos['Infusion end']}\n"
-                    self.AXs[key].annotate(txt2,(0, 1), va='top', xycoords='axes fraction')
-                except:
-                    print("metadata not added correctly")
-                
+                #try:
+                    #txt2 = f"ID file: {datafile.infos['File']}\nEuthanize method: {datafile.infos['Euthanize method']}\nHolding:{datafile.infos['Holding (mV)']}\nInfusion:{datafile.infos['Infusion substance']}\nInfusion concentration:{datafile.infos['Infusion concentration']}\nInfusion start:{datafile.infos['Infusion start']}\nInfusion end:{datafile.infos['Infusion end']}\n"
+                    #self.AXs[key].annotate(txt2,(0, 1), va='top', xycoords='axes fraction')
+                #except:
+                #    print("metadata not added correctly")
+               
             elif key=='V_cmd0':
-                #self.AXs[key].set_xlabel("time (ms)")
+
+                self.AXs[key].set_xlabel("time (ms)")
                 self.AXs[key].annotate("voltage (V)", (-0.12, -0.2), xycoords='axes fraction', rotation=90)
                 self.AXs[key].plot(time, datafile.stim['Cmd1'])  
-                
+              
             elif key=='V_cmd1':
-                #self.AXs[key].set_xlabel("time (ms)")
+
+                self.AXs[key].set_xlabel("time (ms)")
                 self.AXs[key].annotate("voltage (V)", (-0.12, -0.8), xycoords='axes fraction', rotation=90)
                 self.AXs[key].plot(time, datafile.stim['Cmd2'])  
                 
-                
+              
             elif key=='Leak (nA)':
+
                 #txt = f"Leak \n(A)"
                 #self.AXs[key].annotate(txt, (-0.29, 0.2), xycoords='axes fraction', rotation=0)
                 baselines = datafile.get_baselines()
@@ -107,15 +113,16 @@ class PdfPage:
                 self.AXs[key].set_xlabel("time (min)")
                 self.AXs[key].set_xticks(np.arange(0, 51, 5))
                 try:
-                    self.AXs[key].axvspan(datafile.infos["Infusion start"], datafile.infos["Infusion end"], color='lightgrey')
-                except:
-                    print("metadata not added correctly - or no infusion")
+                    self.AXs[key].axvspan(int(datafile.infos["Infusion start"]), int(datafile.infos["Infusion end"]), color='lightgrey')
+                except Exception as e:
+                    print(f"metadata not added correctly - or no infusion {e}")
                 #averages_baselines = datafile.get_baselines()
                 #mean_leak = [np.mean(averages_baselines)] * len(averages_baselines)
                 #self.AXs[key].plot(averages_baselines) 
                 #self.AXs[key].plot(mean_leak, color="lightblue")
-
+            
             elif key=='Id (nA)':
+
                 Ids = datafile.get_Ids()
                 Ids_m, Ids_std = datafile.get_batches(Ids)
 
@@ -127,14 +134,17 @@ class PdfPage:
                 self.AXs[key].set_xlabel("time (min)")
                 self.AXs[key].set_xticks(np.arange(0, 51, 5))
                 try:
-                    self.AXs[key].axvspan(datafile.infos["Infusion start"], datafile.infos["Infusion end"], color='lightgrey')
+                    self.AXs[key].axvspan(int(datafile.infos["Infusion start"]), int(datafile.infos["Infusion end"]), color='lightgrey')
                 except:
                     print("metadata not added correctly or no infusion")
-
+            
             elif key=='Difference_peak_baseline':
+
                 self.AXs[key].set_xlabel("time (ms)")
-                diffs = datafile.get_diffs3() #noise was removed here
-                batches_m, batches_std = datafile.get_batches(diffs)
+                diffs = datafile.get_diffs() 
+                noises = datafile.get_noises()
+                diffs_c = datafile.correct_diffs(diffs, noises)#noise was removed here
+                batches_m, batches_std = datafile.get_batches(diffs_c)
 
 
                 self.AXs[key].plot(batches_m, marker="o", linewidth=0.5, markersize=2)
@@ -144,40 +154,61 @@ class PdfPage:
                 self.AXs[key].set_ylabel("Difference_peak_baseline (nA)")
                 self.AXs[key].set_xlabel("time (min)")
                 self.AXs[key].set_xticks(np.arange(0, 51, 5))
+
+                noises = datafile.get_noises()
+                noises_m, noises_std = datafile.get_batches(noises)
+                self.AXs[key].plot(noises_m, marker="o", linewidth=0.5, markersize=2)
+                self.AXs[key].errorbar(range(len(noises_m)), noises_m, yerr=noises_std, linestyle='None', marker='_', color='red', capsize=3, linewidth = 0.5)
+                
+
                 try:
-                    self.AXs[key].axvspan(datafile.infos["Infusion start"], datafile.infos["Infusion end"], color='lightgrey') #to fix
+                    self.AXs[key].axvspan(int(datafile.infos["Infusion start"]), int(datafile.infos["Infusion end"]), color='lightgrey') 
                 except:
                     print("no infusion")
 
 
-                
+             
             elif key=='RespAnalyzed':
+
                 self.AXs[key].set_xlabel("time (ms)")
+
                 #self.AXs[key].annotate("current (A)", (-0.12, 0.4), xycoords='axes fraction', rotation=90)
 
-                diffs = datafile.get_diffs3() #noise was removed here
+                diffs = datafile.get_diffs() #noise was NOT removed here
+                noises = datafile.get_noises()
+                diffs_c = datafile.correct_diffs(diffs, noises)#noise was removed here
+                
+
                 #print(diffs[datafile.infos["Infusion start"][i]*6:datafile.infos["Infusion end"][i]*6])
                 #print(diffs)
                 #print(len(diffs))
-                batches_m, batches_std = datafile.get_batches(diffs)
+                batches_m, batches_std = datafile.get_batches(diffs_c)
+
 
                  # Standardization by baseline mean (Baseline at 100%)
                 #print(datafile.infos["Infusion start"])
-                baseline_m = np.mean(batches_m[(datafile.infos["Infusion start"]-5):datafile.infos["Infusion start"]])  #to fix
+                try:
+                    baseline_m = np.mean(batches_m[(int(datafile.infos["Infusion start"])-5):int(datafile.infos["Infusion start"])])  #to fix
+                except:
+                    baseline_m = np.mean(batches_m[5:10])
+
                 batches_m_norm = (batches_m / baseline_m) * 100  
+
                 batches_std_norm = (batches_std / baseline_m) * 100  
-                
+
                 self.AXs[key].plot(batches_m_norm, marker="o", linewidth=0.5, markersize=2)
                 self.AXs[key].errorbar(range(len(batches_m_norm)), batches_m_norm, yerr=batches_std_norm, linestyle='None', marker='_', color='blue', capsize=3, linewidth = 0.5)
                 self.AXs[key].set_xlim(-1, 50 )
-                self.AXs[key].set_ylim( -10, 140)
+                self.AXs[key].set_ylim( -10, 170)
                 self.AXs[key].set_ylabel("Normalized NMDAR-eEPSCs (%)")
                 self.AXs[key].set_xlabel("time (min)")
                 self.AXs[key].set_xticks(np.arange(0, 51, 5))
+
                 try:
-                    self.AXs[key].axvspan(datafile.infos["Infusion start"], datafile.infos["Infusion end"], color='lightgrey') #to fix
+                    self.AXs[key].axvspan(int(datafile.infos["Infusion start"]), int(datafile.infos["Infusion end"]), color='lightgrey') #to fix
                 except:
                     print("no infusion")
+
                 self.AXs[key].axhline(100, color="grey", linestyle="--")
 
         

@@ -36,7 +36,7 @@ def find_nm_files(root_folder):
 
     return nm_paths
 
-def add_metadata(datafile, i):  #change to not need i
+def add_metadata(datafile):
     file_meta_info = open('C:/Users/laura.gonzalez/Programming/Intracellular_recording/src/Files1q.csv', 'r')  
     info_df = pd.read_csv(file_meta_info, header=0, sep=';')
     info_df_datafile = info_df.loc[info_df['Files'] == datafile.filename]
@@ -55,7 +55,7 @@ def average_diffs(group_datafiles):
     print("group ",group_datafiles," len group ",len(group_datafiles))
     for datafile in group_datafiles:
         print("num recordings in datafile", len(datafile.recordings))
-        diff = datafile.get_diffs3()
+        diff = datafile.get_diffs()
         #print(diff)
         print("len diff", len(diff))
         diffs.append(diff)
@@ -92,12 +92,15 @@ datafiles_control = []
 
 #PDF creation per file
 
-i=0
 for file in files:
     try:
+        
         print(file)
+       
         datafile = DataFile_washout(file)
-        add_metadata(datafile, i)
+        
+        add_metadata(datafile)
+       
         
         if datafile.infos['Group'] == 'control':
             datafiles_control.append(datafile)
@@ -106,14 +109,19 @@ for file in files:
         elif datafile.infos['Group'] == 'APV':
             datafiles_APV.append(datafile)
 
-        #pdf = PdfPage(debug=False)
-        #pdf.fill_PDF(datafile, debug=False)
-        #plt.savefig(f'C:/Users/laura.gonzalez/DATA/PDFs/washout/{datafile.filename}.pdf')
-        #print("File saved successfully :", file, '\n')
+        
+        pdf = PdfPage(debug=False)
+       
+        pdf.fill_PDF(datafile, debug=False)
+
+        plt.savefig(f'C:/Users/laura.gonzalez/DATA/PDFs/washout/{datafile.filename}.pdf')
+
+        print("File saved successfully :", file, '\n')
+
 
     except Exception as e:
         print(f"Error analysing this file : {e}")
-    i+=1
+    
 
 
 mean_diffs_APV = average_diffs(datafiles_APV)

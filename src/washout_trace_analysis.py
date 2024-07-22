@@ -24,7 +24,7 @@ class DataFile_washout:
         self.fill_infos()
         self.fill_stim()
 
-    #Methods to extract data
+    #Methods
 
     def load_data(self):
         try:
@@ -73,27 +73,38 @@ class DataFile_washout:
         #print("noise : ", noise)
         return noise
 
-    def get_diffs3(self):
+    def get_diffs(self):
         diffs = []
         i=0
         for recording in self.recordings:
-            diff = self.find_diff2(recording)
-            noise = self.find_noise(recording)
+            diff = self.find_diff(recording)
+            #noise = self.find_noise(recording)
 
+            diffs.append(diff)
+            '''
             if diff>=noise:
                 diffs.append(diff)
             
             if diff<noise:
                 diffs.append(0)
                 #print("difference is actually noise")  
-                
+            '''
             #print(i)
             i+=1
             #print("diff : ", diff)
-        
         return diffs
+    
+    def correct_diffs(self,diffs, noises):
+        diffs_c = []
+        i=0
+        for diff in diffs:
+            if np.abs(diff)<np.abs(noises[i]): diffs_c.append(0)
+            else:diffs_c.append(diff)
+            i+=1
+        return diffs_c
 
-    def find_diff2(self, recording):
+
+    def find_diff(self, recording):
 
         #find baseline
         recording_baseline = recording[52000:58000]
@@ -122,7 +133,15 @@ class DataFile_washout:
                 print("cell was lost at the sweep ", i, " ( = ", i/6, " min). The leak was ", np.mean(baseline) )
             i+=1
         return baselines
+    
+    def get_noises(self):
+        noises = []
+        for recording in self.recordings:
+            noise = self.find_noise(recording)
+            noises.append(noise)
+        return noises
 
+    '''
     def find_diff(recording):
 
         #find baseline
@@ -141,7 +160,8 @@ class DataFile_washout:
         #print("diff : ",diff)
 
         return diff
-
+    '''
+    '''
     def get_diffs(recordings):
         diffs = []
         for recording in recordings:
@@ -149,6 +169,7 @@ class DataFile_washout:
             if diff>-0.17 :
                 diffs.append(diff)
         return diffs
+    '''
 
     def get_Ids(self):
 
@@ -173,7 +194,7 @@ class DataFile_washout:
             print("Error getting time scale, by default 0-2000 ms with 0.01 timestep")
             return time_
         
-    def fill_infos(self):  #####fix to not use i
+    def fill_infos(self):
         try:
             file_meta_info = open('C:/Users/laura.gonzalez/Programming/Intracellular_recording/src/Files1.csv', 'r')  
             info_df = pd.read_csv(file_meta_info, header=0, sep=';')
