@@ -1,14 +1,11 @@
 import numpy as np
-import matplotlib.pylab as plt
 import statistics
-#from scipy.optimize import curve_fit #to fit
-import Curve_fit as cf
-
 from igor2.packed import load as loadpxp
 
 import pandas as pd
-import csv
 
+
+meta_info_directory = 'C:/Users/laura.gonzalez/Programming/Intracellular_recording/src/Files1q.csv'
 
 class DataFile_washout:
 
@@ -25,7 +22,6 @@ class DataFile_washout:
         self.fill_stim()
 
     #Methods
-
     def load_data(self):
         try:
             self.pxp = loadpxp(self.file_path)
@@ -54,7 +50,6 @@ class DataFile_washout:
             return -1
         
     def get_batches(self, list, batch_size=6):
-        #batch_size = 6
         means = []
         std = []
         for i in range(0, len(list), batch_size):
@@ -62,6 +57,7 @@ class DataFile_washout:
             #sem.append(stats.sem(list[i:i+batch_size]))
             std.append(np.std(list[i:i+batch_size]))
         return means, std
+
 
     def find_noise(self, recording):
         baseline = recording[52000:58000]
@@ -73,35 +69,12 @@ class DataFile_washout:
         #print("noise : ", noise)
         return noise
 
-    def get_diffs(self):
-        diffs = []
-        i=0
+    def get_noises(self):
+        noises = []
         for recording in self.recordings:
-            diff = self.find_diff(recording)
-            #noise = self.find_noise(recording)
-
-            diffs.append(diff)
-            '''
-            if diff>=noise:
-                diffs.append(diff)
-            
-            if diff<noise:
-                diffs.append(0)
-                #print("difference is actually noise")  
-            '''
-            #print(i)
-            i+=1
-            #print("diff : ", diff)
-        return diffs
-    
-    def correct_diffs(self,diffs, noises):
-        diffs_c = []
-        i=0
-        for diff in diffs:
-            if np.abs(diff)<np.abs(noises[i]): diffs_c.append(0)
-            else:diffs_c.append(diff)
-            i+=1
-        return diffs_c
+            noise = self.find_noise(recording)
+            noises.append(noise)
+        return noises
 
 
     def find_diff(self, recording):
@@ -123,6 +96,41 @@ class DataFile_washout:
 
         return diff
 
+    def get_diffs(self):
+        diffs = []
+        i=0
+        for recording in self.recordings:
+            diff = self.find_diff(recording)
+            #noise = self.find_noise(recording)
+            #print(diff)
+            diffs.append(diff)
+            '''
+            if diff>=noise:
+                diffs.append(diff)
+            
+            if diff<noise:
+                diffs.append(0)
+                #print("difference is actually noise")  
+            '''
+            #print(i)
+            i+=1
+            #print("diff : ", diff)
+        self.diffs = diffs
+        return diffs
+    
+    def correct_diffs(self,diffs, noises):
+        diffs_c = []
+        i=0
+        for diff in diffs:
+            if np.abs(diff)<np.abs(noises[i]): diffs_c.append(0)
+            else:diffs_c.append(diff)
+            i+=1
+
+        self.corr_diffs = diffs_c
+
+        return diffs_c
+
+
     def get_baselines(self):
         baselines = []
         i=0
@@ -134,42 +142,6 @@ class DataFile_washout:
             i+=1
         return baselines
     
-    def get_noises(self):
-        noises = []
-        for recording in self.recordings:
-            noise = self.find_noise(recording)
-            noises.append(noise)
-        return noises
-
-    '''
-    def find_diff(recording):
-
-        #find baseline
-        recording_baseline = recording[52000:58000]
-        avg_baseline = statistics.mean(recording_baseline)
-
-        #find minimum
-        recording_roi = recording[60200:62000]
-        min = np.min(recording_roi)
-
-        #compute diff
-        diff =  min - avg_baseline
-
-        #print("baseline : ",avg_baseline)
-        #print("min : ",min)
-        #print("diff : ",diff)
-
-        return diff
-    '''
-    '''
-    def get_diffs(recordings):
-        diffs = []
-        for recording in recordings:
-            diff = find_diff(recording)
-            if diff>-0.17 :
-                diffs.append(diff)
-        return diffs
-    '''
 
     def get_Ids(self):
 
@@ -196,7 +168,7 @@ class DataFile_washout:
         
     def fill_infos(self):
         try:
-            file_meta_info = open('C:/Users/laura.gonzalez/Programming/Intracellular_recording/src/Files1.csv', 'r')  
+            file_meta_info = open(meta_info_directory, 'r')  
             info_df = pd.read_csv(file_meta_info, header=0, sep=';')
             info_df_datafile = info_df.loc[info_df['Files'] == self.filename]
 
@@ -258,3 +230,56 @@ class DataFile_washout:
                             print("OK stimulation traces found")
                         except:
                             print(f'Stimulation parameters not found: {e}')
+    
+    
+    def get_subsets(self):
+
+        diffs = self.get_diffs() 
+        batches_diff_m, _ = self.get_batches(diffs)
+        subset1 = batches_diff_m[int(self.infos["Infusion start"])-5: int(self.infos["Infusion start"])]
+        subset2 = batches_diff_m[int(self.infos["Infusion end"])-5: int(self.infos["Infusion end"])]
+        subset3 = batches_diff_m[int(len(self.recordings)/6)-5:int(len(self.recordings)/6)]
+        return subset1, subset2, subset3
+    
+    def get_values_barplot(self):
+
+        subset1, subset2, subset3 = self.get_subsets()
+        bsl_m = np.mean(subset1)
+        bsl_std = np.std(subset1)
+        inf_m = np.mean(subset2)
+        inf_std = np.std(subset2)
+        wash_m = np.mean(subset3)
+        wash_std = np.std(subset3)
+
+        return bsl_m, bsl_std, inf_m, inf_std, wash_m, wash_std
+
+
+    '''
+    def find_diff(recording):
+
+        #find baseline
+        recording_baseline = recording[52000:58000]
+        avg_baseline = statistics.mean(recording_baseline)
+
+        #find minimum
+        recording_roi = recording[60200:62000]
+        min = np.min(recording_roi)
+
+        #compute diff
+        diff =  min - avg_baseline
+
+        #print("baseline : ",avg_baseline)
+        #print("min : ",min)
+        #print("diff : ",diff)
+
+        return diff
+    '''
+    '''
+    def get_diffs(recordings):
+        diffs = []
+        for recording in recordings:
+            diff = find_diff(recording)
+            if diff>-0.17 :
+                diffs.append(diff)
+        return diffs
+    '''
