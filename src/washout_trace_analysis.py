@@ -5,7 +5,7 @@ from igor2.packed import load as loadpxp
 import pandas as pd
 
 
-meta_info_directory = 'C:/Users/laura.gonzalez/Programming/Intracellular_recording/src/Files1q.csv'
+meta_info_directory = 'C:/Users/laura.gonzalez/Programming/Intracellular_recording/src/Files1.csv'
 
 class DataFile_washout:
 
@@ -236,9 +236,15 @@ class DataFile_washout:
 
         diffs = self.get_diffs() 
         batches_diff_m, _ = self.get_batches(diffs)
-        subset1 = batches_diff_m[int(self.infos["Infusion start"])-5: int(self.infos["Infusion start"])]
-        subset2 = batches_diff_m[int(self.infos["Infusion end"])-5: int(self.infos["Infusion end"])]
-        subset3 = batches_diff_m[int(len(self.recordings)/6)-5:int(len(self.recordings)/6)]
+        try:
+            subset1 = batches_diff_m[int(self.infos["Infusion start"])-5: int(self.infos["Infusion start"])]
+            subset2 = batches_diff_m[int(self.infos["Infusion end"])-5: int(self.infos["Infusion end"])]
+            subset3 = batches_diff_m[int(len(self.recordings)/6)-5:int(len(self.recordings)/6)]
+        except:
+            subset1 = batches_diff_m[5:10]
+            subset2 = batches_diff_m[12: 17]
+            subset3 = batches_diff_m[45:50]
+
         return subset1, subset2, subset3
     
     def get_values_barplot(self):
