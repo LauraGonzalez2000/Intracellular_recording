@@ -12,8 +12,8 @@ from openpyxl.utils import get_column_letter
 
 import numpy as np
 
-files_directory = 'D:\Internship_Rebola_ICM\EXP-recordings\RAW-DATA-TO-ANALYSE-WASHOUT'
-meta_info_directory = 'C:/Users/laura.gonzalez/Programming/Intracellular_recording/src/Files1.csv'
+files_directory = 'D:\Internship_Rebola_ICM\EXP-recordings\RAW-DATA-TO-ANALYSE-WASHOUT-q'
+meta_info_directory = 'C:/Users/laura.gonzalez/Programming/Intracellular_recording/src/Files1q.csv'
 
 #from openpyxl import load_workbook
 
@@ -154,7 +154,7 @@ for file in files:
         print(file)       
         datafile = DataFile_washout(file)
         add_metadata(datafile)     
-        print(datafile.infos['Group']) 
+        #print(datafile.infos['Group']) 
         
         if datafile.infos['Group'] == 'control':
             datafiles_control.append(datafile)
@@ -172,6 +172,7 @@ for file in files:
         print(f"Error analysing this file : {e}")
     
 
+'''
 # PDF for APV
 num_files1 = len(datafiles_APV)
 mean_diffs_APV, std_diffs_APV = avg_std_diffs(datafiles_APV)
@@ -201,7 +202,7 @@ barplot = {'Baseline (5 last)':baseline_m, 'Infusion (5 last)':inf_m, 'Washout (
 pdf3 = PdfPage(debug=False)
 pdf3.fill_PDF_merge(mean_diffs_keta, std_diffs_keta, num_files3, "ketamine", mean_Ids_keta, std_Ids_keta, barplot)
 plt.savefig(f'C:/Users/laura.gonzalez/DATA/PDFs/washout/keta_merge.pdf')
-
+'''
 
 
 

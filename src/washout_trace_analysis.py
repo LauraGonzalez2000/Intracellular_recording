@@ -2,10 +2,12 @@ import numpy as np
 import statistics
 from igor2.packed import load as loadpxp
 
+from scipy.signal import butter, lfilter, freqz
+
 import pandas as pd
 
 
-meta_info_directory = 'C:/Users/laura.gonzalez/Programming/Intracellular_recording/src/Files1.csv'
+meta_info_directory = 'C:/Users/laura.gonzalez/Programming/Intracellular_recording/src/Files1q.csv'
 
 class DataFile_washout:
 
@@ -30,19 +32,36 @@ class DataFile_washout:
             print(f"Data was not loaded: {e}")
             return -1
         return self.pxp
-        
+    
+    
+    def butter_lowpass(cutoff=1.1, fs=100, order=6): #math class?
+        return butter(order, cutoff, fs=fs, btype='low', analog=False)
+
+    def butter_lowpass_filter(self, data, cutoff=1.1, fs=100, order=6):   #math class
+        b, a = self.butter_lowpass(cutoff, fs, order=order)
+        y = lfilter(b, a, data)
+        return y
+  
     def get_recordings(self):
         try:
             DATA = []
+            DATA_f = []
             i = 0
             while True:
                 key = b'RecordA%i' % i
                 if key in self.pxp[1]['root']:
-                    DATA.append(self.pxp[1]['root'][key].wave['wave']['wData'])
+                    recording = self.pxp[1]['root'][key].wave['wave']['wData']
+                    DATA.append(recording)
+                    
+                    recording_ = np.concatenate((recording[:59999], recording[60060:69999],recording[70060:])) #remove artefact
+                    recording_f = self.butter_lowpass_filter(recording_)
+                    DATA_f.append(recording_f)
                     i += 1
                 else:
                     break
             self.recordings = np.array(DATA, dtype=np.float16 ) #uses less memory
+            self.recordings_f = np.array(DATA_f, dtype=np.float16 ) #uses less memory
+
             print('OK Recordings were loaded')
             return self.recordings
         except Exception as e:
@@ -71,7 +90,7 @@ class DataFile_washout:
 
     def get_noises(self):
         noises = []
-        for recording in self.recordings:
+        for recording in self.recordings_f:
             noise = self.find_noise(recording)
             noises.append(noise)
         return noises
@@ -99,7 +118,7 @@ class DataFile_washout:
     def get_diffs(self):
         diffs = []
         i=0
-        for recording in self.recordings:
+        for recording in self.recordings_f:
             diff = self.find_diff(recording)
             #noise = self.find_noise(recording)
             #print(diff)
@@ -134,7 +153,7 @@ class DataFile_washout:
     def get_baselines(self):
         baselines = []
         i=0
-        for recording in self.recordings:
+        for recording in self.recordings_f:
             baseline = recording[52000:58000]  #good values?
             baselines.append(baseline)
             if np.mean(baseline) <= -0.7:
@@ -146,7 +165,7 @@ class DataFile_washout:
     def get_Ids(self):
 
         Ids = []
-        for recording in self.recordings:
+        for recording in self.recordings_f:
             baseline = recording[12000:19000]
             max = np.max(recording[19000:21000])
             Ids.append(max-baseline)
