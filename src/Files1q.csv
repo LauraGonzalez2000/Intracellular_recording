@@ -1,5 +1,5 @@
 Files;euthanize method;Holding (mV);infusion;infusion concentration;infusion start;infusion end;Group;notes
-nm28Jun2024c0;xyla euthasol;-70;keta;100然;5;15;KETA;ok?
+nm28Jun2024c0_000;xyla euthasol;-70;keta;100然;5;15;KETA;ok?
 nm11Jul2024c0_000;xyla euthasol;-60;APV;50然;10;17;APV;ok
 nm15Jul2024c0_000;xyla euthasol;-60;-;-;-;-;control;ok. Cell closing a bit, big signal at first without much stimulation
 nm16Jul2024c0_000;xyla euthasol;-60;APV;50然;10;17;APV;ok. Cell closing a bit

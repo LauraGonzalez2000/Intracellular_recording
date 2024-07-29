@@ -12,8 +12,8 @@ from openpyxl.utils import get_column_letter
 
 import numpy as np
 
-files_directory = 'D:\Internship_Rebola_ICM\EXP-recordings\RAW-DATA-TO-ANALYSE-WASHOUT-q'
-meta_info_directory = 'C:/Users/laura.gonzalez/Programming/Intracellular_recording/src/Files1q.csv'
+files_directory = 'D:\Internship_Rebola_ICM\EXP-recordings\RAW-DATA-TO-ANALYSE-WASHOUT-test'
+meta_info_directory = 'C:/Users/laura.gonzalez/Programming/Intracellular_recording/src/Files1test.csv'
 
 #from openpyxl import load_workbook
 
@@ -53,19 +53,48 @@ def add_metadata(datafile):
     datafile.infos['Infusion end'] = info_df_datafile["infusion end"].item()
     datafile.infos['Group'] = info_df_datafile["Group"].item()
 
+def avg_std_Ids(group_datafiles): #to fix!!!
+    list_of_Ids = []
+    for datafile in group_datafiles:
+        Ids_datafile = datafile.get_Ids()
+        print("Ids")
+        print(Ids_datafile)
+        print(len(Ids_datafile))
+        print(len(Ids_datafile[0]))
+        list_of_Ids.append(np.mean(Ids_datafile, axis=1)) #why size 7000 and not 1? Not normal to have to do a mean here
+
+    print("list_of_Ids")
+    print(list_of_Ids)
+    print(len(list_of_Ids[0]))
+    print(len(list_of_Ids[1]))
+
+    mean_list_of_Ids = np.mean(list_of_Ids, axis=0)
+    print("mean list_of_Ids")
+    print(mean_list_of_Ids)
+    print(len(mean_list_of_Ids))
+
+    std_list_of_Ids = np.std(list_of_Ids, axis=0)
+
+    return mean_list_of_Ids, std_list_of_Ids
+
+def avg_std_leaks(group_datafiles):
+    list_of_leaks = []
+    for datafile in group_datafiles:
+        leaks_datafile = datafile.get_baselines()
+        list_of_leaks.append(np.mean(leaks_datafile, axis=1)) #why size 7000 and not 1? Not normal to have to do a mean here
+
+    mean_list_of_leaks = np.mean(list_of_leaks, axis=0)
+
+    std_list_of_leaks = np.std(list_of_leaks, axis=0)
+
+    return mean_list_of_leaks, std_list_of_leaks
+
+
 def avg_std_diffs(group_datafiles):
-    #print("group ",group_datafiles," len group ",len(group_datafiles))
     list_of_diffs = []
     for datafile in group_datafiles:
         diffs_datafile = datafile.get_diffs()
         list_of_diffs.append(diffs_datafile)
-
-        #print("num recordings in datafile", len(datafile.recordings))
-        #print(diff)
-        #print("len diff", len(diff))
-        
-    #print("diffs ",diffs)
-    #print("len diffs ",len(diffs))
 
     #ensure same size
     max_length = max(len(sub_array) for sub_array in list_of_diffs)
@@ -74,23 +103,7 @@ def avg_std_diffs(group_datafiles):
     mean_list_of_diffs = np.mean(padded_diffs, axis=0)
     std_list_of_diffs = np.std(padded_diffs, axis=0)
 
-    #print("mean diffs ", mean_list_of_diffs)
-    #print("len mean diffs ", len(mean_list_of_diffs))
-  
     return mean_list_of_diffs, std_list_of_diffs
-
-def avg_std_Ids(group_datafiles):
-    list_of_Ids = []
-    for datafile in group_datafiles:
-        Ids_datafile = datafile.get_Ids()
-        list_of_Ids.append(Ids_datafile)
-    
-    max_length = max(len(sub_array) for sub_array in list_of_Ids)
-    padded_Ids = np.array([sub_array + [np.nan]*(max_length - len(sub_array)) for sub_array in list_of_Ids])
-
-    mean_list_of_Ids = np.mean(padded_Ids, axis=0)
-    std_list_of_Ids = np.std(padded_Ids, axis=0)
-    return mean_list_of_Ids, std_list_of_Ids
 
 def avg_std_stats(group_datafiles): 
 
@@ -163,26 +176,27 @@ for file in files:
         elif datafile.infos['Group'] == 'APV':
             datafiles_APV.append(datafile)
 
-        pdf = PdfPage(debug=False)
-        pdf.fill_PDF(datafile, debug=False)
-        plt.savefig(f'C:/Users/laura.gonzalez/DATA/PDFs/washout/{datafile.filename}.pdf')
-        print("File saved successfully :", file, '\n')
+        #pdf = PdfPage(debug=False)
+        #pdf.fill_PDF(datafile, debug=False)
+        #plt.savefig(f'C:/Users/laura.gonzalez/DATA/PDFs/washout/{datafile.filename}.pdf')
+        #print("File saved successfully :", file, '\n')
 
     except Exception as e:
         print(f"Error analysing this file : {e}")
     
 
-'''
 # PDF for APV
 num_files1 = len(datafiles_APV)
 mean_diffs_APV, std_diffs_APV = avg_std_diffs(datafiles_APV)
 mean_Ids_APV, std_Ids_APV = avg_std_Ids(datafiles_APV)
+mean_leaks_APV, std_leaks_APV = avg_std_leaks(datafiles_APV)
 baseline_m, bsl_std, inf_m, inf_std, wash_m, wash_std = avg_std_stats(datafiles_APV)
 barplot = {'Baseline (5 last)':baseline_m, 'Infusion (5 last)':inf_m, 'Washout (5 last)':wash_m}
 pdf1 = PdfPage(debug=False)
-pdf1.fill_PDF_merge(mean_diffs_APV, std_diffs_APV, num_files1, "D-AP5", mean_Ids_APV, std_Ids_APV, barplot)
+pdf1.fill_PDF_merge(mean_diffs_APV, std_diffs_APV, num_files1, "D-AP5", mean_Ids_APV, std_Ids_APV, mean_leaks_APV, std_leaks_APV, barplot)
 plt.savefig(f'C:/Users/laura.gonzalez/DATA/PDFs/washout/DAPV_merge.pdf')
 
+'''
 # PDF for control
 num_files2 = len(datafiles_control)
 mean_diffs_control, std_diffs_control = avg_std_diffs(datafiles_control)

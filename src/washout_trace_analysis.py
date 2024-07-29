@@ -7,7 +7,7 @@ from scipy.signal import butter, lfilter, freqz
 import pandas as pd
 
 
-meta_info_directory = 'C:/Users/laura.gonzalez/Programming/Intracellular_recording/src/Files1q.csv'
+meta_info_directory = 'C:/Users/laura.gonzalez/Programming/Intracellular_recording/src/Files1test.csv'
 
 class DataFile_washout:
 
@@ -18,6 +18,7 @@ class DataFile_washout:
         self.infos = {}
         self.stim = {}
         self.recordings = None
+        self.recordings_f = None
         self.load_data()
         self.get_recordings()
         self.fill_infos()
@@ -33,12 +34,9 @@ class DataFile_washout:
             return -1
         return self.pxp
     
-    
-    def butter_lowpass(cutoff=1.1, fs=100, order=6): #math class?
-        return butter(order, cutoff, fs=fs, btype='low', analog=False)
 
     def butter_lowpass_filter(self, data, cutoff=1.1, fs=100, order=6):   #math class
-        b, a = self.butter_lowpass(cutoff, fs, order=order)
+        b, a = butter(order, cutoff, fs=fs, btype='low', analog=False)
         y = lfilter(b, a, data)
         return y
   
@@ -63,7 +61,7 @@ class DataFile_washout:
             self.recordings_f = np.array(DATA_f, dtype=np.float16 ) #uses less memory
 
             print('OK Recordings were loaded')
-            return self.recordings
+            return 0
         except Exception as e:
             print(f'Recordings were not loaded: {e}')
             return -1
@@ -117,32 +115,21 @@ class DataFile_washout:
 
     def get_diffs(self):
         diffs = []
-        i=0
         for recording in self.recordings_f:
             diff = self.find_diff(recording)
-            #noise = self.find_noise(recording)
-            #print(diff)
             diffs.append(diff)
-            '''
-            if diff>=noise:
-                diffs.append(diff)
-            
-            if diff<noise:
-                diffs.append(0)
-                #print("difference is actually noise")  
-            '''
-            #print(i)
-            i+=1
-            #print("diff : ", diff)
         self.diffs = diffs
         return diffs
     
     def correct_diffs(self,diffs, noises):
         diffs_c = []
         i=0
+        #for diff in diffs:
+        #    if np.abs(diff)<np.abs(noises[i]): diffs_c.append(0)
+        #    else:diffs_c.append(diff)
+        #    i+=1
         for diff in diffs:
-            if np.abs(diff)<np.abs(noises[i]): diffs_c.append(0)
-            else:diffs_c.append(diff)
+            diffs_c.append(diff-noises[i])
             i+=1
 
         self.corr_diffs = diffs_c
@@ -161,11 +148,9 @@ class DataFile_washout:
             i+=1
         return baselines
     
-
     def get_Ids(self):
-
         Ids = []
-        for recording in self.recordings_f:
+        for recording in self.recordings:
             baseline = recording[12000:19000]
             max = np.max(recording[19000:21000])
             Ids.append(max-baseline)
