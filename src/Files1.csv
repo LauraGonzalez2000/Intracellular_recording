@@ -1,10 +1,10 @@
 Files;euthanize method;Holding (mV);infusion;infusion concentration;infusion start;infusion end;Group;notes
-nm20Jun2024c0_002;xyla euthasol;-70;ketamine;1000然;5;15;KETA;ok
-nm21Jun2024c0_000;xyla euthasol;-70;ketamine;1000然;5;15;KETA;shorter rec because died
+nm20Jun2024c0_002;xyla euthasol;-70;ketamine;1000然;5;15;;ok
+nm21Jun2024c0_000;xyla euthasol;-70;ketamine;1000然;5;15;;shorter rec because died
 nm28Jun2024c0_000;xyla euthasol;-70;ketamine;100然;5;15;KETA;ok
 nm28Jun2024c1_000;xyla euthasol;-60;ketamine;100然;5;15;KETA;small volume of bath without keta for washout
 nm03Jul2024c0_000;xyla euthasol;-60;ketamine;100然;5;15;KETA;without temperature regulation
-nm03Jul2024c2_000;xyla euthasol;-60;APV;50然;5;15;APV;ok
+nm03Jul2024c2_000;xyla euthasol;-60;APV;50然;5;15;;ok
 nm04Jul2024c1_000;xyla euthasol;-60;APV;50然;10;15;APV;ok
 nm09Jul2024c0_000;xyla euthasol;-60;APV;50然;10;17;APV;ok
 nm11Jul2024c0_000;xyla euthasol;-60;APV;50然;10;17;APV;ok

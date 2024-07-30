@@ -1,13 +1,12 @@
 import numpy as np
-import statistics
 from igor2.packed import load as loadpxp
 
-from scipy.signal import butter, lfilter, freqz
+from scipy.signal import butter, lfilter
 
 import pandas as pd
 
 
-meta_info_directory = 'C:/Users/laura.gonzalez/Programming/Intracellular_recording/src/Files1test.csv'
+meta_info_directory = 'C:/Users/laura.gonzalez/Programming/Intracellular_recording/src/Files1.csv'
 
 class DataFile_washout:
 
@@ -21,10 +20,14 @@ class DataFile_washout:
         self.recordings_f = None
         self.load_data()
         self.get_recordings()
+        self.get_diffs()
+        self.correct_diffs()
         self.fill_infos()
         self.fill_stim()
 
     #Methods
+
+    #initialize attributes
     def load_data(self):
         try:
             self.pxp = loadpxp(self.file_path)
@@ -34,7 +37,6 @@ class DataFile_washout:
             return -1
         return self.pxp
     
-
     def butter_lowpass_filter(self, data, cutoff=1.1, fs=100, order=6):   #math class
         b, a = butter(order, cutoff, fs=fs, btype='low', analog=False)
         y = lfilter(b, a, data)
@@ -66,53 +68,6 @@ class DataFile_washout:
             print(f'Recordings were not loaded: {e}')
             return -1
         
-    def get_batches(self, list, batch_size=6):
-        means = []
-        std = []
-        for i in range(0, len(list), batch_size):
-            means.append(np.mean(list[i:i+batch_size]))
-            #sem.append(stats.sem(list[i:i+batch_size]))
-            std.append(np.std(list[i:i+batch_size]))
-        return means, std
-
-
-    def find_noise(self, recording):
-        baseline = recording[52000:58000]
-        mean_baseline = np.mean(baseline)
-        std_baseline = np.std(baseline)
-        min_baseline = np.min(baseline)
-        noise = np.abs(mean_baseline - min_baseline)
-        #noise = 2*std_baseline
-        #print("noise : ", noise)
-        return noise
-
-    def get_noises(self):
-        noises = []
-        for recording in self.recordings_f:
-            noise = self.find_noise(recording)
-            noises.append(noise)
-        return noises
-
-
-    def find_diff(self, recording):
-
-        #find baseline
-        recording_baseline = recording[52000:58000]
-        avg_baseline = statistics.mean(recording_baseline)
-
-        #find minimum
-        recording_roi = recording[60200:62000]
-        min = np.min(recording_roi)
-
-        #compute diff
-        diff =  avg_baseline - min
-
-        #print("baseline : ",avg_baseline)
-        #print("min : ",min)
-        #print("diff : ",diff)
-
-        return diff
-
     def get_diffs(self):
         diffs = []
         for recording in self.recordings_f:
@@ -121,55 +76,16 @@ class DataFile_washout:
         self.diffs = diffs
         return diffs
     
-    def correct_diffs(self,diffs, noises):
+    def correct_diffs(self):
+        noises = self.get_noises()
         diffs_c = []
         i=0
-        #for diff in diffs:
-        #    if np.abs(diff)<np.abs(noises[i]): diffs_c.append(0)
-        #    else:diffs_c.append(diff)
-        #    i+=1
-        for diff in diffs:
+        for diff in self.diffs:
             diffs_c.append(diff-noises[i])
             i+=1
-
         self.corr_diffs = diffs_c
-
         return diffs_c
-
-
-    def get_baselines(self):
-        baselines = []
-        i=0
-        for recording in self.recordings_f:
-            baseline = recording[52000:58000]  #good values?
-            baselines.append(baseline)
-            if np.mean(baseline) <= -0.7:
-                print("cell was lost at the sweep ", i, " ( = ", i/6, " min). The leak was ", np.mean(baseline) )
-            i+=1
-        return baselines
     
-    def get_Ids(self):
-        Ids = []
-        for recording in self.recordings:
-            baseline = recording[12000:19000]
-            max = np.max(recording[19000:21000])
-            Ids.append(max-baseline)
-        return Ids
-    
-    def get_time(self, timestep_ = 0.01, datapoints_ = 100000): 
-        try:
-            timestep = self.infos['SampleInterval'] #timestep data acquisition in Igor (0.01 ms)
-            datapoints = self.infos['SamplesPerWave'].astype(int)  #amount of datapoints acquired (200 000)
-            tot_time = np.round(timestep * datapoints).astype(int) 
-            time = np.linspace(0, tot_time, num=datapoints)
-            print("OK time scale found")
-            return time
-        except BaseException: ## if information not present in file for some reason    
-            tot_time_ = np.round(timestep_ * datapoints_).astype(int) 
-            time_ = np.linspace(0, tot_time_, num=datapoints_)
-            print("Error getting time scale, by default 0-2000 ms with 0.01 timestep")
-            return time_
-        
     def fill_infos(self):
         try:
             file_meta_info = open(meta_info_directory, 'r')  
@@ -198,44 +114,76 @@ class DataFile_washout:
             print(f"Infos were not filled correctly: {e}")
 
     def fill_stim(self):
-        try: 
-            pulse_DAC0 = self.pxp[1]['root'][b'nm_washout_keta2'][b'DAC_0_0'].wave['wave']['wData']  #nm_washout_keta2 changes depending on file
-            pulse_DAC1 = self.pxp[1]['root'][b'nm_washout_keta2'][b'DAC_1_0'].wave['wave']['wData']
-            self.stim = {'Cmd1' : pulse_DAC0,
-                         'Cmd2' : pulse_DAC1}
-            print("OK stimulation traces found")
-        except Exception as e:
+        keys = [
+            b'nm_washout_keta2', 
+            b'nm_washout_keta1', 
+            b'nm_washout_keta', 
+            b'nmStimSofia1', 
+            b'nmStimSofia'
+        ]
+        for key in keys:
             try:
-                pulse_DAC0 = self.pxp[1]['root'][b'nm_washout_keta1'][b'DAC_0_0'].wave['wave']['wData']  #nm_washout_keta2 changes depending on file
-                pulse_DAC1 = self.pxp[1]['root'][b'nm_washout_keta1'][b'DAC_1_0'].wave['wave']['wData']
-                self.stim = {'Cmd1' : pulse_DAC0,
-                             'Cmd2' : pulse_DAC1}
+                pulse_DAC0 = self.pxp[1]['root'][key][b'DAC_0_0'].wave['wave']['wData']
+                pulse_DAC1 = self.pxp[1]['root'][key][b'DAC_1_0'].wave['wave']['wData']
+                self.stim = {'Cmd1': pulse_DAC0, 'Cmd2': pulse_DAC1}
                 print("OK stimulation traces found")
-            except:
-                try:
-                    pulse_DAC0 = self.pxp[1]['root'][b'nm_washout_keta'][b'DAC_0_0'].wave['wave']['wData']  #nm_washout_keta2 changes depending on file
-                    pulse_DAC1 = self.pxp[1]['root'][b'nm_washout_keta'][b'DAC_1_0'].wave['wave']['wData']
-                    self.stim = {'Cmd1' : pulse_DAC0,
-                                 'Cmd2' : pulse_DAC1}
-                    print("OK stimulation traces found")
-                except:
-                    try:
-                        pulse_DAC0 = self.pxp[1]['root'][b'nmStimSofia1'][b'DAC_0_0'].wave['wave']['wData']  #nm_washout_keta2 changes depending on file
-                        pulse_DAC1 = self.pxp[1]['root'][b'nmStimSofia1'][b'DAC_1_0'].wave['wave']['wData']
-                        self.stim = {'Cmd1' : pulse_DAC0,
-                                     'Cmd2' : pulse_DAC1}
-                        print("OK stimulation traces found")
-                    except:
-                        try:
-                            pulse_DAC0 = self.pxp[1]['root'][b'nmStimSofia'][b'DAC_0_0'].wave['wave']['wData']  #nm_washout_keta2 changes depending on file
-                            pulse_DAC1 = self.pxp[1]['root'][b'nmStimSofia'][b'DAC_1_0'].wave['wave']['wData']
-                            self.stim = {'Cmd1' : pulse_DAC0,
-                                         'Cmd2' : pulse_DAC1}
-                            print("OK stimulation traces found")
-                        except:
-                            print(f'Stimulation parameters not found: {e}')
+                return
+            except KeyError:
+                continue
+        print("- Stimulation traces not found")
+        
+    #process info
+    def get_batches(self, list, batch_size=6):
+        means = []
+        std = []
+        for i in range(0, len(list), batch_size):
+            means.append(np.mean(list[i:i+batch_size]))
+            std.append(np.std(list[i:i+batch_size]))
+        return means, std
+
+    def find_noise(self, rec, bsl_start=52000, bsl_end=58000):
+        baseline = rec[bsl_start:bsl_end]
+        mean_baseline = np.mean(baseline)
+        min_baseline = np.min(baseline)
+        noise = np.abs(mean_baseline - min_baseline)   
+        #std_baseline = np.std(baseline)
+        #noise = 2*std_baseline
+        return noise
+
+    def get_noises(self):
+        noises = []
+        for recording_f in self.recordings_f:
+            noise = self.find_noise(recording_f)
+            noises.append(noise)
+        return noises
+
+    def find_diff(self, rec, bsl_start=52000, bsl_end=58000):
+        recording_baseline = rec[bsl_start:bsl_end]
+        avg_baseline = np.mean(recording_baseline)
+        recording_roi = rec[60200:62000]
+        min = np.min(recording_roi)
+        diff =  avg_baseline - min
+        return diff
+
+    def get_baselines(self, bsl_start=52000, bsl_end=58000):
+        baselines = []
+        i=0
+        for recording in self.recordings_f:
+            baseline = recording[bsl_start:bsl_end]
+            baselines.append(baseline)
+            if np.mean(baseline) <= -0.7:
+                print("cell was lost at the sweep ", i, " ( = ", i/6, " min). The leak was ", np.mean(baseline) )
+            i+=1
+        return baselines
     
-    
+    def get_Ids(self):
+        Ids = []
+        for recording in self.recordings_f:
+            baseline = recording[12000:19000]
+            max = np.max(recording[19000:21000])
+            Ids.append(max-baseline)
+        return Ids
+        
     def get_subsets(self):
 
         diffs = self.get_diffs() 
@@ -246,7 +194,7 @@ class DataFile_washout:
             subset3 = batches_diff_m[int(len(self.recordings)/6)-5:int(len(self.recordings)/6)]
         except:
             subset1 = batches_diff_m[5:10]
-            subset2 = batches_diff_m[12: 17]
+            subset2 = batches_diff_m[12:17]
             subset3 = batches_diff_m[45:50]
 
         return subset1, subset2, subset3
@@ -263,33 +211,19 @@ class DataFile_washout:
 
         return bsl_m, bsl_std, inf_m, inf_std, wash_m, wash_std
 
+    def find_baseline_diffs_m(self):
 
-    '''
-    def find_diff(recording):
+        batches_diffs_m, _ = self.get_batches(self.corr_diffs) #noise is substracted
 
-        #find baseline
-        recording_baseline = recording[52000:58000]
-        avg_baseline = statistics.mean(recording_baseline)
+        try:
+            if (int(self.infos["Infusion start"])-10) >= 0 :
+                baseline_diffs_m = np.mean(batches_diffs_m[(int(self.infos["Infusion start"])-10):int(self.infos["Infusion start"])]) 
+            elif (int(self.infos["Infusion start"])-10) < 0 :
+                baseline_diffs_m = np.mean(batches_diffs_m[(int(self.infos["Infusion start"])-5):int(self.infos["Infusion start"])]) 
+        except:
+            try:
+                baseline_diffs_m = np.mean(batches_diffs_m[0:5]) 
+            except Exception as e:
+                print(f"Error finding the baseline : {e}")
 
-        #find minimum
-        recording_roi = recording[60200:62000]
-        min = np.min(recording_roi)
-
-        #compute diff
-        diff =  min - avg_baseline
-
-        #print("baseline : ",avg_baseline)
-        #print("min : ",min)
-        #print("diff : ",diff)
-
-        return diff
-    '''
-    '''
-    def get_diffs(recordings):
-        diffs = []
-        for recording in recordings:
-            diff = find_diff(recording)
-            if diff>-0.17 :
-                diffs.append(diff)
-        return diffs
-    '''
+        return baseline_diffs_m

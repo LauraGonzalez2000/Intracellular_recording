@@ -49,7 +49,6 @@ class PdfPage:
         DY = 0.13
         self.AXs['barplot'] = self.create_panel([X0, Y0, 0.4, DY],'Statistics')
 
-        
     def create_panel(self, coords, title=None):
         """ 
         coords: (x0, y0, dx, dy)
@@ -65,7 +64,6 @@ class PdfPage:
 
     def fill_PDF(self, datafile, debug=False): 
 
-        time = datafile.get_time() #remove maybe 1
 
         for key in self.AXs:
             
@@ -73,40 +71,12 @@ class PdfPage:
                 txt = f"ID file data: {datafile.filename}\nNumber of recordings: {len(datafile.recordings)}\nID file excel: {datafile.infos['File']}\nEuthanize method: {datafile.infos['Euthanize method']}\nHolding:{datafile.infos['Holding (mV)']}\nInfusion:{datafile.infos['Infusion substance']}\nInfusion concentration:{datafile.infos['Infusion concentration']}\nInfusion start:{datafile.infos['Infusion start']}\nInfusion end:{datafile.infos['Infusion end']}\n"
                 self.AXs[key].annotate(txt,(0, 1), va='top', xycoords='axes fraction')
               
-            elif key=='Leak (nA)':
-
-                #txt = f"Leak \n(A)"
-                #self.AXs[key].annotate(txt, (-0.29, 0.2), xycoords='axes fraction', rotation=0)
-                baselines = datafile.get_baselines()
-                #print("baselines ",baselines)
-                #print(len(baselines))
-            
-                baselines_m, baselines_std = datafile.get_batches(baselines)
-                self.AXs[key].plot(baselines_m, marker="o", linewidth=0.5, markersize=2)
-                self.AXs[key].errorbar(range(len(baselines_m)), baselines_m, yerr=baselines_std, linestyle='None', marker='_', color='blue', capsize=3, linewidth = 0.5)
-                self.AXs[key].set_xlim(-1, 50 )
-                #self.AXs[key].set_ylim( -0.6, 0.1)
-                self.AXs[key].set_ylabel("Baseline (=leak) (nA)")
-                self.AXs[key].set_xlabel("time (min)")
-                self.AXs[key].set_xticks(np.arange(0, 51, 5))
-                try:
-                    self.AXs[key].axvspan(int(datafile.infos["Infusion start"]), int(datafile.infos["Infusion end"]), color='lightgrey')
-                except Exception as e:
-                    print(f"metadata not added correctly - or no infusion {e}")
-                #averages_baselines = datafile.get_baselines()
-                #mean_leak = [np.mean(averages_baselines)] * len(averages_baselines)
-                #self.AXs[key].plot(averages_baselines) 
-                #self.AXs[key].plot(mean_leak, color="lightblue")
-            
             elif key=='Id (nA)':
-
                 Ids = datafile.get_Ids()
                 Ids_m, Ids_std = datafile.get_batches(Ids)
-
                 self.AXs[key].plot(Ids_m, marker="o", linewidth=0.5, markersize=2)
                 self.AXs[key].errorbar(range(len(Ids_m)), Ids_m, yerr=Ids_std, linestyle='None', marker='_', color='blue', capsize=3, linewidth = 0.5)
                 self.AXs[key].set_xlim(-1, 50 )
-                #self.AXs[key].set_ylim( 0, 140)
                 self.AXs[key].set_ylabel("Id (=acces) (nA)")
                 self.AXs[key].set_xlabel("time (min)")
                 self.AXs[key].set_xticks(np.arange(0, 51, 5))
@@ -114,99 +84,75 @@ class PdfPage:
                     self.AXs[key].axvspan(int(datafile.infos["Infusion start"]), int(datafile.infos["Infusion end"]), color='lightgrey')
                 except:
                     print("metadata not added correctly or no infusion")
+
+            elif key=='Leak (nA)':
+                baselines = datafile.get_baselines()
+                baselines_m, baselines_std = datafile.get_batches(baselines)
+                self.AXs[key].plot(baselines_m, marker="o", linewidth=0.5, markersize=2)
+                self.AXs[key].errorbar(range(len(baselines_m)), baselines_m, yerr=baselines_std, linestyle='None', marker='_', color='blue', capsize=3, linewidth = 0.5)
+                self.AXs[key].set_xlim(-1, 50 )
+                self.AXs[key].set_ylabel("Baseline (=leak) (nA)")
+                self.AXs[key].set_xlabel("time (min)")
+                self.AXs[key].set_xticks(np.arange(0, 51, 5))
+                try:
+                    self.AXs[key].axvspan(int(datafile.infos["Infusion start"]), int(datafile.infos["Infusion end"]), color='lightgrey')
+                except Exception as e:
+                    print(f"metadata not added correctly - or no infusion {e}")
             
-            elif key=='Difference_peak_baseline':
-
-                self.AXs[key].set_xlabel("time (ms)")
-                diffs = datafile.get_diffs() 
-                noises = datafile.get_noises()
-                diffs_c = datafile.correct_diffs(diffs, noises)#noise was removed here
-                batches_m, batches_std = datafile.get_batches(diffs_c)
-
+            elif key=='Difference_peak_baseline': #plot with noise
+                batches_m, batches_std = datafile.get_batches(datafile.diffs) #with noise
                 self.AXs[key].plot(batches_m, marker="o", linewidth=0.5, markersize=2)
                 self.AXs[key].errorbar(range(len(batches_m)), batches_m, yerr=batches_std, linestyle='None', marker='_', color='blue', capsize=3, linewidth = 0.5)
                 self.AXs[key].set_xlim(-1, 50 )
-                #self.AXs[key].set_ylim( -10, 140)
                 self.AXs[key].set_ylabel("Difference_peak_baseline (nA)")
                 self.AXs[key].set_xlabel("time (min)")
                 self.AXs[key].set_xticks(np.arange(0, 51, 5))
-
-                noises = datafile.get_noises() #used?
-                noises_m, noises_std = datafile.get_batches(noises) #used?
-                #self.AXs[key].plot(noises_m, marker="o", linewidth=0.5, markersize=2)
-                #self.AXs[key].errorbar(range(len(noises_m)), noises_m, yerr=noises_std, linestyle='None', marker='_', color='red', capsize=3, linewidth = 0.5)
-                
+                #plot also noises
+                noises = datafile.get_noises() 
+                noises_m, noises_std = datafile.get_batches(noises) 
+                self.AXs[key].plot(noises_m, marker="o", linewidth=0.5, markersize=2)
+                self.AXs[key].errorbar(range(len(noises_m)), noises_m, yerr=noises_std, linestyle='None', marker='_', color='red', capsize=3, linewidth = 0.5)
                 try:
                     self.AXs[key].axvspan(int(datafile.infos["Infusion start"]), int(datafile.infos["Infusion end"]), color='lightgrey') 
                 except:
                     print("no infusion")
 
-
-             
             elif key=='RespAnalyzed':
-                print("a")
-                self.AXs[key].set_xlabel("time (ms)")
-                print("a1")
-                diffs = datafile.get_diffs() 
-                print("a2")
-                noises = datafile.get_noises()
-                print("a3")
-                diffs_c = datafile.correct_diffs(diffs, noises) #noise was removed here
-                print("diffs c",diffs_c)
-                print("a4")
-                batches_diffs_m, batches_diffs_std = datafile.get_batches(diffs_c)
-                print(len(batches_diffs_m))
-                print("batches_diffs_m ",batches_diffs_m)
-                
-                print("a5")
+                batches_diffs_m, batches_diffs_std = datafile.get_batches(datafile.corr_diffs) #noise is substracted
+                baseline_diffs_m = datafile.find_baseline_diffs_m()
                 # Normalization by baseline mean (Baseline at 100%)
-                try:
-                    print("a6_1")
-                    if (int(datafile.infos["Infusion start"])-10) >= 0 :
-                        baseline_diffs_m = np.mean(batches_diffs_m[(int(datafile.infos["Infusion start"])-10):int(datafile.infos["Infusion start"])]) 
-                    elif (int(datafile.infos["Infusion start"])-10) < 0 :
-                        baseline_diffs_m = np.mean(batches_diffs_m[(int(datafile.infos["Infusion start"])-5):int(datafile.infos["Infusion start"])]) 
-                    print(baseline_diffs_m)
-                except:
-                    try:
-                        print("a6_2")
-                        baseline_diffs_m = np.mean(batches_diffs_m[0:5]) 
-                        print(baseline_diffs_m)
-                    except Exception as e:
-                        print(f"Error finding the baseline : {e}")
-
-                print("a7") 
                 batches_diffs_m_norm = (batches_diffs_m / baseline_diffs_m) * 100  
                 batches_diffs_std_norm = (batches_diffs_std / baseline_diffs_m) * 100  
-                print("a8")
                 self.AXs[key].plot(batches_diffs_m_norm, marker="o", linewidth=0.5, markersize=2)
                 self.AXs[key].errorbar(range(len(batches_diffs_m_norm)), batches_diffs_m_norm, yerr=batches_diffs_std_norm, linestyle='None', marker='_', color='blue', capsize=3, linewidth = 0.5)
                 self.AXs[key].set_xlim(-1, 50 )
-                #self.AXs[key].set_ylim( -10, 170)
                 self.AXs[key].set_ylabel("Normalized NMDAR-eEPSCs (%)")
                 self.AXs[key].set_xlabel("time (min)")
                 self.AXs[key].set_xticks(np.arange(0, 51, 5))
-                print("a9")
                 try:
-                    print("a10")
                     self.AXs[key].axvspan(int(datafile.infos["Infusion start"]), int(datafile.infos["Infusion end"]), color='lightgrey') 
                 except:
-                    print("a10")
                     print("no infusion")
-                print("a11")
                 self.AXs[key].axhline(100, color="grey", linestyle="--")
                 self.AXs[key].axhline(0, color="grey", linestyle="--")
 
-                print("a12")
-
+                '''
             elif key=='barplot':
                 baseline_m, bsl_std, inf_m, inf_std, wash_m, wash_std = datafile.get_values_barplot()
-                print(baseline_m, inf_m, wash_m)
                 barplot = {'Baseline (5 last)':baseline_m, 'Infusion (5 last)':inf_m, 'Washout (5 last)':wash_m}
                 self.AXs[key].bar(list(barplot.keys()), list(barplot.values()), width = 0.4)
+                '''
+
+            elif key=='barplot':
+                values = datafile.get_values_barplot()
+                categories = ['Baseline (5 last)', 'Infusion (5 last)', 'Washout (5 last)']
+                means = values[0::2]
+                std_devs = values[1::2]
+                self.AXs[key].bar(categories, means, yerr=std_devs, width=0.4, capsize=5)
+
+
+                
             
-
-
     def fill_PDF_merge(self, mean_diffs, std_diffs, num_files, group, mean_Ids, std_Ids, mean_leaks, std_leaks, barplot):
 
         for key in self.AXs:
@@ -230,7 +176,6 @@ class PdfPage:
                 self.AXs[key].plot(mean_leaks, marker="o", linewidth=0.5, markersize=2)
                 self.AXs[key].errorbar(range(len(mean_leaks)), mean_leaks, yerr=std_leaks, linestyle='None', marker='_', color='blue', capsize=3, linewidth = 0.5)
                 self.AXs[key].set_xlim(-1, 50 )
-                #self.AXs[key].set_ylim( -0.6, 0.1)
                 self.AXs[key].set_ylabel("Baseline (=leak) (nA)")
                 self.AXs[key].set_xlabel("time (min)")
                 self.AXs[key].set_xticks(np.arange(0, 51, 5))
@@ -238,25 +183,19 @@ class PdfPage:
                     self.AXs[key].axvspan(int(datafile.infos["Infusion start"]), int(datafile.infos["Infusion end"]), color='lightgrey')
                 except Exception as e:
                     print(f"metadata not added correctly - or no infusion {e}")
-                #averages_baselines = datafile.get_baselines()
-                #mean_leak = [np.mean(averages_baselines)] * len(averages_baselines)
-                #self.AXs[key].plot(averages_baselines) 
-                #self.AXs[key].plot(mean_leak, color="lightblue")
             
-
             elif key=='Difference_peak_baseline':
                 self.AXs[key].plot(mean_diffs, marker="o", linewidth=0.5, markersize=2)
                 self.AXs[key].errorbar(range(len(mean_diffs)), mean_diffs, yerr=std_diffs, linestyle='None', marker='_', color='blue', capsize=3, linewidth = 0.5)
                 self.AXs[key].set_xlim(-1, 50 )
-                #self.AXs[key].set_ylim( -10, 140)
                 self.AXs[key].set_ylabel("Difference_peak_baseline (nA)")
                 self.AXs[key].set_xlabel("time (min)")
                 self.AXs[key].set_xticks(np.arange(0, 51, 5))
 
             elif key=='RespAnalyzed':  # Normalization by baseline mean (Baseline at 100%)
-                baseline_diffs_m = np.mean(mean_diffs[0:5]) 
+                baseline_diffs_m = np.mean(mean_diffs[0:60]) 
                 batches_diffs_m_norm = (mean_diffs / baseline_diffs_m) * 100  
-                batches_diffs_std_norm = (mean_diffs / baseline_diffs_m) * 100  
+                batches_diffs_std_norm = (std_diffs / baseline_diffs_m) * 100  
                 self.AXs[key].plot(batches_diffs_m_norm, marker="o", linewidth=0.5, markersize=2)
                 self.AXs[key].errorbar(range(len(batches_diffs_m_norm)), batches_diffs_m_norm, yerr=batches_diffs_std_norm, linestyle='None', marker='_', color='blue', capsize=3, linewidth = 0.5)
                 self.AXs[key].set_xlim(-1, 50 )
@@ -268,13 +207,8 @@ class PdfPage:
 
             elif key=='barplot':
                 self.AXs[key].bar(list(barplot.keys()), list(barplot.values()), width = 0.4)
-
-            
-
-        
+    
 if __name__=='__main__':
-    #datafile = DataFile('C:/Users/laura.gonzalez/DATA/RAW_DATA/nm14Jun2024c0/nm14Jun2024c0_000.pxp')
-    #datafile = DataFile('C:/Users/laura.gonzalez/DATA/RAW_DATA/model_cell/nm24Jun2024c0_000.pxp')
     datafile = DataFile_washout('D:/Internship_Rebola_ICM/EXP-recordings/RAW-DATA-TO-ANALYSE-WASHOUT/nm04Jul2024c1/nm04Jul2024c1_000.pxp')
     page = PdfPage()
     page.fill_PDF(datafile)
