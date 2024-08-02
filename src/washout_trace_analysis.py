@@ -6,7 +6,7 @@ from scipy.signal import butter, lfilter
 import pandas as pd
 
 
-meta_info_directory = 'C:/Users/laura.gonzalez/Programming/Intracellular_recording/src/Files1.csv'
+meta_info_directory = 'C:/Users/laura.gonzalez/Programming/Intracellular_recording/src/Files1test.csv'
 
 class DataFile_washout:
 
@@ -22,6 +22,7 @@ class DataFile_washout:
         self.get_recordings()
         self.get_diffs()
         self.correct_diffs()
+        self.batches_correct_diffs()
         self.fill_infos()
         self.fill_stim()
 
@@ -86,6 +87,11 @@ class DataFile_washout:
         self.corr_diffs = diffs_c
         return diffs_c
     
+    def batches_correct_diffs(self):
+        batches_c_diffs_mean, _  = self.get_batches(self.corr_diffs)
+        self.batches_corr_diffs = batches_c_diffs_mean
+        return batches_c_diffs_mean, _
+
     def fill_infos(self):
         try:
             file_meta_info = open(meta_info_directory, 'r')  
@@ -183,24 +189,28 @@ class DataFile_washout:
             max = np.max(recording[19000:21000])
             Ids.append(max-baseline)
         return Ids
-        
+
+    def normalize(self, list_m, list_std):
+        baseline_diffs_m = self.find_baseline_diffs_m()
+        # Normalization by baseline mean (Baseline at 100%)
+        list_m_norm = (list_m / baseline_diffs_m) * 100  
+        list_std_norm = (list_std / baseline_diffs_m) * 100  
+        return list_m_norm, list_std_norm
+
     def get_subsets(self):
-
-        diffs = self.get_diffs() 
-        batches_diff_m, _ = self.get_batches(diffs)
+        batches_c_diffs_mean,  batches_c_diffs_std  = self.get_batches(self.corr_diffs)
+        norm_batches_corr_diffs, _ = self.normalize(batches_c_diffs_mean,  batches_c_diffs_std)
         try:
-            subset1 = batches_diff_m[int(self.infos["Infusion start"])-5: int(self.infos["Infusion start"])]
-            subset2 = batches_diff_m[int(self.infos["Infusion end"])-5: int(self.infos["Infusion end"])]
-            subset3 = batches_diff_m[int(len(self.recordings)/6)-5:int(len(self.recordings)/6)]
+            subset1 = norm_batches_corr_diffs[int(self.infos["Infusion start"])-5: int(self.infos["Infusion start"])]
+            subset2 = norm_batches_corr_diffs[int(self.infos["Infusion end"])-5: int(self.infos["Infusion end"])]
+            subset3 = norm_batches_corr_diffs[int(len(self.recordings)/6)-5:int(len(self.recordings)/6)]
         except:
-            subset1 = batches_diff_m[5:10]
-            subset2 = batches_diff_m[12:17]
-            subset3 = batches_diff_m[45:50]
-
+            subset1 = norm_batches_corr_diffs[5:10]
+            subset2 = norm_batches_corr_diffs[12:17]
+            subset3 = norm_batches_corr_diffs[45:50]
         return subset1, subset2, subset3
     
     def get_values_barplot(self):
-
         subset1, subset2, subset3 = self.get_subsets()
         bsl_m = np.mean(subset1)
         bsl_std = np.std(subset1)
@@ -208,21 +218,24 @@ class DataFile_washout:
         inf_std = np.std(subset2)
         wash_m = np.mean(subset3)
         wash_std = np.std(subset3)
-
         return bsl_m, bsl_std, inf_m, inf_std, wash_m, wash_std
 
     def find_baseline_diffs_m(self):
 
         batches_diffs_m, _ = self.get_batches(self.corr_diffs) #noise is substracted
+        #print(len(batches_diffs_m))
 
         try:
             if (int(self.infos["Infusion start"])-10) >= 0 :
+                #print("10 min baseline")
                 baseline_diffs_m = np.mean(batches_diffs_m[(int(self.infos["Infusion start"])-10):int(self.infos["Infusion start"])]) 
             elif (int(self.infos["Infusion start"])-10) < 0 :
+                #print("5 min baseline")
                 baseline_diffs_m = np.mean(batches_diffs_m[(int(self.infos["Infusion start"])-5):int(self.infos["Infusion start"])]) 
         except:
             try:
                 baseline_diffs_m = np.mean(batches_diffs_m[0:5]) 
+                #print("took first 5 min")
             except Exception as e:
                 print(f"Error finding the baseline : {e}")
 

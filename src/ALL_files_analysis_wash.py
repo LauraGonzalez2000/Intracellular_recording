@@ -1,24 +1,15 @@
-
 import os
-
-#from PdfPage import PdfPage
 from PdfPage_washout import PdfPage
-#from trace_analysis import DataFile
 from washout_trace_analysis import DataFile_washout
-from igor2.packed import load as loadpxp
 import matplotlib.pylab as plt
 import pandas as pd
-from openpyxl.utils import get_column_letter
-
 import numpy as np
 
-files_directory = 'D:\Internship_Rebola_ICM\EXP-recordings\RAW-DATA-TO-ANALYSE-WASHOUT'
-meta_info_directory = 'C:/Users/laura.gonzalez/Programming/Intracellular_recording/src/Files1.csv'
-
-#from openpyxl import load_workbook
+#folders
+files_directory = 'D:\Internship_Rebola_ICM\EXP-recordings\RAW-DATA-TO-ANALYSE-WASHOUT-test'
+meta_info_directory = 'C:/Users/laura.gonzalez/Programming/Intracellular_recording/src/Files1test.csv'
 
 #methods
-
 def find_nm_files(root_folder):
     nm_paths = []
     
@@ -53,118 +44,93 @@ def add_metadata(datafile):
     datafile.infos['Infusion end'] = info_df_datafile["infusion end"].item()
     datafile.infos['Group'] = info_df_datafile["Group"].item()
 
-def avg_std_Ids(group_datafiles): #to fix!!!
-    list_of_Ids = []
-    for datafile in group_datafiles:
-        Ids_datafile = datafile.get_Ids()
-        value = np.mean(Ids_datafile, axis=1) #why size 7000 and not 1? Not normal to have to do a mean here
-        list_of_Ids.append(value) 
+def merge_Ids(datafile, list_of_Ids): 
+    Ids_datafile_ = datafile.get_Ids()
+    Ids_datafile_m, _ = datafile.get_batches(Ids_datafile_, batch_size=6)
+    list_of_Ids.append(Ids_datafile_m) 
+    return 0
 
-    mean_list_of_Ids = np.mean(list_of_Ids, axis=0)
-    std_list_of_Ids = np.std(list_of_Ids, axis=0)
+def merge_leaks(datafile, list_of_leaks): 
+    leaks_datafile = datafile.get_baselines()
+    leaks_datafile_m, _ = datafile.get_batches(leaks_datafile, batch_size=6)
+    list_of_leaks.append(leaks_datafile_m) 
+    return 0
 
-    return mean_list_of_Ids, std_list_of_Ids
+def merge_diffs(datafile, list_of_diffs):
+    diffs_datafile = datafile.batches_corr_diffs
+    list_of_diffs.append(diffs_datafile)
+    return 0
 
-def avg_std_leaks(group_datafiles):
-    list_of_leaks = []
-    for datafile in group_datafiles:
-        leaks_datafile = datafile.get_baselines()
-        value = np.mean(leaks_datafile, axis=1)#why size 7000 and not 1? Not normal to have to do a mean here
-        #print("value", value)
-        list_of_leaks.append(value) 
+def merge_stats(datafile, list_of_bsl_m, list_of_inf_m, list_of_wash_m): 
+    batches_c_diffs_mean,  batches_c_diffs_std  = datafile.get_batches(datafile.corr_diffs) #noise was removed
+    norm_batches_corr_diffs, _ = datafile.normalize(batches_c_diffs_mean,  batches_c_diffs_std)
 
-    value2 = np.mean(list_of_leaks, axis=0)
-    #print("value2", value2)
-    mean_list_of_leaks = value2
-
-    std_list_of_leaks = np.std(list_of_leaks, axis=0)
-
-    return mean_list_of_leaks, std_list_of_leaks
-
-def avg_std_diffs(group_datafiles):
-    list_of_diffs = []
-    for datafile in group_datafiles:
-        diffs_datafile = datafile.get_diffs()
-        #print(diffs_datafile)
-        list_of_diffs.append(diffs_datafile)
-
-    #ensure same size
-    max_length = max(len(sub_array) for sub_array in list_of_diffs)
-    padded_diffs = np.array([sub_array + [np.nan]*(max_length - len(sub_array)) for sub_array in list_of_diffs])
-
-    mean_list_of_diffs = np.mean(padded_diffs, axis=0)
-    #print(mean_list_of_diffs )
-    std_list_of_diffs = np.std(padded_diffs, axis=0)
-
-    return mean_list_of_diffs, std_list_of_diffs
-
-def avg_std_stats(group_datafiles): 
-
-    list_of_bsl_m = []
-    list_of_inf_m = []
-    list_of_wash_m = []
-
-    for datafile in group_datafiles:
-
-        diffs_c = datafile.corr_diffs #noise was removed here
-        batches_diff_m, _ = datafile.get_batches(diffs_c)
-
-        subset1 = batches_diff_m[5:10]
-        subset2 = batches_diff_m[12:17]
-        subset3 = batches_diff_m[45:50]
+    subset1 = norm_batches_corr_diffs[5:10]
+    subset2 = norm_batches_corr_diffs[12:17]
+    subset3 = norm_batches_corr_diffs[45:50]
     
-        bsl_m = np.mean(subset1)
-        bsl_std = np.std(subset1)
-        inf_m = np.mean(subset2)
-        inf_std = np.std(subset2)
-        wash_m = np.mean(subset3)
-        wash_std = np.std(subset3)
+    bsl_m = np.mean(subset1)
+    bsl_std = np.std(subset1)
+    inf_m = np.mean(subset2)
+    inf_std = np.std(subset2)
+    wash_m = np.mean(subset3)
+    wash_std = np.std(subset3)
 
-        bsl_m_datafile, _, inf_m_datafile, _, wash_m_datafile, _ = bsl_m, bsl_std, inf_m, inf_std, wash_m, wash_std 
-        list_of_bsl_m.append(bsl_m_datafile)
-        list_of_inf_m.append(inf_m_datafile)
-        list_of_wash_m.append(wash_m_datafile)
+    bsl_m_datafile, _, inf_m_datafile, _, wash_m_datafile, _ = bsl_m, bsl_std, inf_m, inf_std, wash_m, wash_std 
+    list_of_bsl_m.append(bsl_m_datafile)
+    list_of_inf_m.append(inf_m_datafile)
+    list_of_wash_m.append(wash_m_datafile)
+    return 0
 
+def merge_info(datafile, list_of_Ids, list_of_leaks, list_of_diffs, list_of_bsl_m, list_of_inf_m, list_of_wash_m):
+    merge_Ids(datafile, list_of_Ids)
+    merge_leaks(datafile, list_of_leaks)
+    merge_diffs(datafile, list_of_diffs)
+    merge_stats(datafile, list_of_bsl_m, list_of_inf_m, list_of_wash_m)
+    return 0
+
+def get_avg_std(my_list):
+    mean_list = np.mean(my_list, axis=0)
+    std_list = np.std(my_list, axis=0)
+    return mean_list, std_list
+
+def create_individual_pdf(files, datafiles_keta, datafiles_APV, datafiles_control):
+    for file in files:
+        try:
+            print(file)     
+            datafile = DataFile_washout(file)
+            add_metadata(datafile)     
+            pdf = PdfPage(debug=False)
+            pdf.fill_PDF(datafile, debug=False)
+            plt.savefig(f'C:/Users/laura.gonzalez/DATA/PDFs/washout/{datafile.filename}.pdf')
+            print("File saved successfully :", file, '\n')
+        except Exception as e:
+            print(f"Error analysing this file : {e}")
+            
+        #save the datafile in the corresponding group
+        if datafile.infos['Group'] == 'control': datafiles_control.append(datafile)
+        elif datafile.infos['Group'] == 'KETA': datafiles_keta.append(datafile)
+        elif datafile.infos['Group'] == 'APV': datafiles_APV.append(datafile)
+
+    return 0
+
+def create_group_pdf(datafiles_group, label, filename):
     try:
-        max_length = max(len(sub_array) for sub_array in list_of_bsl_m)
-        max_length = max(len(sub_array) for sub_array in list_of_inf_m)
-        max_length = max(len(sub_array) for sub_array in list_of_wash_m)
+        num_files = len(datafiles_group)
+        list_of_Ids, list_of_leaks, list_of_diffs, list_of_bsl_m, list_of_inf_m, list_of_wash_m = [], [], [], [], [], []
 
-        padded_bsl_m = np.array([sub_array + [np.nan]*(max_length - len(sub_array)) for sub_array in list_of_bsl_m])
-        padded_inf_m = np.array([sub_array + [np.nan]*(max_length - len(sub_array)) for sub_array in list_of_inf_m])
-        padded_wash_m = np.array([sub_array + [np.nan]*(max_length - len(sub_array)) for sub_array in list_of_wash_m])
-
-        mean_list_of_bsl_m = np.mean(padded_bsl_m, axis=0)
-        mean_list_of_inf_m = np.mean(padded_inf_m, axis=0)
-        mean_list_of_wash_m = np.mean(padded_wash_m, axis=0)
-
-        std_list_of_bsl_m = np.std(padded_bsl_m, axis=0)
-        std_list_of_inf_m = np.std(padded_inf_m, axis=0)
-        std_list_of_wash_m = np.std(padded_wash_m, axis=0)
-
-    except:
-        mean_list_of_bsl_m = np.mean(list_of_bsl_m, axis=0)
-        mean_list_of_inf_m = np.mean(list_of_inf_m, axis=0)
-        mean_list_of_wash_m = np.mean(list_of_wash_m, axis=0)
-
-        std_list_of_bsl_m = np.std(list_of_bsl_m, axis=0)
-        std_list_of_inf_m = np.std(list_of_inf_m, axis=0)
-        std_list_of_wash_m = np.std(list_of_wash_m, axis=0)
-        #print("end baseline", mean_list_of_bsl_m)
-        #print("end infusion", mean_list_of_inf_m)
-        #print("end washout", mean_list_of_wash_m)
-
-    return mean_list_of_bsl_m, std_list_of_bsl_m, mean_list_of_inf_m, std_list_of_inf_m, mean_list_of_wash_m, std_list_of_wash_m
-
-def create_group_pdf(datafiles, label, filename):
-    try:
-        num_files = len(datafiles)
-        mean_diffs, std_diffs = avg_std_diffs(datafiles)
-        mean_Ids, std_Ids = avg_std_Ids(datafiles)
-        mean_leaks, std_leaks = avg_std_leaks(datafiles)
-        baseline_m, bsl_std, inf_m, inf_std, wash_m, wash_std = avg_std_stats(datafiles)
-        barplot = {'Baseline (5 last)': baseline_m, 'Infusion (5 last)': inf_m, 'Washout (5 last)': wash_m}
+        for datafile in datafiles_group:
+            merge_info(datafile, list_of_Ids, list_of_leaks, list_of_diffs, list_of_bsl_m, list_of_inf_m, list_of_wash_m)
         
+        mean_Ids, std_Ids = get_avg_std(list_of_Ids)
+        mean_leaks, std_leaks = get_avg_std(list_of_leaks)
+        mean_diffs, std_diffs = get_avg_std(list_of_diffs)
+ 
+        mean_bsl, std_bsl = get_avg_std(list_of_bsl_m)
+        mean_inf, std_inf = get_avg_std(list_of_inf_m)
+        mean_wash, std_wash = get_avg_std(list_of_wash_m)
+        barplot = {'Baseline (5 last)': mean_bsl, 'Infusion (5 last)': mean_inf, 'Washout (5 last)': mean_wash}
+    
         pdf = PdfPage(debug=False)
         pdf.fill_PDF_merge(mean_diffs, std_diffs, num_files, label, mean_Ids, std_Ids, mean_leaks, std_leaks, barplot)
         plt.savefig(f'C:/Users/laura.gonzalez/DATA/PDFs/washout/{filename}.pdf')
@@ -172,95 +138,17 @@ def create_group_pdf(datafiles, label, filename):
     except Exception as e:
         print(f"Error doing group analysis for {label}: {e}")
 
-
 ###### MAIN ######################################################
 
-
 files = find_nm_files(files_directory)
-file_meta_info = open(meta_info_directory, 'r')  
-info_df = pd.read_csv(file_meta_info, header=0, sep=';')
+datafiles_keta, datafiles_APV, datafiles_control  = [], [], []
 
-datafiles_keta = []
-datafiles_APV = []
-datafiles_control = []
-
-
-#PDF creation per file
-
-for file in files:
-    try:
-        
-        print(file)       
-        datafile = DataFile_washout(file)
-        add_metadata(datafile)     
-        
-        if datafile.infos['Group'] == 'control':
-            datafiles_control.append(datafile)
-        elif datafile.infos['Group'] == 'KETA':
-            datafiles_keta.append(datafile)
-        elif datafile.infos['Group'] == 'APV':
-            datafiles_APV.append(datafile)
-
-        pdf = PdfPage(debug=False)
-        pdf.fill_PDF(datafile, debug=False)
-        plt.savefig(f'C:/Users/laura.gonzalez/DATA/PDFs/washout/{datafile.filename}.pdf')
-        print("File saved successfully :", file, '\n')
-    except Exception as e:
-        print(f"Error analysing this file : {e}")
-    
-
-
-create_group_pdf(datafiles_APV, "D-AP5", "DAPV_merge")
+#PDF creation individual files
+create_individual_pdf(files, datafiles_keta, datafiles_APV, datafiles_control)
+#PDF creation per group
+create_group_pdf(datafiles_keta, "ketamine", "ketamine_merge")
+create_group_pdf(datafiles_APV, "D-AP5", "D-AP5_merge")
 create_group_pdf(datafiles_control, "control", "control_merge")
-create_group_pdf(datafiles_keta, "ketamine", "keta_merge")
-
-
-'''
-try: 
-    # PDF for APV
-    num_files1 = len(datafiles_APV)
-    mean_diffs_APV, std_diffs_APV = avg_std_diffs(datafiles_APV)
-    mean_Ids_APV, std_Ids_APV = avg_std_Ids(datafiles_APV)
-    mean_leaks_APV, std_leaks_APV = avg_std_leaks(datafiles_APV)
-    baseline_m, bsl_std, inf_m, inf_std, wash_m, wash_std = avg_std_stats(datafiles_APV)
-    barplot = {'Baseline (5 last)':baseline_m, 'Infusion (5 last)':inf_m, 'Washout (5 last)':wash_m}
-    pdf1 = PdfPage(debug=False)
-    pdf1.fill_PDF_merge(mean_diffs_APV, std_diffs_APV, num_files1, "D-AP5", mean_Ids_APV, std_Ids_APV, mean_leaks_APV, std_leaks_APV, barplot)
-    plt.savefig(f'C:/Users/laura.gonzalez/DATA/PDFs/washout/DAPV_merge.pdf')
-    print("DAP5 PDF saved")
-except Exception as e:
-     print(f"Error doing group analysis for DAP5 : {e}")
-
-try: 
-    # PDF for control
-    num_files2 = len(datafiles_control)
-    mean_diffs_control, std_diffs_control = avg_std_diffs(datafiles_control)
-    mean_Ids_control, std_Ids_control = avg_std_Ids(datafiles_control)
-    mean_leaks_control, std_leaks_control = avg_std_leaks(datafiles_control)
-    baseline_m, bsl_std, inf_m, inf_std, wash_m, wash_std = avg_std_stats(datafiles_control)
-    barplot = {'Baseline (5 last)':baseline_m, 'Infusion (5 last)':inf_m, 'Washout (5 last)':wash_m}
-    pdf2 = PdfPage(debug=False)
-    pdf2.fill_PDF_merge(mean_diffs_control, std_diffs_control, num_files2, "control", mean_Ids_control, std_Ids_control, mean_leaks_control, std_leaks_control, barplot )
-    plt.savefig(f'C:/Users/laura.gonzalez/DATA/PDFs/washout/control_merge.pdf')
-    print("control PDF saved")
-except Exception as e:
-     print(f"Error doing group analysis for control : {e}")
-
-try:
-    # PDF for keta
-    num_files3 = len(datafiles_keta)
-    mean_diffs_keta, std_diffs_keta = avg_std_diffs(datafiles_keta)
-    mean_Ids_keta, std_Ids_keta = avg_std_Ids(datafiles_keta)
-    mean_leaks_keta, std_leaks_keta = avg_std_leaks(datafiles_keta)
-    baseline_m, bsl_std, inf_m, inf_std, wash_m, wash_std = avg_std_stats(datafiles_keta)
-    barplot = {'Baseline (5 last)':baseline_m, 'Infusion (5 last)':inf_m, 'Washout (5 last)':wash_m}
-    pdf3 = PdfPage(debug=False)
-    pdf3.fill_PDF_merge(mean_diffs_keta, std_diffs_keta, num_files3, "ketamine", mean_Ids_keta, std_Ids_keta, mean_leaks_keta, std_leaks_keta, barplot)
-    plt.savefig(f'C:/Users/laura.gonzalez/DATA/PDFs/washout/keta_merge.pdf')
-    print("keta PDF saved")
-except Exception as e:
-     print(f"Error doing group analysis for keta : {e}")
-'''
 
 
 
