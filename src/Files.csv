@@ -1,9 +1,18 @@
-Only good files;;;;;;;;
-;;euthanize method;Holding (mV);infusion;infusion concentration;infusion start;infusion end;notes
-;20Jun2024c0_002;xyla euthasol;-70;ketamine;1000潒;5;15;ok
-;21Jun2024c0_000;xyla euthasol;-70;ketamine;1000潒;5;15;shorter rec because died
-;28Jun2024c0_000;xyla euthasol;-70;ketamine;100潒;5;15;ok
-;28Jun2024c1_000;xyla euthasol;-60;ketamine;100潒;5;15;small volume of bath without keta for washout
-;03Jul2024c0_000;xyla euthasol;-60;ketamine;100潒;5;15;without temperature regulation
-;03Jul2024c2_000;xyla euthasol;-60;APV;50潒;5;15;ok
-;04Jul2024c1_000;xyla euthasol;-60;APV;50潒;10;15;ok
+Files;euthanize method;Holding (mV);infusion;infusion concentration;infusion start;infusion end;Group;notes
+nm09Jul2024c0_000;xyla euthasol;-60;APV;50然;10;17;APV;ok
+nm11Jul2024c0_000;xyla euthasol;-60;APV;50然;10;17;APV;ok
+nm11Jul2024c1_000;xyla euthasol;-60;APV;50然;10;17;APV;ok
+nm15Jul2024c0_000;xyla euthasol;-60;-;-;-;-;control;ok. Cell closing a bit, big signal at first without much stimulation
+nm15Jul2024c1_000;xyla euthasol;-60;APV;50然;10;17;APV;ok. LTP?
+nm16Jul2024c0_000;xyla euthasol;-60;APV;50然;10;17;APV;ok. Cell closing a bit
+nm17Jul2024c0_000;xyla euthasol;-60;-;-;-;-;control;ok. Signal very small
+nm17Jul2024c1_001;xyla euthasol;-60;APV;50然;10;17;APV;ok
+nm18Jul2024c1_000;xyla euthasol;-60;ketamine;100然;10;17;KETA;ok
+nm18Jul2024c2_000;xyla euthasol;-60;-;-;-;-;control;ok
+nm24Jul2024c2_000;xyla euthasol;-60;-;-;-;-;control;ok.Cell closing a bit
+nm31Jul2024c2_000;xyla euthasol;-60;ketamine;100然;10;17;KETA;ok. But keta diluted for 3  min back into wash bath
+nm01Aug2024c0_000;xyla euthasol;-60;-;-;-;-;control;ok, quite big signal
+nm05Aug2024c4_000;xyla euthasol;-60;ketamine;100然;10;17;KETA;ok. Died in the end (282)
+;;;;;;;;
+;;;;;;;;
+;;;;;;; ;

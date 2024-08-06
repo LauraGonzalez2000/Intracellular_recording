@@ -6,8 +6,8 @@ import pandas as pd
 import numpy as np
 
 #folders
-files_directory = 'D:\Internship_Rebola_ICM\EXP-recordings\RAW-DATA-TO-ANALYSE-WASHOUT-test'
-meta_info_directory = 'C:/Users/laura.gonzalez/Programming/Intracellular_recording/src/Files1test.csv'
+files_directory = 'D:\Internship_Rebola_ICM\EXP-recordings\RAW-DATA-TO-ANALYSE-WASHOUT'
+meta_info_directory = 'C:/Users/laura.gonzalez/Programming/Intracellular_recording/src/Files.csv'
 
 #methods
 def find_nm_files(root_folder):
@@ -31,7 +31,7 @@ def find_nm_files(root_folder):
     return nm_paths
 
 def add_metadata(datafile):
-    file_meta_info = open('C:/Users/laura.gonzalez/Programming/Intracellular_recording/src/Files1.csv', 'r')  
+    file_meta_info = open(meta_info_directory, 'r')  
     info_df = pd.read_csv(file_meta_info, header=0, sep=';')
     info_df_datafile = info_df.loc[info_df['Files'] == datafile.filename]
    
@@ -99,7 +99,14 @@ def create_individual_pdf(files, datafiles_keta, datafiles_APV, datafiles_contro
         try:
             print(file)     
             datafile = DataFile_washout(file)
-            add_metadata(datafile)     
+            add_metadata(datafile)   
+
+            #save the datafile in the corresponding group
+            if datafile.infos['Group'] == 'control': datafiles_control.append(datafile)
+            elif datafile.infos['Group'] == 'KETA': datafiles_keta.append(datafile)
+            elif datafile.infos['Group'] == 'APV': datafiles_APV.append(datafile)
+
+
             pdf = PdfPage(debug=False)
             pdf.fill_PDF(datafile, debug=False)
             plt.savefig(f'C:/Users/laura.gonzalez/DATA/PDFs/washout/{datafile.filename}.pdf')
@@ -107,11 +114,6 @@ def create_individual_pdf(files, datafiles_keta, datafiles_APV, datafiles_contro
         except Exception as e:
             print(f"Error analysing this file : {e}")
             
-        #save the datafile in the corresponding group
-        if datafile.infos['Group'] == 'control': datafiles_control.append(datafile)
-        elif datafile.infos['Group'] == 'KETA': datafiles_keta.append(datafile)
-        elif datafile.infos['Group'] == 'APV': datafiles_APV.append(datafile)
-
     return 0
 
 def create_group_pdf(datafiles_group, label, filename):
@@ -138,27 +140,15 @@ def create_group_pdf(datafiles_group, label, filename):
     except Exception as e:
         print(f"Error doing group analysis for {label}: {e}")
 
-###### MAIN ######################################################
 
-files = find_nm_files(files_directory)
-datafiles_keta, datafiles_APV, datafiles_control  = [], [], []
-
-#PDF creation individual files
-create_individual_pdf(files, datafiles_keta, datafiles_APV, datafiles_control)
-#PDF creation per group
-create_group_pdf(datafiles_keta, "ketamine", "ketamine_merge")
-create_group_pdf(datafiles_APV, "D-AP5", "D-AP5_merge")
-create_group_pdf(datafiles_control, "control", "control_merge")
-
-
-
-'''
-#Execute only if the Python script is being executed as the main program. 
 if __name__=='__main__':
-    #filename = os.path.join(os.path.expanduser('~'), 'DATA', 'Dataset1', 'nm12Jun2024c0_000_AMPA.pdf')
-    datafile = DataFile('D:/Internship_Rebola_ICM/DATA_TO_ANALYSE/nm28May2024c1/nm28May2024c1_001.pxp')
-    #datafile = DataFile('C:/Users/laura.gonzalez/DATA/RAW_DATA/model_cell/nm24Jun2024c0_000.pxp')
-    pdf = PdfPage(debug=True)
-    pdf.fill_PDF(datafile, debug=True)
-    plt.show()
-'''
+    files = find_nm_files(files_directory)
+    datafiles_keta, datafiles_APV, datafiles_control  = [], [], []
+
+    #PDF creation individual files
+    create_individual_pdf(files, datafiles_keta, datafiles_APV, datafiles_control)
+    #PDF creation per group
+    create_group_pdf(datafiles_keta, "ketamine", "ketamine_merge")
+    create_group_pdf(datafiles_APV, "D-AP5", "D-AP5_merge")
+    create_group_pdf(datafiles_control, "control", "control_merge")
+    #PDF creation to compare groups

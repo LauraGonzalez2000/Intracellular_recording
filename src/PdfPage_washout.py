@@ -153,7 +153,7 @@ class PdfPage:
 
         for key in self.AXs:
             if key =='Notes':
-                txt = f"Group: {group}\nNumber of files: {str(num_files)}"
+                txt = f"Group: {group}\nNumber of cells: {str(num_files)}"
                 self.AXs[key].annotate(txt,(0, 1), va='top', xycoords='axes fraction')
             
             elif key=='Id (nA)':
@@ -163,10 +163,7 @@ class PdfPage:
                 self.AXs[key].set_ylabel("Id (=acces) (nA)")
                 self.AXs[key].set_xlabel("time (min)")
                 self.AXs[key].set_xticks(np.arange(0, 51, 5))
-                try:
-                    self.AXs[key].axvspan(int(datafile.infos["Infusion start"]), int(datafile.infos["Infusion end"]), color='lightgrey')
-                except:
-                    print("metadata not added correctly or no infusion")
+                self.AXs[key].axvspan(10, 17, color='lightgrey')
 
             elif key=='Leak (nA)':
                 self.AXs[key].plot(mean_leaks, marker="o", linewidth=0.5, markersize=2)
@@ -175,10 +172,7 @@ class PdfPage:
                 self.AXs[key].set_ylabel("Baseline (=leak) (nA)")
                 self.AXs[key].set_xlabel("time (min)")
                 self.AXs[key].set_xticks(np.arange(0, 51, 5))
-                try:
-                    self.AXs[key].axvspan(int(datafile.infos["Infusion start"]), int(datafile.infos["Infusion end"]), color='lightgrey')
-                except Exception as e:
-                    print(f"metadata not added correctly - or no infusion {e}")
+                self.AXs[key].axvspan(10, 17, color='lightgrey')
             
             elif key=='Difference_peak_baseline':
                 self.AXs[key].plot(mean_diffs, marker="o", linewidth=0.5, markersize=2)
@@ -187,6 +181,7 @@ class PdfPage:
                 self.AXs[key].set_ylabel("Difference_peak_baseline (nA)")
                 self.AXs[key].set_xlabel("time (min)")
                 self.AXs[key].set_xticks(np.arange(0, 51, 5))
+                self.AXs[key].axvspan(10, 17, color='lightgrey')
 
             elif key=='RespAnalyzed':  # Normalization by baseline mean (Baseline at 100%)
                 print("len mean diffs ", len(mean_diffs))
@@ -201,6 +196,8 @@ class PdfPage:
                 self.AXs[key].set_xlabel("time (min)")
                 self.AXs[key].set_xticks(np.arange(0, 51, 5))
                 self.AXs[key].axhline(100, color="grey", linestyle="--")
+                self.AXs[key].axhline(0, color="grey", linestyle="--")
+                self.AXs[key].axvspan(10, 17, color='lightgrey')
 
             elif key=='barplot':
                 self.AXs[key].bar(list(barplot.keys()), list(barplot.values()), width = 0.4)
