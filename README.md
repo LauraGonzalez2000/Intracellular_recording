@@ -11,3 +11,6 @@
 ```
 git clone https://github.com/LauraGonzalez2000/Intracellular_recording.git --recurse-submodules
 ```
+
+packages to install :
+pip install matplotlib
