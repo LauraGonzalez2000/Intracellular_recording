@@ -1,9 +1,9 @@
 Files;euthanize method;Holding (mV);infusion;infusion concentration;infusion start;infusion end;Group;notes
 nm20Jun2024c0_002;xyla euthasol;-70;ketamine;1000然;5;15;;ok
 nm21Jun2024c0_000;xyla euthasol;-70;ketamine;1000然;5;15;;shorter rec because died
-nm28Jun2024c0_000;xyla euthasol;-70;ketamine;100然;5;15;;ok
-nm28Jun2024c1_000;xyla euthasol;-60;ketamine;100然;5;15;;small volume of bath without keta for washout
-nm03Jul2024c0_000;xyla euthasol;-60;ketamine;100然;5;15;;without temperature regulation
+nm28Jun2024c0_000;xyla euthasol;-70;ketamine;100然;5;15;keta2;ok
+nm28Jun2024c1_000;xyla euthasol;-60;ketamine;100然;5;15;keta2;small volume of bath without keta for washout
+nm03Jul2024c0_000;xyla euthasol;-60;ketamine;100然;5;15;keta2;without temperature regulation
 nm03Jul2024c2_000;xyla euthasol;-60;APV;50然;5;15;;ok
 nm04Jul2024c1_000;xyla euthasol;-60;APV;50然;10;15;;ok
 nm09Jul2024c0_000;xyla euthasol;-60;APV;50然;10;17;APV;ok
@@ -19,7 +19,7 @@ nm18Jul2024c2_000;xyla euthasol;-60;-;-;-;-;control;ok
 nm24Jul2024c2_000;xyla euthasol;-60;-;-;-;-;control;ok.Cell closing a bit
 nm31Jul2024c2_000;xyla euthasol;-60;ketamine;100然;10;17;KETA;ok. But keta diluted for 3  min back into wash bath
 nm01Aug2024c0_000;xyla euthasol;-60;-;-;-;-;control;ok, quite big signal
-;;;;;;;;
+nm05Aug2024c4_000;xyla euthasol;-60;ketamine;100然;10;17;KETA;ok. Died in the end (282)
 ;;;;;;;;
 ;;;;;;;;
 ;;;;;;; ;
