@@ -6,7 +6,9 @@ from scipy.signal import butter, lfilter
 import pandas as pd
 
 
-meta_info_directory = 'C:/Users/laura.gonzalez/Programming/Intracellular_recording/src/Files.csv'
+#meta_info_directory = 'C:/Users/laura.gonzalez/Programming/Intracellular_recording/src/Files.csv' #in PC
+meta_info_directory = 'C:/Users/LauraGonzalez/Programming/Intracellular_recording/src/Files.csv' #in laptop
+
 
 class DataFile_washout:
 

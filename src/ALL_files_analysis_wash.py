@@ -7,7 +7,9 @@ import numpy as np
 
 #folders
 files_directory = 'D:\Internship_Rebola_ICM\EXP-recordings\RAW-DATA-TO-ANALYSE-WASHOUT'
-meta_info_directory = 'C:/Users/laura.gonzalez/Programming/Intracellular_recording/src/Files.csv'
+#meta_info_directory = 'C:/Users/laura.gonzalez/Programming/Intracellular_recording/src/Files.csv' #in PC
+meta_info_directory = 'C:/Users/LauraGonzalez/Programming/Intracellular_recording/src/Files.csv' #in laptop
+
 
 #methods
 def find_nm_files(root_folder):
@@ -109,7 +111,8 @@ def create_individual_pdf(files, datafiles_keta, datafiles_APV, datafiles_contro
 
             pdf = PdfPage(debug=False)
             pdf.fill_PDF(datafile, debug=False)
-            plt.savefig(f'C:/Users/laura.gonzalez/DATA/PDFs/washout/{datafile.filename}.pdf')
+            #plt.savefig(f'C:/Users/laura.gonzalez/DATA/PDFs/washout/{datafile.filename}.pdf') #in PC
+            plt.savefig(f'C:/Users/LauraGonzalez/DATA/PDFs/washout/{datafile.filename}.pdf') #in laptop
             print("File saved successfully :", file, '\n')
         except Exception as e:
             print(f"Error analysing this file : {e}")
@@ -135,7 +138,8 @@ def create_group_pdf(datafiles_group, label, filename):
     
         pdf = PdfPage(debug=False)
         pdf.fill_PDF_merge(mean_diffs, std_diffs, num_files, label, mean_Ids, std_Ids, mean_leaks, std_leaks, barplot)
-        plt.savefig(f'C:/Users/laura.gonzalez/DATA/PDFs/washout/{filename}.pdf')
+        #plt.savefig(f'C:/Users/laura.gonzalez/DATA/PDFs/washout/{filename}.pdf') #in PC
+        plt.savefig(f'C:/Users/LauraGonzalez/DATA/PDFs/washout/{filename}.pdf') #in laptop
         print(f"{label} PDF saved")
     except Exception as e:
         print(f"Error doing group analysis for {label}: {e}")
