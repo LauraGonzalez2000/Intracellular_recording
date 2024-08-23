@@ -6,10 +6,12 @@ import pandas as pd
 import numpy as np
 
 #folders
-files_directory = 'D:\Internship_Rebola_ICM\EXP-recordings\RAW-DATA-TO-ANALYSE-WASHOUT-test'
-#meta_info_directory = 'C:/Users/laura.gonzalez/Programming/Intracellular_recording/src/Files.csv' #in PC
-meta_info_directory = 'C:/Users/LauraGonzalez/Programming/Intracellular_recording/src/Files-test.csv' #in laptop
+files_directory = 'C:/Users/LauraGonzalez/DATA/Washout_experiment/RAW-DATA-WASHOUT-q'
+meta_info_directory = 'C:/Users/LauraGonzalez/Programming/Intracellular_recording/src/Files-q.csv' #in laptop
 
+#for PC
+#files_directory = 'D:\Internship_Rebola_ICM\EXP-recordings\RAW-DATA-WASHOUT-q'
+#meta_info_directory = 'C:/Users/laura.gonzalez/Programming/Intracellular_recording/src/Files.csv' #in PC
 
 #methods
 def find_nm_files(root_folder):
@@ -119,7 +121,7 @@ def create_individual_pdf(files, datafiles_keta, datafiles_APV, datafiles_contro
             
     return 0
 
-def create_group_pdf(datafiles_group, label, filename):
+def create_group_pdf(datafiles_group, label, filename, final_dict):
     try:
         num_files = len(datafiles_group)
         list_of_Ids, list_of_leaks, list_of_diffs, list_of_bsl_m, list_of_inf_m, list_of_wash_m = [], [], [], [], [], []
@@ -130,7 +132,9 @@ def create_group_pdf(datafiles_group, label, filename):
         mean_Ids, std_Ids = get_avg_std(list_of_Ids)
         mean_leaks, std_leaks = get_avg_std(list_of_leaks)
         mean_diffs, std_diffs = get_avg_std(list_of_diffs)
- 
+        final_dict[label] = mean_diffs
+        final_dict_std[label] = std_diffs
+
         mean_bsl, std_bsl = get_avg_std(list_of_bsl_m)
         mean_inf, std_inf = get_avg_std(list_of_inf_m)
         mean_wash, std_wash = get_avg_std(list_of_wash_m)
@@ -143,16 +147,27 @@ def create_group_pdf(datafiles_group, label, filename):
         print(f"{label} PDF saved")
     except Exception as e:
         print(f"Error doing group analysis for {label}: {e}")
+    return 0
 
+def final_results_pdf(final_dict, final_dict_std):
+    pdf = PdfPage(debug=False)
+    pdf.fill_final_results(final_dict, final_dict_std)
+    plt.savefig(f'C:/Users/LauraGonzalez/DATA/PDFs/washout/final_results.pdf') #in laptop
+    print('final results figure saved')
+    return 0
 
 if __name__=='__main__':
     files = find_nm_files(files_directory)
     datafiles_keta, datafiles_APV, datafiles_control  = [], [], []
 
+    final_dict = {"ketamine": None, "D-AP5": None, "control": None}
+    final_dict_std = {"ketamine": None, "D-AP5": None, "control": None}
     #PDF creation individual files
     create_individual_pdf(files, datafiles_keta, datafiles_APV, datafiles_control)
     #PDF creation per group
-    create_group_pdf(datafiles_keta, "ketamine", "ketamine_merge")
-    create_group_pdf(datafiles_APV, "D-AP5", "D-AP5_merge")
-    create_group_pdf(datafiles_control, "control", "control_merge")
+    create_group_pdf(datafiles_keta, "ketamine", "ketamine_merge", final_dict)
+    create_group_pdf(datafiles_APV, "D-AP5", "D-AP5_merge", final_dict)
+    create_group_pdf(datafiles_control, "control", "control_merge", final_dict)
     #PDF creation to compare groups
+    print(final_dict_std)
+    final_results_pdf(final_dict, final_dict_std)

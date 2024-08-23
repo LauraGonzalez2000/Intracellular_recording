@@ -184,7 +184,6 @@ class PdfPage:
                 self.AXs[key].axvspan(10, 17, color='lightgrey')
 
             elif key=='RespAnalyzed':  # Normalization by baseline mean (Baseline at 100%)
-                print("len mean diffs ", len(mean_diffs))
                 baseline_diffs_m = np.mean(mean_diffs[0:10]) 
                 batches_diffs_m_norm = (mean_diffs / baseline_diffs_m) * 100  
                 batches_diffs_std_norm = (std_diffs / baseline_diffs_m) * 100  
@@ -202,6 +201,60 @@ class PdfPage:
             elif key=='barplot':
                 self.AXs[key].bar(list(barplot.keys()), list(barplot.values()), width = 0.4)
     
+    def fill_final_results(self, final_dict, final_dict_std):
+        for key in self.AXs:
+            if key =='Difference_peak_baseline':
+                self.AXs[key].plot(final_dict["ketamine"], marker="o", linewidth=0.5, markersize=2, label = "ketamine 100uM", color = 'orange')
+                self.AXs[key].errorbar(range(len(final_dict["ketamine"])), final_dict["ketamine"], yerr=final_dict_std["ketamine"], linestyle='None', marker='_', capsize=3, linewidth = 0.5, color = 'orange')
+                
+                self.AXs[key].plot(final_dict["D-AP5"], marker="o", linewidth=0.5, markersize=2, label = "D-AP5 50uM", color = 'purple')
+                self.AXs[key].errorbar(range(len(final_dict["D-AP5"])), final_dict["D-AP5"], yerr=final_dict_std["D-AP5"], linestyle='None', marker='_', capsize=3, linewidth = 0.5, color = 'purple')
+                
+                self.AXs[key].plot(final_dict["control"], marker="o", linewidth=0.5, markersize=2, label = "control", color = 'darkgrey')
+                self.AXs[key].errorbar(range(len(final_dict["control"])), final_dict["control"], yerr=final_dict_std["control"], linestyle='None', marker='_', capsize=3, linewidth = 0.5, color = 'darkgrey')
+                
+                self.AXs[key].set_xlim(-1, 50 )
+                self.AXs[key].set_ylabel("Difference_peak_baseline (nA)")
+                self.AXs[key].set_xlabel("time (min)")
+                self.AXs[key].set_xticks(np.arange(0, 51, 5))
+                self.AXs[key].axvspan(10, 17, color='lightgrey')
+                self.AXs[key].legend()
+
+            elif key=='RespAnalyzed':  # Normalization by baseline mean (Baseline at 100%)  #why std negative?
+                baseline_diffs_m = np.mean(final_dict["ketamine"][0:10]) 
+                batches_diffs_m_norm = (final_dict["ketamine"] / baseline_diffs_m) * 100  
+                batches_diffs_std_norm = np.abs((final_dict_std["ketamine"] / baseline_diffs_m) * 100 ) 
+                self.AXs[key].plot(batches_diffs_m_norm, marker="o", linewidth=0.5, markersize=2, label = "ketamine 100uM", color = 'orange')
+                self.AXs[key].errorbar(range(len(batches_diffs_m_norm)), batches_diffs_m_norm, yerr=batches_diffs_std_norm, linestyle='None', marker='_', capsize=3, linewidth = 0.5, color = 'orange')
+                    
+                baseline_diffs_m1 = np.mean(final_dict["D-AP5"][0:10]) 
+                batches_diffs_m_norm1 = (final_dict["D-AP5"] / baseline_diffs_m1) * 100  
+                batches_diffs_std_norm1 = np.abs((final_dict_std["D-AP5"] / baseline_diffs_m1) * 100  )
+                self.AXs[key].plot(batches_diffs_m_norm1, marker="o", linewidth=0.5, markersize=2, label = "D-AP5 50uM", color = 'purple')
+                self.AXs[key].errorbar(range(len(batches_diffs_m_norm1)), batches_diffs_m_norm1, yerr=batches_diffs_std_norm1, linestyle='None', marker='_', capsize=3, linewidth = 0.5, color = 'purple')
+                    
+                baseline_diffs_m2 = np.mean(final_dict["control"][0:10]) 
+                batches_diffs_m_norm2 = (final_dict["control"] / baseline_diffs_m2) * 100  
+                batches_diffs_std_norm2 = np.abs((final_dict_std["control"] / baseline_diffs_m2) * 100  )
+                self.AXs[key].plot(batches_diffs_m_norm2, marker="o", linewidth=0.5, markersize=2, label = "control", color = 'darkgrey')
+                self.AXs[key].errorbar(range(len(batches_diffs_m_norm2)), batches_diffs_m_norm2, yerr=batches_diffs_std_norm2, linestyle='None', marker='_', capsize=3, linewidth = 0.5, color = 'darkgrey')
+                    
+                self.AXs[key].set_xlim(-1, 50 )
+                #self.AXs[key].set_ylim( -10, 170)
+                self.AXs[key].set_ylabel("Normalized NMDAR-eEPSCs (%)")
+                self.AXs[key].set_xlabel("time (min)")
+                self.AXs[key].set_xticks(np.arange(0, 51, 5))
+                self.AXs[key].axhline(100, color="grey", linestyle="--")
+                self.AXs[key].axhline(0, color="grey", linestyle="--")
+                self.AXs[key].axvspan(10, 17, color='lightgrey')
+                self.AXs[key].legend()
+
+            elif key=='barplot':
+                print('')
+        return 0
+
+
+
 if __name__=='__main__':
     datafile = DataFile_washout('D:/Internship_Rebola_ICM/EXP-recordings/RAW-DATA-TO-ANALYSE-WASHOUT/nm04Jul2024c1/nm04Jul2024c1_000.pxp')
     page = PdfPage()
