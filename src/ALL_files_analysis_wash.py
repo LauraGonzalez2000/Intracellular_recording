@@ -6,9 +6,9 @@ import pandas as pd
 import numpy as np
 
 #folders
-files_directory = 'D:\Internship_Rebola_ICM\EXP-recordings\RAW-DATA-TO-ANALYSE-WASHOUT'
+files_directory = 'D:\Internship_Rebola_ICM\EXP-recordings\RAW-DATA-TO-ANALYSE-WASHOUT-test'
 #meta_info_directory = 'C:/Users/laura.gonzalez/Programming/Intracellular_recording/src/Files.csv' #in PC
-meta_info_directory = 'C:/Users/LauraGonzalez/Programming/Intracellular_recording/src/Files.csv' #in laptop
+meta_info_directory = 'C:/Users/LauraGonzalez/Programming/Intracellular_recording/src/Files-test.csv' #in laptop
 
 
 #methods
