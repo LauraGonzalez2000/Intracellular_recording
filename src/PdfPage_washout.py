@@ -10,7 +10,7 @@ class PdfPage:
 
     def __init__(self, 
                  structure_dict={},
-                 debug=False):
+                 debug=False, final=False):
         
         # figure in A0 format
         if debug:
@@ -24,30 +24,44 @@ class PdfPage:
         # dictionary of axes
         self.AXs = {}
 
-        # build the axes one by one
-        Y0, DY = 0.05, 0.18
-        self.AXs['Notes'] = self.create_panel([X0, Y0, DX, DY], 'Notes')
-        self.AXs['Notes'].axis('off')
+        if final==False:
+            # build the axes one by one
+            Y0, DY = 0.05, 0.18
+            self.AXs['Notes'] = self.create_panel([X0, Y0, DX, DY], 'Notes')
+            self.AXs['Notes'].axis('off')
 
-        Y0 += 0.14
-        DY = 0.06
-        self.AXs['Id (nA)'] = self.create_panel([X0, Y0, DX, DY])
+            Y0 += 0.14
+            DY = 0.06
+            self.AXs['Id (nA)'] = self.create_panel([X0, Y0, DX, DY])
 
-        Y0 += 0.10
-        DY = 0.06
-        self.AXs['Leak (nA)'] = self.create_panel([X0, Y0, DX, DY])
+            Y0 += 0.10
+            DY = 0.06
+            self.AXs['Leak (nA)'] = self.create_panel([X0, Y0, DX, DY])
 
-        Y0 += 0.10
-        DY = 0.18
-        self.AXs['Difference_peak_baseline'] = self.create_panel([X0, Y0, DX, DY], 'Response')
+            Y0 += 0.10
+            DY = 0.18
+            self.AXs['Difference_peak_baseline'] = self.create_panel([X0, Y0, DX, DY], 'Response')
 
-        Y0 += 0.22
-        DY = 0.18
-        self.AXs['RespAnalyzed'] = self.create_panel([X0, Y0, DX, DY])
+            Y0 += 0.22
+            DY = 0.18
+            self.AXs['RespAnalyzed'] = self.create_panel([X0, Y0, DX, DY])
 
-        Y0 += 0.22
-        DY = 0.13
-        self.AXs['barplot'] = self.create_panel([X0, Y0, 0.4, DY],'Statistics')
+            Y0 += 0.22
+            DY = 0.13
+            self.AXs['barplot'] = self.create_panel([X0, Y0, 0.4, DY],'Statistics')
+
+        elif final==True:
+            X0, DX, Y0, DY = 0.12, 0.85, 0.05, 0.18
+            self.AXs['RespAnalyzed'] = self.create_panel([X0, Y0, DX, DY])
+
+            Y0 += 0.22
+            DY = 0.13
+            self.AXs['barplot'] = self.create_panel([X0, Y0, 0.4, DY],'Statistics')
+
+
+    
+
+
 
     def create_panel(self, coords, title=None):
         """ 
@@ -201,8 +215,9 @@ class PdfPage:
             elif key=='barplot':
                 self.AXs[key].bar(list(barplot.keys()), list(barplot.values()), width = 0.4)
     
-    def fill_final_results(self, final_dict, final_dict_std):
+    def fill_final_results(self, final_dict, final_dict_std, final_barplot):
         for key in self.AXs:
+            '''
             if key =='Difference_peak_baseline':
                 self.AXs[key].plot(final_dict["ketamine"], marker="o", linewidth=0.5, markersize=2, label = "ketamine 100uM", color = 'orange')
                 self.AXs[key].errorbar(range(len(final_dict["ketamine"])), final_dict["ketamine"], yerr=final_dict_std["ketamine"], linestyle='None', marker='_', capsize=3, linewidth = 0.5, color = 'orange')
@@ -219,8 +234,8 @@ class PdfPage:
                 self.AXs[key].set_xticks(np.arange(0, 51, 5))
                 self.AXs[key].axvspan(10, 17, color='lightgrey')
                 self.AXs[key].legend()
-
-            elif key=='RespAnalyzed':  # Normalization by baseline mean (Baseline at 100%)  #why std negative?
+    	    '''
+            if key=='RespAnalyzed':  # Normalization by baseline mean (Baseline at 100%)  #why std negative?
                 baseline_diffs_m = np.mean(final_dict["ketamine"][0:10]) 
                 batches_diffs_m_norm = (final_dict["ketamine"] / baseline_diffs_m) * 100  
                 batches_diffs_std_norm = np.abs((final_dict_std["ketamine"] / baseline_diffs_m) * 100 ) 
@@ -250,7 +265,9 @@ class PdfPage:
                 self.AXs[key].legend()
 
             elif key=='barplot':
-                print('')
+                self.AXs[key].bar(list(final_barplot.keys()), list(final_barplot.values()), width = 0.4)
+                self.AXs[key].set_xticklabels(list(final_barplot.keys()), rotation=45, ha='right', fontsize=10)
+            
         return 0
 
 
