@@ -6,8 +6,8 @@ import pandas as pd
 import numpy as np
 
 #folders
-files_directory = 'C:/Users/LauraGonzalez/DATA/Washout_experiment/RAW-DATA-WASHOUT-q'
-meta_info_directory = 'C:/Users/LauraGonzalez/Programming/Intracellular_recording/src/Files-q.csv' #in laptop
+files_directory = 'C:/Users/LauraGonzalez/DATA/Washout_experiment/RAW-DATA-WASHOUT'
+meta_info_directory = 'C:/Users/LauraGonzalez/Programming/Intracellular_recording/src/Files.csv' #in laptop
 
 #for PC
 #files_directory = 'D:\Internship_Rebola_ICM\EXP-recordings\RAW-DATA-WASHOUT-q'
@@ -110,18 +110,19 @@ def create_individual_pdf(files, datafiles_keta, datafiles_APV, datafiles_contro
             elif datafile.infos['Group'] == 'KETA': datafiles_keta.append(datafile)
             elif datafile.infos['Group'] == 'APV': datafiles_APV.append(datafile)
 
-
+            
             pdf = PdfPage(debug=False)
             pdf.fill_PDF(datafile, debug=False)
             #plt.savefig(f'C:/Users/laura.gonzalez/DATA/PDFs/washout/{datafile.filename}.pdf') #in PC
             plt.savefig(f'C:/Users/LauraGonzalez/DATA/PDFs/washout/{datafile.filename}.pdf') #in laptop
             print("File saved successfully :", file, '\n')
+            
         except Exception as e:
             print(f"Error analysing this file : {e}")
             
     return 0
 
-def create_group_pdf(datafiles_group, label, filename, final_dict, temp_barplot):
+def create_group_pdf(datafiles_group, label, filename, final_dict, temp_barplot, final_num_files):
     try:
         num_files = len(datafiles_group)
         list_of_Ids, list_of_leaks, list_of_diffs, list_of_bsl_m, list_of_inf_m, list_of_wash_m = [], [], [], [], [], []
@@ -142,20 +143,22 @@ def create_group_pdf(datafiles_group, label, filename, final_dict, temp_barplot)
         temp_barplot.append(mean_bsl)
         temp_barplot.append(mean_inf)
         temp_barplot.append(mean_wash)
+        final_num_files.append(num_files)
 
-    
+        
         pdf = PdfPage(debug=False)
         pdf.fill_PDF_merge(mean_diffs, std_diffs, num_files, label, mean_Ids, std_Ids, mean_leaks, std_leaks, barplot)
         #plt.savefig(f'C:/Users/laura.gonzalez/DATA/PDFs/washout/{filename}.pdf') #in PC
         plt.savefig(f'C:/Users/LauraGonzalez/DATA/PDFs/washout/{filename}.pdf') #in laptop
         print(f"{label} PDF saved")
+        
     except Exception as e:
         print(f"Error doing group analysis for {label}: {e}")
     return 0
 
-def final_results_pdf(final_dict, final_dict_std, final_barplot):
+def final_results_pdf(final_dict, final_dict_std, final_barplot, final_num_files ):
     pdf = PdfPage(debug=False, final=True)
-    pdf.fill_final_results(final_dict, final_dict_std, final_barplot)
+    pdf.fill_final_results(final_dict, final_dict_std, final_barplot, final_num_files)
     plt.savefig(f'C:/Users/LauraGonzalez/DATA/PDFs/washout/final_results.pdf') #in laptop
     print('final results figure saved')
     return 0
@@ -167,24 +170,26 @@ if __name__=='__main__':
     final_dict = {"ketamine": None, "D-AP5": None, "control": None}
     final_dict_std = {"ketamine": None, "D-AP5": None, "control": None}
     temp_barplot = []
+    final_num_files = []
     
     #PDF creation individual files
     create_individual_pdf(files, datafiles_keta, datafiles_APV, datafiles_control)
     #PDF creation per group
-    create_group_pdf(datafiles_keta, "ketamine", "ketamine_merge", final_dict, temp_barplot)
-    create_group_pdf(datafiles_APV, "D-AP5", "D-AP5_merge", final_dict, temp_barplot)
-    create_group_pdf(datafiles_control, "control", "control_merge", final_dict, temp_barplot)
+    create_group_pdf(datafiles_keta, "ketamine", "ketamine_merge", final_dict, temp_barplot, final_num_files)
+    create_group_pdf(datafiles_APV, "D-AP5", "D-AP5_merge", final_dict, temp_barplot, final_num_files)
+    create_group_pdf(datafiles_control, "control", "control_merge", final_dict, temp_barplot, final_num_files)
     #PDF creation to compare groups
-    print(final_dict_std)
-    final_barplot = {'Baseline keta (5 last)': temp_barplot[0], 
-                     'Infusion keta (5 last)': temp_barplot[1], 
-                     'Washout keta (5 last)': temp_barplot[2],
-                     'Baseline D-AP5 (5 last)': temp_barplot[3], 
-                     'Infusion D-AP5 (5 last)': temp_barplot[4], 
-                     'Washout D-AP5 (5 last)': temp_barplot[5],
-                     'Baseline control (5 last)': temp_barplot[6], 
-                     'Infusion control (5 last)': temp_barplot[7], 
-                     'Washout control (5 last)': temp_barplot[8]}
+    #print(final_dict_std)
+    #print('temp barplot ',temp_barplot)
+    final_barplot = {'5-10 min keta' : temp_barplot[0], 
+                     '12-17 min keta': temp_barplot[1], 
+                     '45-50 min keta': temp_barplot[2],
+                     '5-10 min D-AP5' : temp_barplot[3], 
+                     '12-17 min D-AP5': temp_barplot[4], 
+                     '45-50 min D-AP5': temp_barplot[5],
+                     '5-10 min control' : temp_barplot[6], 
+                     '12-17 min control': temp_barplot[7], 
+                     '45-50 min control': temp_barplot[8]}
 
-    print(final_barplot)
-    final_results_pdf(final_dict, final_dict_std, final_barplot)
+    print('final barplot ',final_barplot)
+    final_results_pdf(final_dict, final_dict_std, final_barplot, final_num_files)
