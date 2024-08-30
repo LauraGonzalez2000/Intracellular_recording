@@ -1,6 +1,6 @@
 import os
 import matplotlib.pylab as plt
-from trace_analysis import DataFile
+from trace_analysis_ratio import DataFile
 import Curve_fit as cf
 import numpy as np
 

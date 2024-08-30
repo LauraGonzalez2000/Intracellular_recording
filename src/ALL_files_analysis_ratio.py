@@ -1,8 +1,8 @@
 
 import os
 
-from PdfPage import PdfPage
-from trace_analysis import DataFile
+from PdfPage_ratio import PdfPage
+from trace_analysis_ratio import DataFile
 from igor2.packed import load as loadpxp
 import pprint
 import matplotlib.pylab as plt
@@ -35,7 +35,8 @@ def find_nm_files(root_folder):
 ###### MAIN ######################################################
 
 #files = find_nm_files('C:/Users/laura.gonzalez/DATA/DATA_TO_ANALYSE')
-files = find_nm_files('D:\Internship_Rebola_ICM\RAW_DATA_TO_ANALYSE')
+#files = find_nm_files('D:\Internship_Rebola_ICM\RAW_DATA_TO_ANALYSE')
+files = find_nm_files('C:/Users/LauraGonzalez/DATA/Ratio_experiment/RAW_DATA_AMPA_NMDA_RATIO-q')
 
 data_mem_list = []
 data_resp_list = []
@@ -46,7 +47,7 @@ for file in files:
         datafile = DataFile(file)
         pdf = PdfPage(debug=False)
         pdf.fill_PDF(datafile, debug=False)
-        plt.savefig(f'C:/Users/laura.gonzalez/DATA/PDFs/{datafile.filename}.pdf')
+        plt.savefig(f'C:/Users/LauraGonzalez/Output_expe/Ratio_PDFs/{datafile.filename}.pdf')
         print("File saved successfully :", file, '\n')
 
         
@@ -75,7 +76,7 @@ try:
     data_resp_for_excel = pd.DataFrame(data_resp_list)
 
     # Create a Pandas Excel writer using openpyxl as the engine
-    with pd.ExcelWriter('C:/Users/laura.gonzalez/DATA/output.xlsx', engine='openpyxl') as writer:
+    with pd.ExcelWriter('C:/Users/LauraGonzalez/Output_expe/ratio_prog.xlsx', engine='openpyxl') as writer:
         data_mem_for_excel.to_excel(writer, sheet_name='Membrane characteristics', index=False)
         data_resp_for_excel.to_excel(writer, sheet_name='Response', index=False)
 
