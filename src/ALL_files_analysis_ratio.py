@@ -3,13 +3,14 @@ import os
 
 from PdfPage_ratio import PdfPage
 from trace_analysis_ratio import DataFile
-from igor2.packed import load as loadpxp
-import pprint
 import matplotlib.pylab as plt
 import pandas as pd
 import openpyxl
 from openpyxl.utils import get_column_letter
+import numpy as np
 #from openpyxl import load_workbook
+
+files_directory = 'C:/Users/LauraGonzalez/DATA/Ratio_experiment/RAW_DATA_AMPA_NMDA_RATIO-q'
 
 def find_nm_files(root_folder):
     nm_paths = []
@@ -31,12 +32,69 @@ def find_nm_files(root_folder):
 
     return nm_paths
 
+def plot_barplots(file_path, metrics):
+    # Read the Excel file into a DataFrame
+    IGOR_results_df = pd.read_excel(file_path, header=0)
+    
+    # Group labels
+    labels = ['Ketaxyla', 'xyla eutha', 'keta xyla eutha']
+    group_queries = ["Group=='Ketaxyla'", "Group=='xyla eutha'", "Group=='keta xyla eutha'"]
+    colors = ['blue', 'green', 'orange']
+    
+    # Number of plots based on the number of metrics
+    num_metrics = len(metrics)
+    
+    # Set up the figure and subplots
+    fig, axes = plt.subplots(3, 4, figsize=(14, 16))
+    axes = axes.flatten()
+    
+    #plt.subplots(1, num_metrics, figsize=(10 * num_metrics, 6), sharey=False)
+    
+    # Ensure axes is always a list (in case there's only one metric)
+    if num_metrics == 1:
+        axes = [axes]
+    
+    # Loop through each metric and plot
+    for idx, metric in enumerate(metrics):
+        means = []
+        sems = []
+        individual_data = []
+        
+        # Collect data for each group
+        for query in group_queries:
+            df_temp = IGOR_results_df.query(query)[metric]
+            means.append(df_temp.mean())
+            sems.append(df_temp.sem())
+            individual_data.append(df_temp)
+        
+        # Bar plot with error bars
+        bar_positions = np.arange(len(labels))
+        axes[idx].bar(bar_positions, means, yerr=sems, color=colors, width=0.6, capsize=5, alpha=0.6, label='Mean ± SEM')
+        
+        # Plot individual data points
+        for i, df in enumerate(individual_data):
+            axes[idx].scatter(np.full(df.shape, bar_positions[i]), df, color='black', zorder=5)
+        
+        axes[idx].spines['top'].set_visible(False)
+        axes[idx].spines['right'].set_visible(False)
+        
+        # Add title and labels to each subplot
+        axes[idx].set_title(f'{metric}')
+        axes[idx].set_xticks(bar_positions)
+        axes[idx].set_xticklabels(labels)
+        #axes[idx].set_ylabel('Amplitude (pA)')
+
+    # Delete any remaining unused subplots (if any)
+    for idx in range(num_metrics, len(axes)):
+        fig.delaxes(axes[idx])
+    
+    # Adjust layout to prevent overlap
+    plt.tight_layout()
+    plt.show()
 
 ###### MAIN ######################################################
 
-#files = find_nm_files('C:/Users/laura.gonzalez/DATA/DATA_TO_ANALYSE')
-#files = find_nm_files('D:\Internship_Rebola_ICM\RAW_DATA_TO_ANALYSE')
-files = find_nm_files('C:/Users/LauraGonzalez/DATA/Ratio_experiment/RAW_DATA_AMPA_NMDA_RATIO-q')
+files = find_nm_files(files_directory)
 
 data_mem_list = []
 data_resp_list = []
@@ -101,8 +159,16 @@ try:
 except Exception as e:
     print(f"ERROR when saving the file to excel: {e}")
 
-
 #analyse each file to plot
+
+#debug with IGOR results
+#read_IGOR_results('C:/Users/LauraGonzalez/Output_expe/ratio_results_.xlsx')
+metrics = ["1 AMPA Amplitude (pA)", "1 AMPA rise time (10-90%)", "1 AMPA decay time (50%)", "2 AMPA Amplitude (pA)",
+           "1 NMDA Amplitude (pA)", "1 NMDA rise time (10-90%)", "1 NMDA decay time (50%)", "2 NMDA Amplitude (pA)",
+           "1 NMDA/AMPA", "2 NMDA/AMPA"]  
+plot_barplots('C:/Users/LauraGonzalez/Output_expe/ratio_results_.xlsx', metrics)
+
+
 
 #Execute only if the Python script is being executed as the main program. 
 '''

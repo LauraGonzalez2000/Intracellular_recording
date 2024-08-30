@@ -4,7 +4,6 @@ from trace_analysis_ratio import DataFile
 import Curve_fit as cf
 import numpy as np
 
-from igor2.packed import load as loadpxp
 
 class PdfPage:
 

@@ -1,6 +1,6 @@
 import os
 import matplotlib.pylab as plt
-from washout_trace_analysis import DataFile_washout
+from trace_analysis_wash import DataFile_washout
 import Curve_fit as cf
 import numpy as np
 
