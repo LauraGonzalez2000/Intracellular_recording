@@ -5,6 +5,9 @@ import statistics
 import Curve_fit as cf
 
 from igor2.packed import load as loadpxp
+import pandas as pd
+
+meta_info_directory = 'C:/Users/laura.gonzalez/DATA/Ratio_experiment/Files-test.csv' #in PC
 
 
 class DataFile:
@@ -23,6 +26,7 @@ class DataFile:
         self.get_average_recordings_aligned()
         self.fill_infos()
         self.fill_stim()
+        
 
     #Methods to extract data
     def load_data(self):
@@ -38,14 +42,26 @@ class DataFile:
 
     def fill_infos(self):
         try:
+            file_meta_info = open(meta_info_directory, 'r')  
+            info_df = pd.read_csv(file_meta_info, header=0, sep=';')
+            info_df_datafile = info_df.loc[info_df['Files'] == self.filename]
+
+            if len(info_df_datafile) != 1:
+                raise ValueError(f"Expected one matching row for filename {self.filename}, but found {len(info_df_datafile)}.")
+        
             self.infos = {'SampleInterval' : self.pxp[1]['root'][b'SampleInterval'],
                           'SamplesPerWave' : self.pxp[1]['root'][b'SamplesPerWave'],
                           'FileDate' : self.pxp[1]['root'][b'FileDate'],
                           'FileTime' : self.pxp[1]['root'][b'FileTime'],
+                          'Type': str(info_df_datafile["Type"].item()),
+                          'Euthanize method':str(info_df_datafile["euthanize method"].item()),
+                          'Holding (mV)': str(info_df_datafile["Holding (mV)"].item()),
+                          'Drug1':str(info_df_datafile["Drug1"].item()),
+                          'Drug2': str(info_df_datafile["Drug2"].item())
                           }
             print('OK infos were filled correctly')
-        except:
-            print('infos were not filled correctly')
+        except Exception as e:
+            print(f"Infos were not filled correctly: {e}")
 
     def fill_stim(self):
         try: 

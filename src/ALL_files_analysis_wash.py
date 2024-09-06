@@ -6,12 +6,11 @@ import pandas as pd
 import numpy as np
 
 #folders
-files_directory = 'C:/Users/LauraGonzalez/DATA/Washout_experiment/RAW-DATA-WASHOUT-q'
-meta_info_directory = 'C:/Users/LauraGonzalez/DATA/Washout_experiment/Files-q.csv' #in laptop
+#files_directory = 'C:/Users/LauraGonzalez/DATA/Washout_experiment/RAW-DATA-WASHOUT-q' #in laptop
+#meta_info_directory = 'C:/Users/LauraGonzalez/DATA/Washout_experiment/Files-q.csv' #in laptop
 
-#for PC
-#files_directory = 'D:\Internship_Rebola_ICM\EXP-recordings\RAW-DATA-WASHOUT-q'
-#meta_info_directory = 'C:/Users/laura.gonzalez/Programming/Intracellular_recording/src/Files.csv' #in PC
+files_directory = 'C:/Users/laura.gonzalez/DATA/Washout_experiment/RAW-DATA-WASHOUT' #PC
+meta_info_directory = 'C:/Users/laura.gonzalez/DATA/Washout_experiment/Files.csv' #PC
 
 #methods
 def find_nm_files(root_folder):
@@ -113,8 +112,8 @@ def create_individual_pdf(files, datafiles_keta, datafiles_APV, datafiles_contro
             
             pdf = PdfPage(debug=False)
             pdf.fill_PDF(datafile, debug=False)
-            #plt.savefig(f'C:/Users/laura.gonzalez/DATA/PDFs/washout/{datafile.filename}.pdf') #in PC
-            plt.savefig(f'C:/Users/LauraGonzalez/Output_expe/Washout_PDFs/{datafile.filename}.pdf') #in laptop
+            plt.savefig(f'C:/Users/laura.gonzalez/Output_expe/Washout_PDFs/{datafile.filename}.pdf') #in PC
+            #plt.savefig(f'C:/Users/LauraGonzalez/Output_expe/Washout_PDFs/{datafile.filename}.pdf') #in laptop
             print("File saved successfully :", file, '\n')
             
         except Exception as e:
@@ -150,7 +149,8 @@ def create_group_pdf(datafiles_group, label, filename, final_dict, temp_barplot,
         pdf.fill_PDF_merge(mean_diffs, std_diffs, num_files, label, mean_Ids, std_Ids, mean_leaks, std_leaks, barplot)
         #plt.savefig(f'C:/Users/laura.gonzalez/DATA/PDFs/washout/{filename}.pdf') #in PC
         #plt.savefig(f'C:/Users/LauraGonzalez/DATA/PDFs/washout/{filename}.pdf') #in laptop
-        plt.savefig(f'C:/Users/LauraGonzalez/Output_expe/Washout_PDFs/{filename}.pdf') #in laptop
+        #plt.savefig(f'C:/Users/LauraGonzalez/Output_expe/Washout_PDFs/{filename}.pdf') #in laptop
+        plt.savefig(f'C:/Users/laura.gonzalez/Output_expe/Washout_PDFs/{filename}.pdf') #PC
         print(f"{label} PDF saved")
         
     except Exception as e:
@@ -160,8 +160,9 @@ def create_group_pdf(datafiles_group, label, filename, final_dict, temp_barplot,
 def final_results_pdf(final_dict, final_dict_std, final_barplot, final_num_files ):
     pdf = PdfPage(debug=False, final=True)
     pdf.fill_final_results(final_dict, final_dict_std, final_barplot, final_num_files)
-    #plt.savefig(f'C:/Users/LauraGonzalez/DATA/PDFs/washout/final_results.pdf') #in laptop
-    plt.savefig(f'C:/Users/LauraGonzalez/Output_expe/Washout_PDFs/final_results.pdf') #in laptop
+    
+    #plt.savefig(f'C:/Users/LauraGonzalez/Output_expe/Washout_PDFs/final_results.pdf') #in laptop
+    plt.savefig(f'C:/Users/laura.gonzalez/Output_expe/Washout_PDFs/final_results.pdf') #PC
     print('final results figure saved')
     return 0
 

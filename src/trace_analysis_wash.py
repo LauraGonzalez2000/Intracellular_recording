@@ -5,10 +5,8 @@ from scipy.signal import butter, lfilter
 
 import pandas as pd
 
-
-#meta_info_directory = 'C:/Users/laura.gonzalez/Programming/Intracellular_recording/src/Files.csv' #in PC
-#meta_info_directory = 'C:/Users/LauraGonzalez/Programming/Intracellular_recording/src/Files.csv' #in laptop
-meta_info_directory = 'C:/Users/LauraGonzalez/DATA/Washout_experiment/Files-q.csv' #in laptop
+#meta_info_directory = 'C:/Users/LauraGonzalez/DATA/Washout_experiment/Files-q.csv' #in laptop
+meta_info_directory = 'C:/Users/laura.gonzalez/DATA/Washout_experiment/Files.csv' #in PC
 
 class DataFile_washout:
 
