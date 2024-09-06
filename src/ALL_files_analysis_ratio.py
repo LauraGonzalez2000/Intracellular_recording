@@ -9,7 +9,7 @@ import openpyxl
 from openpyxl.utils import get_column_letter
 import numpy as np
 
-files_directory = 'C:/Users/laura.gonzalez/DATA/Ratio_experiment/RAW_DATA_AMPA_NMDA_RATIO-test'  #PC   #files_directory = 'C:/Users/LauraGonzalez/DATA/Ratio_experiment/RAW_DATA_AMPA_NMDA_RATIO-q' #laptop
+files_directory = 'C:/Users/laura.gonzalez/DATA/Ratio_experiment/RAW_DATA_AMPA_NMDA_RATIO'  #PC   #files_directory = 'C:/Users/LauraGonzalez/DATA/Ratio_experiment/RAW_DATA_AMPA_NMDA_RATIO-q' #laptop
 
 def find_nm_files(root_folder):
     nm_paths = []
@@ -107,8 +107,9 @@ if __name__=='__main__':
     
     files = find_nm_files(files_directory)
     data_list = []
+    
     datafiles = get_datafiles(files)
-
+    print("len datafiles ",len(datafiles))
 
     #PDF creation per file
     for datafile in datafiles:
@@ -137,7 +138,7 @@ if __name__=='__main__':
     #Excel creation
     try:
         data_for_excel = pd.DataFrame(data_list)
-        print(data_for_excel)
+        print("data for excel1 : ", data_for_excel)
         # Create a Pandas Excel writer using openpyxl as the engine  
         with pd.ExcelWriter('C:/Users/laura.gonzalez/Output_expe/ratio_prog.xlsx', engine='openpyxl') as writer: #with pd.ExcelWriter('C:/Users/LauraGonzalez/Output_expe/ratio_prog.xlsx', engine='openpyxl') as writer:
             data_for_excel.to_excel(writer, sheet_name='Data analysis', index=False)
@@ -240,14 +241,13 @@ if __name__=='__main__':
         print(f"ERROR when saving the file to excel1 : {e}")
 
 
-
-
     #Final Barlots
     manual_results_path = 'C:/Users/laura.gonzalez/Output_expe/ratio_results_.xlsx'
     automatic_results_path = 'C:/Users/laura.gonzalez/Output_expe/final_ratio.xlsx' #compare with IGOR results
     metrics = ["1 AMPA Amplitude (pA)", "1 AMPA rise time (10-90%)", "1 AMPA decay time (50%)", "2 AMPA Amplitude (pA)",
             "1 NMDA Amplitude (pA)", "1 NMDA rise time (10-90%)", "1 NMDA decay time (50%)", "2 NMDA Amplitude (pA)",
             "1 NMDA/AMPA", "2 NMDA/AMPA"]  
-    plot_barplots(manual_results_path, metrics) #PC  #plot_barplots('C:/Users/LauraGonzalez/Output_expe/ratio_results_.xlsx', metrics) #laptop
+    plot_barplots(automatic_results_path, metrics) #PC  #plot_barplots('C:/Users/LauraGonzalez/Output_expe/ratio_results_.xlsx', metrics) #laptop
+    plt.savefig(f'C:/Users/laura.gonzalez/Output_expe/Ratio_PDFs/auto_barplots.pdf')
 
 

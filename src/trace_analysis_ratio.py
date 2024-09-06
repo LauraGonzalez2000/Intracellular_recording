@@ -7,7 +7,7 @@ import Curve_fit as cf
 from igor2.packed import load as loadpxp
 import pandas as pd
 
-meta_info_directory = 'C:/Users/laura.gonzalez/DATA/Ratio_experiment/Files-test.csv' #in PC
+meta_info_directory = 'C:/Users/laura.gonzalez/DATA/Ratio_experiment/Files.csv' #in PC
 
 
 class DataFile:
@@ -26,16 +26,15 @@ class DataFile:
         self.get_average_recordings_aligned()
         self.fill_infos()
         self.fill_stim()
-        
 
     #Methods to extract data
     def load_data(self):
-
+        print(self.file_path)
         try:
             self.pxp = loadpxp(self.file_path)
             print("OK data was loaded")
-        except:
-            print("data was not loaded")
+        except Exception as e:
+            print(f"data was not loaded : {e}")
             return -1
 
         return self.pxp
