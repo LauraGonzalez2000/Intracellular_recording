@@ -4,6 +4,7 @@ import Curve_fit as cf
 from igor2.packed import load as loadpxp
 
 
+#meta_info_directory = 'C:/Users/laura.gonzalez/DATA/Ratio_experiment/Files.csv'
 meta_info_directory = 'C:/Users/laura.gonzalez/DATA/Ratio_experiment/Files.csv'
 
 class DataFile:

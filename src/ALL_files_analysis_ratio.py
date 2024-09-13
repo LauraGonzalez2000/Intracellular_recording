@@ -102,19 +102,8 @@ def get_datafiles(files):
             print(f"Error getting this file : {e}")
     return datafiles
 
-###### MAIN ######################################################
-
-if __name__=='__main__':
-    
-    files = find_nm_files(files_directory)
-    data_list = []
-    
-    datafiles = get_datafiles(files)
-    #print("len datafiles ",len(datafiles))
-
-    #PDF creation per file
-    for datafile in datafiles:
-        try:
+def create_pdf(datafile, data_list):
+    try:
             pdf = PdfPage(debug=False)
             pdf.fill_PDF(datafile, debug=False)
             plt.savefig(f'C:/Users/laura.gonzalez/Output_expe/Ratio_PDFs/{datafile.filename}.pdf')  #plt.savefig(f'C:/Users/LauraGonzalez/Output_expe/Ratio_PDFs/{datafile.filename}.pdf') #laptop
@@ -132,12 +121,13 @@ if __name__=='__main__':
                             'Rise_time 10-90% (ms)': datafile.rise_time,
                             'Decay time 50% (ms)': datafile.decay_time,
                             'Group': datafile.infos['Euthanize method']}
+            
             data_list.append(data_dict)
             
-        except Exception as e:
-            print(f"Error creating the individual PDF file : {e}")
+    except Exception as e:
+        print(f"Error creating the individual PDF file : {e}")
 
-    #Excel creation
+def create_excel(data_list):
     try:
         data_for_excel = pd.DataFrame(data_list)
         print("data for individual results excel : ", data_for_excel)
@@ -159,38 +149,23 @@ if __name__=='__main__':
     except Exception as e:
         print(f"ERROR when saving the file to excel1 : {e}")
 
-
-    #Final excel creation
+def create_final_excel(files, datafiles):
     files_id = []
     try:
-        file_paths = find_nm_files(files_directory)
-        for file_path in file_paths : 
+        for file_path in files : 
             file_id = file_path.split('/')[-1].replace('.pxp', '')[2:13]
             files_id.append(file_id) 
-
         used = set()
         files_id_ = [x for x in files_id if x not in used and (used.add(x) or True)]
         #print("final files ID: ", files_id_)
 
-        Ampa1amp = []
-        Ampa_rise = []
-        Ampa_decay = []
-        Ampa2amp = []
-        Nmda1amp = []
-        Nmda_rise = []
-        Nmda_decay = []
-        Nmda2amp = []
-        Ratio1 = []
-        Ratio2 = []
-        Group = []
-        Group_sh = []
+        Ampa1amp, Ampa_rise, Ampa_decay, Ampa2amp  = [],[],[],[]
+        Nmda1amp, Nmda_rise, Nmda_decay, Nmda2amp  = [],[],[],[]
+        Ratio1, Ratio2 = [], []
+        Group,  Group_sh = [], []
 
         for datafile in datafiles:
-            id = datafile.filename[2:13]
             type = datafile.infos['Type']
-            #print(id)
-            #print(datafile.infos['Type'])
-
             Group.append(datafile.infos['Euthanize method'])
 
             if type == 'AMPA' :
@@ -199,15 +174,18 @@ if __name__=='__main__':
                 Ampa_decay.append(datafile.decay_time)
                 Ampa2amp.append(round(datafile.amp_resp2*(-1)*1000, 2))
                 
-
             elif type == 'NMDA' :
                 Nmda1amp.append(round(datafile.amp_resp1*1000, 2))
                 Nmda_rise.append(datafile.rise_time)
                 Nmda_decay.append(datafile.decay_time)
                 Nmda2amp.append(round(datafile.amp_resp2*1000, 2))
 
-        #print("aa",Nmda2amp)
-        #print("bb",Group)
+            elif type == 'AMPA,NMDA' :
+                print("do something here")
+                #Nmda1amp.append(round(datafile.amp_resp1*1000, 2))
+                #Nmda_rise.append(datafile.rise_time)
+                #Nmda_decay.append(datafile.decay_time)
+                #Nmda2amp.append(round(datafile.amp_resp2*1000, 2))
             
         data = {'Files_ID'   : files_id_,
                 "1 AMPA Amplitude (pA)":Ampa1amp , 
@@ -234,7 +212,6 @@ if __name__=='__main__':
         data["2 NMDA/AMPA"] = Ratio2
         data["Group"] = Group_sh
 
-        
         data_for_excel = pd.DataFrame(data)
         #print(data_for_excel)
 
@@ -254,8 +231,7 @@ if __name__=='__main__':
     except Exception as e:
         print(f"ERROR when saving the file to excel1 : {e}")
 
-
-    #Final Barlots
+def create_final_barplots():
     manual_results_path = 'C:/Users/laura.gonzalez/Output_expe/ratio_results_.xlsx'
     automatic_results_path = 'C:/Users/laura.gonzalez/Output_expe/final_ratio.xlsx' #compare with IGOR results
     metrics = ["1 AMPA Amplitude (pA)", "1 AMPA rise time (10-90%)", "1 AMPA decay time (50%)", "2 AMPA Amplitude (pA)",
@@ -266,5 +242,27 @@ if __name__=='__main__':
     
     plot_barplots(automatic_results_path, metrics) #PC  #plot_barplots('C:/Users/LauraGonzalez/Output_expe/ratio_results_.xlsx', metrics) #laptop
     plt.savefig(f'C:/Users/laura.gonzalez/Output_expe/Ratio_PDFs/auto_barplots.pdf')
+    return 0
+
+###### MAIN ######################################################
+
+if __name__=='__main__':
+    
+    files = find_nm_files(files_directory)
+    datafiles = get_datafiles(files)
+
+    data_list = []
+    #PDF creation per file
+    for datafile in datafiles:
+        create_pdf(datafile, data_list)
+
+    #Excels creation
+    create_excel(data_list)
+    create_final_excel(files, datafiles)
+
+    #Final Barlots
+    create_final_barplots()
+
+    
 
 

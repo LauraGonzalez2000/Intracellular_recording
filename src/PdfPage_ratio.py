@@ -178,6 +178,9 @@ class PdfPage:
                     #print("analyse neg peak")
                     peak, amp_resp1, amp_resp2, PPR, rise_time, decay_time = datafile.analyse_pos_peak()
 
+                elif datafile.infos['Type']=='AMPA,NMDA':
+                    peak, amp_resp1, amp_resp2, PPR, rise_time, decay_time = datafile.analyse_pos_peak()    
+                
                 '''
                 if datafile.get_resp_nature() : 
                     #print("analyse neg peak")
