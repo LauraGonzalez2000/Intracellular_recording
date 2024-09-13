@@ -1,14 +1,10 @@
 import numpy as np
-import matplotlib.pylab as plt
-import statistics
-#from scipy.optimize import curve_fit #to fit
-import Curve_fit as cf
-
-from igor2.packed import load as loadpxp
 import pandas as pd
+import Curve_fit as cf
+from igor2.packed import load as loadpxp
 
-meta_info_directory = 'C:/Users/laura.gonzalez/DATA/Ratio_experiment/Files.csv' #in PC
 
+meta_info_directory = 'C:/Users/laura.gonzalez/DATA/Ratio_experiment/Files.csv'
 
 class DataFile:
 
@@ -29,6 +25,7 @@ class DataFile:
 
     #Methods to extract data
     def load_data(self):
+        print("File :")
         print(self.file_path)
         try:
             self.pxp = loadpxp(self.file_path)
@@ -70,22 +67,16 @@ class DataFile:
                          'Cmd2' : pulse_DAC1}
             print("OK stimulation traces found")
         except:
-            print("stimulation parameters not found")
+            try:
+                pulse_DAC0 = self.pxp[1]['root'][b'nmStimSofia'][b'DAC_0_0'].wave['wave']['wData']
+                pulse_DAC1 = self.pxp[1]['root'][b'nmStimSofia'][b'DAC_1_0'].wave['wave']['wData']
+                self.stim = {'Cmd1' : pulse_DAC0,
+                             'Cmd2' : pulse_DAC1}
+                print("OK stimulation traces found")
+            except Exception as e:
+                print(f"stimulation parameters not found : {e}")
         
     #Trace analysis
-    '''
-    def get_recordings(self):
-        try:
-            DATA = []
-            for i in range(39):
-                DATA.append(self.pxp[1]['root'][b'RecordA%i'%i].wave['wave']['wData'])
-            self.response = np.array(DATA)
-            print('recordings were loaded')
-            return self.response
-        except:
-            print('recordings were not loaded')
-            return -1
-    '''
     def get_recordings(self):
         try:
             DATA = []
@@ -107,7 +98,7 @@ class DataFile:
     def get_average_recordings_aligned(self):
         try:
             avg_data = np.mean(self.response, axis=0)
-            avg_baseline = statistics.mean(avg_data[0:50])
+            avg_baseline = np.mean(avg_data[0:50])
             average_data_aligned = avg_data - avg_baseline
             self.avg_response = average_data_aligned
             print("OK average_recordings_aligned found")
@@ -120,7 +111,7 @@ class DataFile:
         averages_baselines = []
         for recording in self.response: 
             recording_baseline = recording[0:50]
-            average_baseline = statistics.mean(recording_baseline)
+            average_baseline = np.mean(recording_baseline)
             averages_baselines.append(average_baseline)
         return averages_baselines
 
@@ -148,8 +139,8 @@ class DataFile:
 
         Ra = np.abs(delta_v/Id_A)  #in ohm   (volts/amperes)
 
-        baseline = np.abs(statistics.mean(recording[0:50]))
-        Idss = np.abs(statistics.mean(recording[16000:19000]))   # in nano amperes
+        baseline = np.abs(np.mean(recording[0:50]))
+        Idss = np.abs(np.mean(recording[16000:19000]))   # in nano amperes
         #print("Idss ",Idss)
         Idss2 = Idss - baseline
         #print("Idss2 ",Idss2)
@@ -201,38 +192,49 @@ class DataFile:
         
         #print(Id_list)
         return Id_list, Ra_list, Rm_list, Cm_list
-
+        '''
     def get_resp_nature(self):
 
         min = np.min(self.avg_response[60100:69900])
         max = np.max(self.avg_response[60100:69900])
-
+        #print("min :", min)
+        #print("max :", max)
         diff = max+min
+        #print("diff :", diff)
 
         if diff == 0 : #arrange
             print("Error : no peak")
             
         elif diff < 0 :  #negative peak
+            print("negative peak ")
             self.type = True
             
         elif diff > 0 :  #positive peak
+            print("positive peak ")
             self.type = False
         
         #print("Negative peak : ", self.type)
         return self.type
+        '''
 
     def analyse_neg_peak(self):
         peak = "negative"
         
         start, stop, start2, stop2 = self.get_boundaries()
+        #start_ = (start+1)*100
         start_ = (start+1)*100
         stop_ = (stop-1)*100
         start2_ = (start2+1)*100
         stop2_ = (stop2-1)*100
         #check this with new boundary function
 
+        #print("start", start_)
+        #print("stop", stop_)
+
         #100500
+        #print("values where to look for min ", self.avg_response[start_:stop_])
         amp_resp1 = np.min(self.avg_response[start_:stop_])  ## stimulation at 100 000th datapoint aka 1 000 ms
+        #print("min found : ", amp_resp1)
         time_peak_resp1 = np.argmin(self.avg_response[start_:stop_])
         #print(time_peak_resp1)
         #105500
@@ -319,9 +321,9 @@ class DataFile:
         #print("hey")
         #print("start_ : ", start_, "stop_ : ", stop_)
         #print("len ",len(self.avg_response))
-        #print(self.avg_response[start_:stop_])
+        #print("values where to look for maximum ",self.avg_response[start_:stop_])
         amp_resp1 = np.max(self.avg_response[start_:stop_])  ## stimulation at 100 000th datapoint aka 1 000 ms   #changed to max
-        #print(amp_resp1)
+        #print("max found : ", amp_resp1)
         index_peak_resp1 = np.argmax(self.avg_response[start_:stop_])  
         time_peak_resp1 = (start_ + index_peak_resp1)/100
         
@@ -377,15 +379,22 @@ class DataFile:
         k = 605 
         time = 0
         for value in range : 
+            
             if value < bound:
                 time = k
                 break;
             k+= 0.01 
             
+
         #print("time50", time)
         #print("time peak", time_peak_resp1)
         #print("decay_time", time - time_peak_resp1)
         decay_time = np.abs(time - time_peak_resp1)
+
+        out_value = np.abs(700 - time_peak_resp1)
+        #print("out_value " ,out_value)
+        if decay_time > out_value:
+            decay_time = out_value
 
         '''
         print("Amplitude response 1 (nA) : ", amp_resp1 )
@@ -404,18 +413,4 @@ class DataFile:
         self.decay_time = decay_time
         
         return peak, amp_resp1, amp_resp2, PPR, rise_time, decay_time
-
-
-    '''
-        self.stim = {'voltage-pulse-cmd1':(1,Y),
-                      'ectrical-stim'
-
-        self.stim = (1,Y),
-                        (1,Y)]
-
-        self.data = [(40,100000),
-                     (X,Y)]
-
-        self.channel1 = (X,Y)
-    '''
 
