@@ -9,8 +9,7 @@ import openpyxl
 from openpyxl.utils import get_column_letter
 import numpy as np
 
-files_directory = 'C:/Users/laura.gonzalez/DATA/Ratio_experiment/RAW_DATA_AMPA_NMDA_RATIO'  #PC   #files_directory = 'C:/Users/LauraGonzalez/DATA/Ratio_experiment/RAW_DATA_AMPA_NMDA_RATIO-q' #laptop
-
+###get values
 def find_nm_files(root_folder):
     nm_paths = []
     
@@ -30,6 +29,192 @@ def find_nm_files(root_folder):
             #print('-', file)
 
     return nm_paths
+
+def get_datafiles(files, info_df):
+    datafiles = []
+    for file in files:
+        try:
+            datafile = DataFile(file, info_df)
+            datafiles.append(datafile)
+        except Exception as e:
+            print(f"Error getting this file : {e}")
+    return datafiles    
+
+def get_meta_info(meta_info_directory):
+    file_meta_info = open(meta_info_directory, 'r')  
+    info_df = pd.read_csv(file_meta_info, header=0, sep=';')
+    return info_df
+
+def final_names(files):
+    files_id = []
+    for file_path in files : 
+        file_id = file_path.split('/')[-1].replace('.pxp', '')[2:13]
+        files_id.append(file_id) 
+        used = set()
+        files_id_ = [x for x in files_id if x not in used and (used.add(x) or True)]
+    return files_id_
+
+def analyse_datafiles(datafiles, data_list, files_id, bis=False, PDF=False, Excel1=False, final_excel=False, barplots=False):
+    for datafile in datafiles:
+
+        datafile.calc_values(bis)
+
+        try:
+            data_dict = {'Filename': datafile.filename,
+                         'Id (A)': datafile.Id_A,
+                         'Rm (Ohm)': datafile.Rm,
+                         'Ra (Ohm)': datafile.Ra,
+                         'Cm (F)': datafile.Cm,
+                         'Peak type' : datafile.type,
+                         'Amplitude response 1 (nA)': datafile.amp_resp1,
+                         'Amplitude response 2 (nA)': datafile.amp_resp2,
+                         'Paired pulse ratio Amp2/Amp1': datafile.PPR,
+                         'Rise_time 10-90% (ms)': datafile.rise_time,
+                         'Decay time 50% (ms)': datafile.decay_time,
+                         'Group': datafile.infos['Euthanize method']}
+            
+            data_list.append(data_dict)
+
+            if PDF==True:
+                create_pdf(datafile,bis)
+            
+            if Excel1==True:
+                create_excel(data_list, bis)
+
+            #if not bis:
+            if final_excel==True:
+                create_final_excel(datafiles, files_id)
+
+            if barplots==True:
+                create_final_barplots(bis)
+
+
+        except Exception as e:
+            print(f"Error analysing this file : {e}")
+    return 0
+
+
+###create output
+def create_pdf(datafile, bis):
+    try:
+            pdf = PdfPage(debug=False)
+            pdf.fill_PDF(datafile, debug=False, bis=bis)
+            plt.savefig(f'C:/Users/laura.gonzalez/Output_expe/Ratio_PDFs/{datafile.filename}.pdf')  #plt.savefig(f'C:/Users/LauraGonzalez/Output_expe/Ratio_PDFs/{datafile.filename}.pdf') #laptop
+            print("Individual PDF File saved successfully :", datafile.filename, '\n')
+
+    except Exception as e:
+        print(f"Error creating the individual PDF file : {e}")
+
+def create_excel(data_list, bis=False):
+    try:
+        data_for_excel = pd.DataFrame(data_list)
+        print("data for individual results excel : ", data_for_excel)
+        # Create a Pandas Excel writer using openpyxl as the engine  
+        if bis:
+            path = 'C:/Users/laura.gonzalez/Output_expe/ratio_prog_bis.xlsx'
+        else:
+            path = 'C:/Users/laura.gonzalez/Output_expe/ratio_prog.xlsx'
+        
+        with pd.ExcelWriter(path, engine='openpyxl') as writer: #with pd.ExcelWriter('C:/Users/LauraGonzalez/Output_expe/ratio_prog.xlsx', engine='openpyxl') as writer:
+            data_for_excel.to_excel(writer, sheet_name='Data analysis', index=False)
+            # Access the workbook and the sheets
+            workbook  = writer.book
+            worksheet = writer.sheets['Data analysis']
+
+            # Adjust column widths for data_for_excel
+            for column in data_for_excel:
+                column_length = max(data_for_excel[column].astype(str).map(len).max(), len(column))
+                col_idx = data_for_excel.columns.get_loc(column)
+                worksheet.column_dimensions[openpyxl.utils.get_column_letter(col_idx + 1)].width = column_length
+
+        print("Excel 1 file saved successfully.")
+
+    except Exception as e:
+        print(f"ERROR when saving the file to excel1 : {e}")
+
+def create_final_excel(datafiles, files_id):
+    try:
+
+        Ampa1amp, Ampa_rise, Ampa_decay, Ampa2amp  = [],[],[],[]
+        Nmda1amp, Nmda_rise, Nmda_decay, Nmda2amp  = [],[],[],[]
+        Ratio1, Ratio2 = [], []
+        Group,  Group_sh = [], []
+
+        for datafile in datafiles:
+            type = datafile.infos['Type']
+            Group.append(datafile.infos['Euthanize method'])
+
+            if type == 'AMPA' :
+                Ampa1amp.append(round(datafile.amp_resp1*(-1)*1000, 2))
+                Ampa_rise.append(datafile.rise_time)
+                Ampa_decay.append(datafile.decay_time)
+                Ampa2amp.append(round(datafile.amp_resp2*(-1)*1000, 2))
+                
+            elif type == 'NMDA' :
+                Nmda1amp.append(round(datafile.amp_resp1*1000, 2))
+                Nmda_rise.append(datafile.rise_time)
+                Nmda_decay.append(datafile.decay_time)
+                Nmda2amp.append(round(datafile.amp_resp2*1000, 2))
+
+            elif type == 'AMPA,NMDA' :
+                print("do something here")
+                
+            
+        data = {'Files_ID'   : files_id,
+                "1 AMPA Amplitude (pA)":Ampa1amp , 
+                "1 AMPA rise time (10-90%)": Ampa_rise, 
+                "1 AMPA decay time (50%)": Ampa_decay, 
+                "2 AMPA Amplitude (pA)": Ampa2amp,
+                "1 NMDA Amplitude (pA)": Nmda1amp, 
+                "1 NMDA rise time (10-90%)": Nmda_rise, 
+                "1 NMDA decay time (50%)": Nmda_decay, 
+                "2 NMDA Amplitude (pA)": Nmda2amp,
+                "1 NMDA/AMPA": None, 
+                "2 NMDA/AMPA": None,
+                "Group": None}
+        
+        for j in range(len(files_id)):
+            Group_sh.append(Group[j])
+            j+=2
+        
+        for i in range(len(files_id)):
+            Ratio1.append(data["1 NMDA Amplitude (pA)"][i]/data["1 AMPA Amplitude (pA)"][i])
+            Ratio2.append(data["2 NMDA Amplitude (pA)"][i]/data["2 AMPA Amplitude (pA)"][i])
+
+        data["1 NMDA/AMPA"] = Ratio1
+        data["2 NMDA/AMPA"] = Ratio2
+        data["Group"] = Group_sh
+
+        data_for_excel = pd.DataFrame(data)
+
+        with pd.ExcelWriter('C:/Users/laura.gonzalez/Output_expe/final_ratio.xlsx', engine='openpyxl') as writer:
+            
+            data_for_excel.to_excel(writer, sheet_name='Data analysis', index=False)
+            # Access the workbook and the sheets
+            workbook  = writer.book
+            worksheet = writer.sheets['Data analysis']
+
+            # Adjust column widths for data_mem_for_excel
+            for column in data_for_excel:
+                column_length = max(data_for_excel[column].astype(str).map(len).max(), len(column))
+                col_idx = data_for_excel.columns.get_loc(column)
+                worksheet.column_dimensions[openpyxl.utils.get_column_letter(col_idx + 1)].width = column_length
+        print("Excel 2 file saved successfully.")
+    except Exception as e:
+        print(f"ERROR when saving the file to excel1 : {e}")
+
+def create_final_barplots(bis=False):
+    manual_results_path = 'C:/Users/laura.gonzalez/Output_expe/ratio_results_.xlsx'
+    automatic_results_path = 'C:/Users/laura.gonzalez/Output_expe/final_ratio.xlsx' #compare with IGOR results
+    metrics = ["1 AMPA Amplitude (pA)", "1 AMPA rise time (10-90%)", "1 AMPA decay time (50%)", "2 AMPA Amplitude (pA)",
+            "1 NMDA Amplitude (pA)", "1 NMDA rise time (10-90%)", "1 NMDA decay time (50%)", "2 NMDA Amplitude (pA)",
+            "1 NMDA/AMPA", "2 NMDA/AMPA"]  
+    #plot_barplots(manual_results_path, metrics)
+    #plt.savefig(f'C:/Users/laura.gonzalez/Output_expe/Ratio_PDFs/manual_barplots.pdf')
+    
+    plot_barplots(automatic_results_path, metrics) #PC  #plot_barplots('C:/Users/LauraGonzalez/Output_expe/ratio_results_.xlsx', metrics) #laptop
+    plt.savefig(f'C:/Users/laura.gonzalez/Output_expe/Ratio_PDFs/auto_barplots.pdf')
+    return 0
 
 def plot_barplots(file_path, metrics):
     # Read the Excel file into a DataFrame
@@ -92,177 +277,32 @@ def plot_barplots(file_path, metrics):
     plt.tight_layout()
     #plt.show()
 
-def get_datafiles(files):
-    datafiles = []
-    for file in files:
-        try:
-            datafile = DataFile(file)
-            datafiles.append(datafile)
-        except Exception as e:
-            print(f"Error getting this file : {e}")
-    return datafiles
-
-def create_pdf(datafile, data_list):
-    try:
-            pdf = PdfPage(debug=False)
-            pdf.fill_PDF(datafile, debug=False)
-            plt.savefig(f'C:/Users/laura.gonzalez/Output_expe/Ratio_PDFs/{datafile.filename}.pdf')  #plt.savefig(f'C:/Users/LauraGonzalez/Output_expe/Ratio_PDFs/{datafile.filename}.pdf') #laptop
-            print("Individual PDF File saved successfully :", datafile.filename, '\n')
-
-            data_dict = {'Filename': datafile.filename,
-                            'Id (A)': datafile.Id_A,
-                            'Rm (Ohm)': datafile.Rm,
-                            'Ra (Ohm)': datafile.Ra,
-                            'Cm (F)': datafile.Cm,
-                            'Peak type' : datafile.type,
-                            'Amplitude response 1 (nA)': datafile.amp_resp1,
-                            'Amplitude response 2 (nA)': datafile.amp_resp2,
-                            'Paired pulse ratio Amp2/Amp1': datafile.PPR,
-                            'Rise_time 10-90% (ms)': datafile.rise_time,
-                            'Decay time 50% (ms)': datafile.decay_time,
-                            'Group': datafile.infos['Euthanize method']}
-            
-            data_list.append(data_dict)
-            
-    except Exception as e:
-        print(f"Error creating the individual PDF file : {e}")
-
-def create_excel(data_list):
-    try:
-        data_for_excel = pd.DataFrame(data_list)
-        print("data for individual results excel : ", data_for_excel)
-        # Create a Pandas Excel writer using openpyxl as the engine  
-        with pd.ExcelWriter('C:/Users/laura.gonzalez/Output_expe/ratio_prog.xlsx', engine='openpyxl') as writer: #with pd.ExcelWriter('C:/Users/LauraGonzalez/Output_expe/ratio_prog.xlsx', engine='openpyxl') as writer:
-            data_for_excel.to_excel(writer, sheet_name='Data analysis', index=False)
-            # Access the workbook and the sheets
-            workbook  = writer.book
-            worksheet = writer.sheets['Data analysis']
-
-            # Adjust column widths for data_for_excel
-            for column in data_for_excel:
-                column_length = max(data_for_excel[column].astype(str).map(len).max(), len(column))
-                col_idx = data_for_excel.columns.get_loc(column)
-                worksheet.column_dimensions[openpyxl.utils.get_column_letter(col_idx + 1)].width = column_length
-
-        print("Excel 1 file saved successfully.")
-
-    except Exception as e:
-        print(f"ERROR when saving the file to excel1 : {e}")
-
-def create_final_excel(files, datafiles):
-    files_id = []
-    try:
-        for file_path in files : 
-            file_id = file_path.split('/')[-1].replace('.pxp', '')[2:13]
-            files_id.append(file_id) 
-        used = set()
-        files_id_ = [x for x in files_id if x not in used and (used.add(x) or True)]
-        #print("final files ID: ", files_id_)
-
-        Ampa1amp, Ampa_rise, Ampa_decay, Ampa2amp  = [],[],[],[]
-        Nmda1amp, Nmda_rise, Nmda_decay, Nmda2amp  = [],[],[],[]
-        Ratio1, Ratio2 = [], []
-        Group,  Group_sh = [], []
-
-        for datafile in datafiles:
-            type = datafile.infos['Type']
-            Group.append(datafile.infos['Euthanize method'])
-
-            if type == 'AMPA' :
-                Ampa1amp.append(round(datafile.amp_resp1*(-1)*1000, 2))
-                Ampa_rise.append(datafile.rise_time)
-                Ampa_decay.append(datafile.decay_time)
-                Ampa2amp.append(round(datafile.amp_resp2*(-1)*1000, 2))
-                
-            elif type == 'NMDA' :
-                Nmda1amp.append(round(datafile.amp_resp1*1000, 2))
-                Nmda_rise.append(datafile.rise_time)
-                Nmda_decay.append(datafile.decay_time)
-                Nmda2amp.append(round(datafile.amp_resp2*1000, 2))
-
-            elif type == 'AMPA,NMDA' :
-                print("do something here")
-                #Nmda1amp.append(round(datafile.amp_resp1*1000, 2))
-                #Nmda_rise.append(datafile.rise_time)
-                #Nmda_decay.append(datafile.decay_time)
-                #Nmda2amp.append(round(datafile.amp_resp2*1000, 2))
-            
-        data = {'Files_ID'   : files_id_,
-                "1 AMPA Amplitude (pA)":Ampa1amp , 
-                "1 AMPA rise time (10-90%)": Ampa_rise, 
-                "1 AMPA decay time (50%)": Ampa_decay, 
-                "2 AMPA Amplitude (pA)": Ampa2amp,
-                "1 NMDA Amplitude (pA)": Nmda1amp, 
-                "1 NMDA rise time (10-90%)": Nmda_rise, 
-                "1 NMDA decay time (50%)": Nmda_decay, 
-                "2 NMDA Amplitude (pA)": Nmda2amp,
-                "1 NMDA/AMPA": None, 
-                "2 NMDA/AMPA": None,
-                "Group": None}
-        
-        for j in range(len(files_id_)):
-            Group_sh.append(Group[j])
-            j+=2
-        
-        for i in range(len(files_id_)):
-            Ratio1.append(data["1 NMDA Amplitude (pA)"][i]/data["1 AMPA Amplitude (pA)"][i])
-            Ratio2.append(data["2 NMDA Amplitude (pA)"][i]/data["2 AMPA Amplitude (pA)"][i])
-
-        data["1 NMDA/AMPA"] = Ratio1
-        data["2 NMDA/AMPA"] = Ratio2
-        data["Group"] = Group_sh
-
-        data_for_excel = pd.DataFrame(data)
-        #print(data_for_excel)
-
-        with pd.ExcelWriter('C:/Users/laura.gonzalez/Output_expe/final_ratio.xlsx', engine='openpyxl') as writer:
-            
-            data_for_excel.to_excel(writer, sheet_name='Data analysis', index=False)
-            # Access the workbook and the sheets
-            workbook  = writer.book
-            worksheet = writer.sheets['Data analysis']
-
-            # Adjust column widths for data_mem_for_excel
-            for column in data_for_excel:
-                column_length = max(data_for_excel[column].astype(str).map(len).max(), len(column))
-                col_idx = data_for_excel.columns.get_loc(column)
-                worksheet.column_dimensions[openpyxl.utils.get_column_letter(col_idx + 1)].width = column_length
-        print("Excel 2 file saved successfully.")
-    except Exception as e:
-        print(f"ERROR when saving the file to excel1 : {e}")
-
-def create_final_barplots():
-    manual_results_path = 'C:/Users/laura.gonzalez/Output_expe/ratio_results_.xlsx'
-    automatic_results_path = 'C:/Users/laura.gonzalez/Output_expe/final_ratio.xlsx' #compare with IGOR results
-    metrics = ["1 AMPA Amplitude (pA)", "1 AMPA rise time (10-90%)", "1 AMPA decay time (50%)", "2 AMPA Amplitude (pA)",
-            "1 NMDA Amplitude (pA)", "1 NMDA rise time (10-90%)", "1 NMDA decay time (50%)", "2 NMDA Amplitude (pA)",
-            "1 NMDA/AMPA", "2 NMDA/AMPA"]  
-    #plot_barplots(manual_results_path, metrics)
-    #plt.savefig(f'C:/Users/laura.gonzalez/Output_expe/Ratio_PDFs/manual_barplots.pdf')
-    
-    plot_barplots(automatic_results_path, metrics) #PC  #plot_barplots('C:/Users/LauraGonzalez/Output_expe/ratio_results_.xlsx', metrics) #laptop
-    plt.savefig(f'C:/Users/laura.gonzalez/Output_expe/Ratio_PDFs/auto_barplots.pdf')
-    return 0
-
 ###### MAIN ######################################################
 
 if __name__=='__main__':
-    
+
+    bis=False #is true if 2nd version of AMPA NMDA ratio is calculated
+
+    if bis: 
+        files_directory = 'C:/Users/laura.gonzalez/DATA/Ratio_experiment/RAW_DATA_AMPA_NMDA_RATIO-bis'
+        meta_info_directory = 'C:/Users/laura.gonzalez/DATA/Ratio_experiment/Files-bis.csv'
+    else:
+        files_directory = 'C:/Users/laura.gonzalez/DATA/Ratio_experiment/RAW_DATA_AMPA_NMDA_RATIO'  #PC   #files_directory = 'C:/Users/LauraGonzalez/DATA/Ratio_experiment/RAW_DATA_AMPA_NMDA_RATIO-q' #laptop
+        meta_info_directory = 'C:/Users/laura.gonzalez/DATA/Ratio_experiment/Files.csv'
+        
     files = find_nm_files(files_directory)
-    datafiles = get_datafiles(files)
-
+    files_id = final_names(files)
+    info_df = get_meta_info(meta_info_directory)
     data_list = []
-    #PDF creation per file
-    for datafile in datafiles:
-        create_pdf(datafile, data_list)
 
-    #Excels creation
-    create_excel(data_list)
-    create_final_excel(files, datafiles)
+    datafiles = get_datafiles(files, info_df)
 
-    #Final Barlots
-    create_final_barplots()
-
-    
-
-
+    #Choose as True what you want to plot
+    analyse_datafiles(datafiles, 
+                      data_list, 
+                      files_id, 
+                      bis=True, 
+                      PDF=True, 
+                      Excel1=True, 
+                      final_excel=True, 
+                      barplots=True)

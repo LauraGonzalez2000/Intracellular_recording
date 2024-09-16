@@ -3,14 +3,9 @@ import pandas as pd
 import Curve_fit as cf
 from igor2.packed import load as loadpxp
 
-
-#meta_info_directory = 'C:/Users/laura.gonzalez/DATA/Ratio_experiment/Files.csv'
-meta_info_directory = 'C:/Users/laura.gonzalez/DATA/Ratio_experiment/Files.csv'
-
 class DataFile:
-
     #Constructor
-    def __init__(self, file_path):
+    def __init__(self, file_path, info_df):
         self.file_path = file_path
         self.filename = self.file_path.split('/')[-1].replace('.pxp', '')
         self.infos = {}
@@ -21,8 +16,21 @@ class DataFile:
         self.load_data()
         self.get_recordings()
         self.get_average_recordings_aligned()
-        self.fill_infos()
+        self.fill_infos(info_df)
         self.fill_stim()
+        self.get_time()
+        
+
+    def calc_values(self, bis=False):
+        self.get_mem_values(self.avg_response, self.time)
+        if self.infos['Type']=='AMPA':
+            self.analyse_neg_peak()
+        elif self.infos['Type']=='NMDA':
+            self.analyse_pos_peak()
+        elif self.infos['Type']=='AMPA,NMDA':
+            self.analyse_pos_peak(bis)   
+        return 0
+
 
     #Methods to extract data
     def load_data(self):
@@ -37,24 +45,24 @@ class DataFile:
 
         return self.pxp
 
-    def fill_infos(self):
+    def fill_infos(self, info_df):
         try:
-            file_meta_info = open(meta_info_directory, 'r')  
-            info_df = pd.read_csv(file_meta_info, header=0, sep=';')
-            info_df_datafile = info_df.loc[info_df['Files'] == self.filename]
+           
 
-            if len(info_df_datafile) != 1:
-                raise ValueError(f"Expected one matching row for filename {self.filename}, but found {len(info_df_datafile)}.")
+            meta_info_df = info_df.loc[info_df['Files'] == self.filename]
+
+            if len(meta_info_df) != 1:
+                raise ValueError(f"Expected one matching row for filename {self.filename}, but found {len(meta_info_df)}.")
         
             self.infos = {'SampleInterval' : self.pxp[1]['root'][b'SampleInterval'],
                           'SamplesPerWave' : self.pxp[1]['root'][b'SamplesPerWave'],
                           'FileDate' : self.pxp[1]['root'][b'FileDate'],
                           'FileTime' : self.pxp[1]['root'][b'FileTime'],
-                          'Type': str(info_df_datafile["Type"].item()),
-                          'Euthanize method':str(info_df_datafile["euthanize method"].item()),
-                          'Holding (mV)': str(info_df_datafile["Holding (mV)"].item()),
-                          'Drug1':str(info_df_datafile["Drug1"].item()),
-                          'Drug2': str(info_df_datafile["Drug2"].item())
+                          'Type': str(meta_info_df["Type"].item()),
+                          'Euthanize method':str(meta_info_df["euthanize method"].item()),
+                          'Holding (mV)': str(meta_info_df["Holding (mV)"].item()),
+                          'Drug1':str(meta_info_df["Drug1"].item()),
+                          'Drug2': str(meta_info_df["Drug2"].item())
                           }
             print('OK infos were filled correctly')
         except Exception as e:
@@ -123,11 +131,13 @@ class DataFile:
             tot_time = np.round(timestep * datapoints).astype(int) 
             time = np.linspace(0, tot_time, num=datapoints)
             print("OK time scale found")
+            self.time=time
             return time
         except BaseException: ## if information not present in file for some reason    
             tot_time_ = np.round(timestep_ * datapoints_).astype(int) 
             time_ = np.linspace(0, tot_time_, num=datapoints_)
             print("Error getting time scale, by default 0-2000 ms with 0.01 timestep")
+            self.time=time_
             return time_
 
     def get_boundaries(self): #to FIX
@@ -305,7 +315,7 @@ class DataFile:
 
         return peak, amp_resp1,amp_resp2, PPR, rise_time, decay_time
 
-    def analyse_pos_peak(self):
+    def analyse_pos_peak(self, bis=False):
         
         peak = "positive"
         #data = get_data(path)
@@ -332,11 +342,12 @@ class DataFile:
         
         #print("time peak response 1: ", time_peak_resp1)
         
-        amp_resp2 = np.max(self.avg_response[start2_:stop2_])  ## stimulation at 105 000th datapoint aka 1 050 ms   #changed to max
+        if bis==False:
+            amp_resp2 = np.max(self.avg_response[start2_:stop2_])  ## stimulation at 105 000th datapoint aka 1 050 ms   #changed to max
+        elif bis==True:
+            amp_resp2 = np.mean(self.avg_response[start_+5990:start_+6090])  ## stimulation 60 ms after
+
         PPR = amp_resp2/amp_resp1
-        
-        
-        
         #####################################################################
         
         ##rise time 10-90%
@@ -413,5 +424,7 @@ class DataFile:
         self.rise_time = rise_time
         self.decay_time = decay_time
         
+        
         return peak, amp_resp1, amp_resp2, PPR, rise_time, decay_time
+       
 

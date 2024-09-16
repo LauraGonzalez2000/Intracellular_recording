@@ -70,9 +70,9 @@ class PdfPage:
             ax.set_title(title, loc='left', pad=2, fontsize=10)
         return ax
 
-    def fill_PDF(self, datafile, debug=False): 
+    def fill_PDF(self, datafile, debug=False, bis=False): 
 
-        time = datafile.get_time()
+        time = datafile.time
 
         for key in self.AXs:
             if key=='Notes':
@@ -169,32 +169,22 @@ class PdfPage:
                 artefact_cond = ((time_stim>stim1) & (time_stim<stim1+1)) | ((time_stim>stim2) & (time_stim<stim2+1))
                 self.AXs[key].plot(time_stim[~artefact_cond], resp_stim[~artefact_cond])  
 
-                if datafile.infos['Type']=='AMPA':
-                    #print(datafile.infos['Type'])
-                    #print("analyse neg peak")
-                    peak, amp_resp1, amp_resp2, PPR, rise_time, decay_time = datafile.analyse_neg_peak()
-                elif datafile.infos['Type']=='NMDA':
-                    #print(datafile.infos['Type'])
-                    #print("analyse neg peak")
-                    peak, amp_resp1, amp_resp2, PPR, rise_time, decay_time = datafile.analyse_pos_peak()
+                amp_resp1 = datafile.amp_resp1
+                amp_resp2 = datafile.amp_resp2
+                rise_time = datafile.rise_time
+                decay_time = datafile.decay_time
 
-                elif datafile.infos['Type']=='AMPA,NMDA':
-                    peak, amp_resp1, amp_resp2, PPR, rise_time, decay_time = datafile.analyse_pos_peak()    
-                
-                '''
-                if datafile.get_resp_nature() : 
-                    #print("analyse neg peak")
-                    peak, amp_resp1, amp_resp2, PPR, rise_time, decay_time = datafile.analyse_neg_peak()
-                else : 
-                    #print("analyse pos peak")
-                    peak, amp_resp1, amp_resp2, PPR, rise_time, decay_time = datafile.analyse_pos_peak()
-                '''
+                if bis==False:
+                    txt = (f"Peak1 : {amp_resp1*1e3:.2f} pA \n"
+                        f"Peak2 : {amp_resp2*1e3:.2f} pA \n"
+                        f"Rise time  : {rise_time:.2f} ms \n"
+                        f"Decay time : {decay_time:.2f} ms \n")
+                if bis==True:
+                    txt = (f"AMPA component : {amp_resp1*1e3:.2f} pA \n"
+                        f"NMDA component : {amp_resp2*1e3:.2f} pA \n")
+                       # f"Rise time  : {rise_time:.2f} ms \n"
+                       # f"Decay time : {decay_time:.2f} ms \n")
 
-
-                txt = (f"Peak1 : {amp_resp1*1e3:.2f} pA \n"
-                       f"Peak2 : {amp_resp2*1e3:.2f} pA \n"
-                       f"Rise time  : {rise_time:.2f} ms \n"
-                       f"Decay time : {decay_time:.2f} ms \n")
                 self.AXs[key].annotate(txt,(0.65, 0.3), va='top', xycoords='axes fraction')
         
 if __name__=='__main__':

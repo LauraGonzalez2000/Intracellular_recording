@@ -45,7 +45,7 @@ if __name__=='__main__':
     for datafile in datafiles:
         try:
             pdf = PdfPage(debug=False)
-            pdf.fill_PDF(datafile, debug=False)
+            pdf.fill_PDF(datafile, debug=False, bis=True)
             plt.savefig(f'C:/Users/laura.gonzalez/Output_expe/Ratio_bis_PDFs/{datafile.filename}.pdf')  #plt.savefig(f'C:/Users/LauraGonzalez/Output_expe/Ratio_PDFs/{datafile.filename}.pdf') #laptop
             print("Individual PDF File saved successfully :", datafile.filename, '\n')
 
@@ -54,9 +54,8 @@ if __name__=='__main__':
                             'Rm (Ohm)': datafile.Rm,
                             'Ra (Ohm)': datafile.Ra,
                             'Cm (F)': datafile.Cm,
-                            'Peak type' : datafile.type,
-                            'Amplitude response 1 (nA)': datafile.amp_resp1,
-                            'Amplitude response 2 (nA)': datafile.amp_resp2,
+                            'Amplitude peak (AMPA component) (nA)': datafile.amp_resp1,
+                            'Amplitude 60ms later (NMDA component) (nA)': datafile.amp_resp2, #change here
                             'Paired pulse ratio Amp2/Amp1': datafile.PPR,
                             'Rise_time 10-90% (ms)': datafile.rise_time,
                             'Decay time 50% (ms)': datafile.decay_time,
@@ -65,6 +64,10 @@ if __name__=='__main__':
             
         except Exception as e:
             print(f"Error creating the individual PDF file : {e}")
+
+print(data_list)
+
+    
 
 
 
