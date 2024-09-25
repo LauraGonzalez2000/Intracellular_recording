@@ -60,18 +60,31 @@ def analyse_datafiles(datafiles, data_list, files_id, bis=False, PDF=False, Exce
         datafile.calc_values(bis)
 
         try:
-            data_dict = {'Filename': datafile.filename,
-                         'Id (A)': datafile.Id_A,
-                         'Rm (Ohm)': datafile.Rm,
-                         'Ra (Ohm)': datafile.Ra,
-                         'Cm (F)': datafile.Cm,
-                         'Peak type' : datafile.type,
-                         'Amplitude response 1 (nA)': datafile.amp_resp1,
-                         'Amplitude response 2 (nA)': datafile.amp_resp2,
-                         'Paired pulse ratio Amp2/Amp1': datafile.PPR,
-                         'Rise_time 10-90% (ms)': datafile.rise_time,
-                         'Decay time 50% (ms)': datafile.decay_time,
-                         'Group': datafile.infos['Euthanize method']}
+            if bis:
+                data_dict = {'Filename': datafile.filename,
+                            'Id (A)': datafile.Id_A,
+                            'Rm (Ohm)': datafile.Rm,
+                            'Ra (Ohm)': datafile.Ra,
+                            'Cm (F)': datafile.Cm,
+                            'AMPA component (nA)': datafile.amp_resp1,
+                            'NMDA component (nA)': datafile.amp_resp2,
+                            'NMDA/AMPA ratio': datafile.PPR,
+                            'Rise_time 10-90% (ms)': datafile.rise_time,
+                            'Decay time 50% (ms)': datafile.decay_time,
+                            'Group': datafile.infos['Euthanize method']}
+            else:
+                data_dict = {'Filename': datafile.filename,
+                            'Id (A)': datafile.Id_A,
+                            'Rm (Ohm)': datafile.Rm,
+                            'Ra (Ohm)': datafile.Ra,
+                            'Cm (F)': datafile.Cm,
+                            'Amplitude response 1 (nA)': datafile.amp_resp1,
+                            'Amplitude response 2 (nA)': datafile.amp_resp2,
+                            'Paired pulse ratio Amp2/Amp1': datafile.PPR,
+                            'Rise_time 10-90% (ms)': datafile.rise_time,
+                            'Decay time 50% (ms)': datafile.decay_time,
+                            'Group': datafile.infos['Euthanize method']}
+
             
             data_list.append(data_dict)
 
@@ -99,7 +112,7 @@ def create_pdf(datafile, bis):
     try:
             pdf = PdfPage(debug=False)
             pdf.fill_PDF(datafile, debug=False, bis=bis)
-            plt.savefig(f'C:/Users/laura.gonzalez/Output_expe/Ratio_PDFs/{datafile.filename}.pdf')  #plt.savefig(f'C:/Users/LauraGonzalez/Output_expe/Ratio_PDFs/{datafile.filename}.pdf') #laptop
+            plt.savefig(f'C:/Users/laura.gonzalez/Output_expe/ratio/Ratio_PDFs/{datafile.filename}.pdf')  #plt.savefig(f'C:/Users/LauraGonzalez/Output_expe/Ratio_PDFs/{datafile.filename}.pdf') #laptop
             print("Individual PDF File saved successfully :", datafile.filename, '\n')
 
     except Exception as e:
@@ -111,14 +124,12 @@ def create_excel(data_list, bis=False):
         print("data for individual results excel : ", data_for_excel)
         # Create a Pandas Excel writer using openpyxl as the engine  
         if bis:
-            path = 'C:/Users/laura.gonzalez/Output_expe/ratio_prog_bis.xlsx'
+            path = 'C:/Users/laura.gonzalez/Output_expe/ratio/ratio_prog_bis.xlsx'
         else:
-            path = 'C:/Users/laura.gonzalez/Output_expe/ratio_prog.xlsx'
+            path = 'C:/Users/laura.gonzalez/Output_expe/ratio/ratio_prog.xlsx'
         
         with pd.ExcelWriter(path, engine='openpyxl') as writer: #with pd.ExcelWriter('C:/Users/LauraGonzalez/Output_expe/ratio_prog.xlsx', engine='openpyxl') as writer:
             data_for_excel.to_excel(writer, sheet_name='Data analysis', index=False)
-            # Access the workbook and the sheets
-            workbook  = writer.book
             worksheet = writer.sheets['Data analysis']
 
             # Adjust column widths for data_for_excel
@@ -155,9 +166,6 @@ def create_final_excel(datafiles, files_id):
                 Nmda_rise.append(datafile.rise_time)
                 Nmda_decay.append(datafile.decay_time)
                 Nmda2amp.append(round(datafile.amp_resp2*1000, 2))
-
-            elif type == 'AMPA,NMDA' :
-                print("do something here")
                 
             
         data = {'Files_ID'   : files_id,
@@ -187,7 +195,7 @@ def create_final_excel(datafiles, files_id):
 
         data_for_excel = pd.DataFrame(data)
 
-        with pd.ExcelWriter('C:/Users/laura.gonzalez/Output_expe/final_ratio.xlsx', engine='openpyxl') as writer:
+        with pd.ExcelWriter('C:/Users/laura.gonzalez/Output_expe/ratio/final_ratio.xlsx', engine='openpyxl') as writer:
             
             data_for_excel.to_excel(writer, sheet_name='Data analysis', index=False)
             # Access the workbook and the sheets
@@ -201,11 +209,11 @@ def create_final_excel(datafiles, files_id):
                 worksheet.column_dimensions[openpyxl.utils.get_column_letter(col_idx + 1)].width = column_length
         print("Excel 2 file saved successfully.")
     except Exception as e:
-        print(f"ERROR when saving the file to excel1 : {e}")
+        print(f"ERROR when saving the file to excel2 : {e}")
 
 def create_final_barplots(bis=False):
-    manual_results_path = 'C:/Users/laura.gonzalez/Output_expe/ratio_results_.xlsx'
-    automatic_results_path = 'C:/Users/laura.gonzalez/Output_expe/final_ratio.xlsx' #compare with IGOR results
+    manual_results_path = 'C:/Users/laura.gonzalez/Output_expe/ratio/ratio_results_.xlsx'
+    automatic_results_path = 'C:/Users/laura.gonzalez/Output_expe/ratio/final_ratio.xlsx' #compare with IGOR results
     metrics = ["1 AMPA Amplitude (pA)", "1 AMPA rise time (10-90%)", "1 AMPA decay time (50%)", "2 AMPA Amplitude (pA)",
             "1 NMDA Amplitude (pA)", "1 NMDA rise time (10-90%)", "1 NMDA decay time (50%)", "2 NMDA Amplitude (pA)",
             "1 NMDA/AMPA", "2 NMDA/AMPA"]  
@@ -213,7 +221,7 @@ def create_final_barplots(bis=False):
     #plt.savefig(f'C:/Users/laura.gonzalez/Output_expe/Ratio_PDFs/manual_barplots.pdf')
     
     plot_barplots(automatic_results_path, metrics) #PC  #plot_barplots('C:/Users/LauraGonzalez/Output_expe/ratio_results_.xlsx', metrics) #laptop
-    plt.savefig(f'C:/Users/laura.gonzalez/Output_expe/Ratio_PDFs/auto_barplots.pdf')
+    plt.savefig(f'C:/Users/laura.gonzalez/Output_expe/ratio/Ratio_PDFs/auto_barplots.pdf')
     return 0
 
 def plot_barplots(file_path, metrics):
@@ -281,7 +289,7 @@ def plot_barplots(file_path, metrics):
 
 if __name__=='__main__':
 
-    bis=False #is true if 2nd version of AMPA NMDA ratio is calculated
+    bis=False #if true, 2nd version of AMPA NMDA ratio is calculated
 
     if bis: 
         files_directory = 'C:/Users/laura.gonzalez/DATA/Ratio_experiment/RAW_DATA_AMPA_NMDA_RATIO-bis'
@@ -291,17 +299,17 @@ if __name__=='__main__':
         meta_info_directory = 'C:/Users/laura.gonzalez/DATA/Ratio_experiment/Files.csv'
         
     files = find_nm_files(files_directory)
-    files_id = final_names(files)
     info_df = get_meta_info(meta_info_directory)
-    data_list = []
-
+    
     datafiles = get_datafiles(files, info_df)
+    data_list = []
+    files_id = final_names(files)
 
     #Choose as True what you want to plot
     analyse_datafiles(datafiles, 
                       data_list, 
                       files_id, 
-                      bis=True, 
+                      bis=bis, 
                       PDF=True, 
                       Excel1=True, 
                       final_excel=True, 

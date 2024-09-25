@@ -95,7 +95,10 @@ def merge_info(datafile, list_of_Ids, list_of_leaks, list_of_diffs, list_of_bsl_
 def get_avg_std(my_list):
     mean_list = np.mean(my_list, axis=0)
     std_list = np.std(my_list, axis=0)
-    return mean_list, std_list
+    sem_list = np.std(my_list, axis=0)/len(my_list)
+    print("std list", std_list)
+    print("sem_list ",sem_list)
+    return mean_list, std_list, sem_list
 
 def create_individual_pdf(files, datafiles_keta, datafiles_APV, datafiles_control):
     for file in files:
@@ -129,15 +132,16 @@ def create_group_pdf(datafiles_group, label, filename, final_dict, temp_barplot,
         for datafile in datafiles_group:
             merge_info(datafile, list_of_Ids, list_of_leaks, list_of_diffs, list_of_bsl_m, list_of_inf_m, list_of_wash_m)
         
-        mean_Ids, std_Ids = get_avg_std(list_of_Ids)
-        mean_leaks, std_leaks = get_avg_std(list_of_leaks)
-        mean_diffs, std_diffs = get_avg_std(list_of_diffs)
+        mean_Ids, std_Ids, _ = get_avg_std(list_of_Ids)
+        mean_leaks, std_leaks, _ = get_avg_std(list_of_leaks)
+        mean_diffs, std_diffs, sem_diffs = get_avg_std(list_of_diffs)
         final_dict[label] = mean_diffs
         final_dict_std[label] = std_diffs
+        final_dict_sem[label] = sem_diffs
 
-        mean_bsl, std_bsl = get_avg_std(list_of_bsl_m)
-        mean_inf, std_inf = get_avg_std(list_of_inf_m)
-        mean_wash, std_wash = get_avg_std(list_of_wash_m)
+        mean_bsl, std_bsl, sem_bsl = get_avg_std(list_of_bsl_m)
+        mean_inf, std_inf, sem_inf = get_avg_std(list_of_inf_m)
+        mean_wash, std_wash, sem_wash = get_avg_std(list_of_wash_m)
         barplot = {'Baseline (5 last)': mean_bsl, 'Infusion (5 last)': mean_inf, 'Washout (5 last)': mean_wash}
         temp_barplot.append(mean_bsl)
         temp_barplot.append(mean_inf)
@@ -157,12 +161,10 @@ def create_group_pdf(datafiles_group, label, filename, final_dict, temp_barplot,
         print(f"Error doing group analysis for {label}: {e}")
     return 0
 
-def final_results_pdf(final_dict, final_dict_std, final_barplot, final_num_files ):
+def final_results_pdf(final_dict, final_dict_std, final_barplot, final_num_files):
     pdf = PdfPage(debug=False, final=True)
     pdf.fill_final_results(final_dict, final_dict_std, final_barplot, final_num_files)
-    
-    #plt.savefig(f'C:/Users/LauraGonzalez/Output_expe/Washout_PDFs/final_results.pdf') #in laptop
-    plt.savefig(f'C:/Users/laura.gonzalez/Output_expe/Washout_PDFs/final_results.pdf') #PC
+    plt.savefig(f'C:/Users/laura.gonzalez/Output_expe/Washout_PDFs/final_results.pdf') #PC #plt.savefig(f'C:/Users/LauraGonzalez/Output_expe/Washout_PDFs/final_results.pdf') #in laptop
     print('final results figure saved')
     return 0
 
@@ -170,8 +172,11 @@ if __name__=='__main__':
     files = find_nm_files(files_directory)
     datafiles_keta, datafiles_APV, datafiles_control  = [], [], []
 
-    final_dict = {"ketamine": None, "D-AP5": None, "control": None}
+    final_dict     = {"ketamine": None, "D-AP5": None, "control": None}
     final_dict_std = {"ketamine": None, "D-AP5": None, "control": None}
+    final_dict_sem = {"ketamine": None, "D-AP5": None, "control": None}
+    
+
     temp_barplot = []
     final_num_files = []
     
@@ -195,4 +200,4 @@ if __name__=='__main__':
                      '45-50 min control': temp_barplot[8]}
 
     print('final barplot ',final_barplot)
-    final_results_pdf(final_dict, final_dict_std, final_barplot, final_num_files)
+    final_results_pdf(final_dict, final_dict_sem, final_barplot, final_num_files)
