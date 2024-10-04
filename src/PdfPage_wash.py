@@ -129,7 +129,11 @@ class PdfPage:
 
             elif key=='RespAnalyzed':
                 batches_diffs_m, batches_diffs_std = datafile.batches_correct_diffs() #noise is substracted
-                batches_diffs_m_norm, batches_diffs_std_norm = datafile.normalize(batches_diffs_m, batches_diffs_std)
+
+                batches_diffs_m_norm, batches_diffs_std_norm =  datafile.normalize(batches_diffs_m, batches_diffs_std)
+                print("test if 100 : ",np.mean(batches_diffs_m_norm[0:10]))
+                print("test if 100 : ",np.mean(batches_diffs_m_norm[5:10]))
+
                 self.AXs[key].plot(batches_diffs_m_norm, marker="o", linewidth=0.5, markersize=2, color= colors[datafile.infos['Group']])
                 self.AXs[key].errorbar(range(len(batches_diffs_m_norm)), batches_diffs_m_norm, yerr=np.abs(batches_diffs_std_norm), linestyle='None', marker='_', color=colors[datafile.infos['Group']], capsize=3, linewidth = 0.5)
                 self.AXs[key].set_xlim(-1, 50 )
@@ -159,7 +163,7 @@ class PdfPage:
                 #print(means)
                 self.AXs[key].bar(categories, means, yerr=std_devs, width=0.4, capsize=5, color=colors[datafile.infos['Group']])
 
-    def fill_PDF_merge(self, mean_diffs, std_diffs, num_files, group, mean_Ids, std_Ids, mean_leaks, std_leaks, barplot):
+    def fill_PDF_merge(self, mean_diffs, std_diffs, num_files, group, mean_Ids, std_Ids, mean_leaks, std_leaks, barplot, temp_barplot_sem):
         
         colors = {'ketamine': 'purple', 'D-AP5': 'orange', 'control': 'grey'}
 
@@ -196,7 +200,7 @@ class PdfPage:
                 self.AXs[key].axvspan(10, 17, color='lightgrey')
 
             elif key=='RespAnalyzed':  # Normalization by baseline mean (Baseline at 100%)
-                baseline_diffs_m = np.mean(mean_diffs[0:10]) 
+                baseline_diffs_m = np.mean(mean_diffs[5:10]) 
                 batches_diffs_m_norm = (mean_diffs / baseline_diffs_m) * 100  
                 batches_diffs_std_norm = (std_diffs / baseline_diffs_m) * 100  
                 self.AXs[key].plot(batches_diffs_m_norm, marker="o", linewidth=0.5, markersize=2, color=colors[group])
@@ -209,15 +213,23 @@ class PdfPage:
                 self.AXs[key].axhline(100, color="grey", linestyle="--")
                 self.AXs[key].axhline(0, color="grey", linestyle="--")
                 self.AXs[key].axvspan(10, 17, color='lightgrey')
-
+             
             elif key=='barplot':
-                self.AXs[key].bar(list(barplot.keys()), list(barplot.values()), width = 0.4, color=colors[group])
+                keys   = list(barplot.keys())
+                values = list(barplot.values())
+                yerr_  = np.std(values)/np.sqrt(len(values)) #dof=1 not 0  (or the opposite)
+                self.AXs[key].bar(keys, values, color=colors[group])
+                self.AXs[key].errorbar(range(len(keys)), values, yerr=yerr_, linestyle='None', marker='_', capsize=3, linewidth = 0.5, color = colors[group])
+                self.AXs[key].set_xticklabels(list(barplot.keys()), rotation=45, ha='right', fontsize=10)
+                self.AXs[key].set_ylabel("Normalized NMDAR-eEPSCs (%)")
+
+
     
     def fill_final_results(self, final_dict, final_dict_sem, final_barplot, final_num_files):
         for key in self.AXs:
             
             if key=='RespAnalyzed':  # Normalization by baseline mean (Baseline at 100%)  #why std negative?
-                baseline_diffs_m = np.mean(final_dict["ketamine"][0:10]) 
+                baseline_diffs_m = np.mean(final_dict["ketamine"][5:10]) 
                 batches_diffs_m_norm = (final_dict["ketamine"] / baseline_diffs_m) * 100  
                 #batches_diffs_std_norm = np.abs((final_dict_std["ketamine"] / baseline_diffs_m) * 100 ) 
                 batches_diffs_sem_norm = np.abs((final_dict_sem["ketamine"] / baseline_diffs_m) * 100 ) 
@@ -225,7 +237,7 @@ class PdfPage:
                 self.AXs[key].errorbar(range(len(batches_diffs_m_norm)), batches_diffs_m_norm, yerr=batches_diffs_sem_norm, linestyle='None', marker='_', capsize=3, linewidth = 0.5, color = 'purple')
                 #self.AXs[key].errorbar(range(len(batches_diffs_m_norm)), batches_diffs_m_norm, yerr=batches_diffs_std_norm, linestyle='None', marker='_', capsize=3, linewidth = 0.5, color = 'purple')
                     
-                baseline_diffs_m1 = np.mean(final_dict["D-AP5"][0:10]) 
+                baseline_diffs_m1 = np.mean(final_dict["D-AP5"][5:10]) 
                 batches_diffs_m_norm1 = (final_dict["D-AP5"] / baseline_diffs_m1) * 100  
                 #batches_diffs_std_norm1 = np.abs((final_dict_std["D-AP5"] / baseline_diffs_m1) * 100  )
                 batches_diffs_sem_norm1 = np.abs((final_dict_sem["D-AP5"] / baseline_diffs_m1) * 100 ) 
@@ -233,7 +245,7 @@ class PdfPage:
                 self.AXs[key].errorbar(range(len(batches_diffs_m_norm1)), batches_diffs_m_norm1, yerr=batches_diffs_sem_norm1, linestyle='None', marker='_', capsize=3, linewidth = 0.5, color = 'orange')
                 #self.AXs[key].errorbar(range(len(batches_diffs_m_norm1)), batches_diffs_m_norm1, yerr=batches_diffs_std_norm1, linestyle='None', marker='_', capsize=3, linewidth = 0.5, color = 'orange')
                     
-                baseline_diffs_m2 = np.mean(final_dict["control"][0:10]) 
+                baseline_diffs_m2 = np.mean(final_dict["control"][5:10]) 
                 batches_diffs_m_norm2 = (final_dict["control"] / baseline_diffs_m2) * 100  
                 #batches_diffs_std_norm2 = np.abs((final_dict_std["control"] / baseline_diffs_m2) * 100 )
                 batches_diffs_sem_norm2 = np.abs((final_dict_sem["control"] / baseline_diffs_m2) * 100 ) 

@@ -9,8 +9,8 @@ import numpy as np
 #files_directory = 'C:/Users/LauraGonzalez/DATA/Washout_experiment/RAW-DATA-WASHOUT-q' #in laptop
 #meta_info_directory = 'C:/Users/LauraGonzalez/DATA/Washout_experiment/Files-q.csv' #in laptop
 
-files_directory = 'C:/Users/laura.gonzalez/DATA/Washout_experiment/RAW-DATA-WASHOUT' #PC
-meta_info_directory = 'C:/Users/laura.gonzalez/DATA/Washout_experiment/Files.csv' #PC
+files_directory = 'C:/Users/laura.gonzalez/DATA/Washout_experiment/RAW-DATA-WASHOUT-q' #PC
+meta_info_directory = 'C:/Users/laura.gonzalez/DATA/Washout_experiment/Files-q.csv' #PC
 
 #methods
 def find_nm_files(root_folder):
@@ -93,6 +93,7 @@ def merge_info(datafile, list_of_Ids, list_of_leaks, list_of_diffs, list_of_bsl_
     return 0
 
 def get_avg_std(my_list):
+    print("my list :", my_list)
     mean_list = np.mean(my_list, axis=0)
     std_list = np.std(my_list, axis=0)
     sem_list = np.std(my_list, axis=0)/len(my_list)
@@ -115,7 +116,7 @@ def create_individual_pdf(files, datafiles_keta, datafiles_APV, datafiles_contro
             
             pdf = PdfPage(debug=False)
             pdf.fill_PDF(datafile, debug=False)
-            plt.savefig(f'C:/Users/laura.gonzalez/Output_expe/Washout_PDFs/{datafile.filename}.pdf') #in PC
+            plt.savefig(f'C:/Users/laura.gonzalez/Output_expe/washout/Washout_PDFs/{datafile.filename}.pdf') #in PC
             #plt.savefig(f'C:/Users/LauraGonzalez/Output_expe/Washout_PDFs/{datafile.filename}.pdf') #in laptop
             print("File saved successfully :", file, '\n')
             
@@ -124,7 +125,7 @@ def create_individual_pdf(files, datafiles_keta, datafiles_APV, datafiles_contro
             
     return 0
 
-def create_group_pdf(datafiles_group, label, filename, final_dict, temp_barplot, final_num_files):
+def create_group_pdf(datafiles_group, label, filename, final_dict, final_barplot, final_num_files, final_barplot_sem):
     try:
         num_files = len(datafiles_group)
         list_of_Ids, list_of_leaks, list_of_diffs, list_of_bsl_m, list_of_inf_m, list_of_wash_m = [], [], [], [], [], []
@@ -135,26 +136,47 @@ def create_group_pdf(datafiles_group, label, filename, final_dict, temp_barplot,
         mean_Ids, std_Ids, _ = get_avg_std(list_of_Ids)
         mean_leaks, std_leaks, _ = get_avg_std(list_of_leaks)
         mean_diffs, std_diffs, sem_diffs = get_avg_std(list_of_diffs)
-        final_dict[label] = mean_diffs
-        final_dict_std[label] = std_diffs
-        final_dict_sem[label] = sem_diffs
-
+        
         mean_bsl, std_bsl, sem_bsl = get_avg_std(list_of_bsl_m)
         mean_inf, std_inf, sem_inf = get_avg_std(list_of_inf_m)
         mean_wash, std_wash, sem_wash = get_avg_std(list_of_wash_m)
-        barplot = {'Baseline (5 last)': mean_bsl, 'Infusion (5 last)': mean_inf, 'Washout (5 last)': mean_wash}
-        temp_barplot.append(mean_bsl)
-        temp_barplot.append(mean_inf)
-        temp_barplot.append(mean_wash)
-        final_num_files.append(num_files)
-
+        
+        barplot = {'5-10 min' : mean_bsl, 
+                   '12-17 min': mean_inf, 
+                   '45-50 min': mean_wash}
+        
+        barplot_sem = {'5-10 min' : sem_bsl, 
+                       '12-17 min': sem_inf, 
+                       '45-50 min': sem_wash}
+        
+        ''' #use if want to plot STD instead of SEM -> and change in argument of fill.pdf_merge 
+        barplot_std = {'5-10 min' : std_bsl, 
+                       '12-17 min': std_inf, 
+                       '45-50 min': std_wash}
+        '''
+        
+        print("barplot ",  barplot)
+        print("berplot sem", barplot_sem)
         
         pdf = PdfPage(debug=False)
-        pdf.fill_PDF_merge(mean_diffs, std_diffs, num_files, label, mean_Ids, std_Ids, mean_leaks, std_leaks, barplot)
-        #plt.savefig(f'C:/Users/laura.gonzalez/DATA/PDFs/washout/{filename}.pdf') #in PC
-        #plt.savefig(f'C:/Users/LauraGonzalez/DATA/PDFs/washout/{filename}.pdf') #in laptop
-        #plt.savefig(f'C:/Users/LauraGonzalez/Output_expe/Washout_PDFs/{filename}.pdf') #in laptop
-        plt.savefig(f'C:/Users/laura.gonzalez/Output_expe/Washout_PDFs/{filename}.pdf') #PC
+        pdf.fill_PDF_merge(mean_diffs, std_diffs, num_files, label, mean_Ids, std_Ids, mean_leaks, std_leaks, barplot, barplot_sem)
+       
+        #plt.savefig(f'C:/Users/LauraGonzalez/Output_expe/washout/Washout_PDFs/{filename}.pdf') #in laptop
+        plt.savefig(f'C:/Users/laura.gonzalez/Output_expe/washout/Washout_PDFs/{filename}.pdf') #PC
+
+        #useful for later
+        final_dict[label] = mean_diffs
+        final_dict_std[label] = std_diffs
+        final_dict_sem[label] = sem_diffs
+        final_barplot.append(mean_bsl)
+        final_barplot.append(mean_inf)
+        final_barplot.append(mean_wash)
+        final_barplot_sem.append(sem_bsl)
+        final_barplot_sem.append(sem_inf)
+        final_barplot_sem.append(sem_wash)
+        final_num_files.append(num_files)
+
+
         print(f"{label} PDF saved")
         
     except Exception as e:
@@ -164,7 +186,7 @@ def create_group_pdf(datafiles_group, label, filename, final_dict, temp_barplot,
 def final_results_pdf(final_dict, final_dict_std, final_barplot, final_num_files):
     pdf = PdfPage(debug=False, final=True)
     pdf.fill_final_results(final_dict, final_dict_std, final_barplot, final_num_files)
-    plt.savefig(f'C:/Users/laura.gonzalez/Output_expe/Washout_PDFs/final_results.pdf') #PC #plt.savefig(f'C:/Users/LauraGonzalez/Output_expe/Washout_PDFs/final_results.pdf') #in laptop
+    plt.savefig(f'C:/Users/laura.gonzalez/Output_expe/washout/Washout_PDFs/final_results.pdf') #PC #plt.savefig(f'C:/Users/LauraGonzalez/Output_expe/Washout_PDFs/final_results.pdf') #in laptop
     print('final results figure saved')
     return 0
 
@@ -177,27 +199,28 @@ if __name__=='__main__':
     final_dict_sem = {"ketamine": None, "D-AP5": None, "control": None}
     
 
-    temp_barplot = []
+    final_barplot = []
+    final_barplot_sem = []
     final_num_files = []
     
     #PDF creation individual files
     create_individual_pdf(files, datafiles_keta, datafiles_APV, datafiles_control)
     #PDF creation per group
-    create_group_pdf(datafiles_keta, "ketamine", "ketamine_merge", final_dict, temp_barplot, final_num_files)
-    create_group_pdf(datafiles_APV, "D-AP5", "D-AP5_merge", final_dict, temp_barplot, final_num_files)
-    create_group_pdf(datafiles_control, "control", "control_merge", final_dict, temp_barplot, final_num_files)
+    create_group_pdf(datafiles_keta, "ketamine", "ketamine_merge", final_dict, final_barplot, final_num_files, final_barplot_sem)
+    create_group_pdf(datafiles_APV, "D-AP5", "D-AP5_merge", final_dict, final_barplot, final_num_files, final_barplot_sem)
+    create_group_pdf(datafiles_control, "control", "control_merge", final_dict, final_barplot, final_num_files, final_barplot_sem)
     #PDF creation to compare groups
     #print(final_dict_std)
     #print('temp barplot ',temp_barplot)
-    final_barplot = {'5-10 min keta' : temp_barplot[0], 
-                     '12-17 min keta': temp_barplot[1], 
-                     '45-50 min keta': temp_barplot[2],
-                     '5-10 min D-AP5' : temp_barplot[3], 
-                     '12-17 min D-AP5': temp_barplot[4], 
-                     '45-50 min D-AP5': temp_barplot[5],
-                     '5-10 min control' : temp_barplot[6], 
-                     '12-17 min control': temp_barplot[7], 
-                     '45-50 min control': temp_barplot[8]}
+    final_barplot = {'5-10 min keta' : final_barplot[0], 
+                     '12-17 min keta': final_barplot[1], 
+                     '45-50 min keta': final_barplot[2],
+                     '5-10 min D-AP5' : final_barplot[3], 
+                     '12-17 min D-AP5': final_barplot[4], 
+                     '45-50 min D-AP5': final_barplot[5],
+                     '5-10 min control' : final_barplot[6], 
+                     '12-17 min control': final_barplot[7], 
+                     '45-50 min control': final_barplot[8]}
 
     print('final barplot ',final_barplot)
     final_results_pdf(final_dict, final_dict_sem, final_barplot, final_num_files)

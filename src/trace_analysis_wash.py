@@ -6,7 +6,7 @@ from scipy.signal import butter, lfilter
 import pandas as pd
 
 #meta_info_directory = 'C:/Users/LauraGonzalez/DATA/Washout_experiment/Files-q.csv' #in laptop
-meta_info_directory = 'C:/Users/laura.gonzalez/DATA/Washout_experiment/Files.csv' #in PC
+meta_info_directory = 'C:/Users/laura.gonzalez/DATA/Washout_experiment/Files-q.csv' #in PC
 
 class DataFile_washout:
 
@@ -91,7 +91,7 @@ class DataFile_washout:
         batches_c_diffs_mean, _  = self.get_batches(self.corr_diffs)
         self.batches_corr_diffs = batches_c_diffs_mean
         return batches_c_diffs_mean, _
-
+    
     def fill_infos(self):
         try:
             file_meta_info = open(meta_info_directory, 'r')  
@@ -139,13 +139,7 @@ class DataFile_washout:
         print("- Stimulation traces not found")
         
     #process info
-    def get_batches(self, list, batch_size=6):
-        means = []
-        std = []
-        for i in range(0, len(list), batch_size):
-            means.append(np.mean(list[i:i+batch_size]))
-            std.append(np.std(list[i:i+batch_size]))
-        return means, std
+    
 
     def find_noise(self, rec, bsl_start=52000, bsl_end=58000):
         baseline = rec[bsl_start:bsl_end]
@@ -189,7 +183,31 @@ class DataFile_washout:
             max = np.max(recording[19000:21000])
             Ids.append(max-baseline)
         return Ids
+    
+    def get_batches(self, list, batch_size=6):
+        means = []
+        std = []
+        for i in range(0, len(list), batch_size):
+            means.append(np.mean(list[i:i+batch_size]))
+            std.append(np.std(list[i:i+batch_size]))
+        return means, std
 
+    def find_baseline_diffs_m(self):
+        batches_diffs_m, _ = self.get_batches(self.corr_diffs) #noise is substracted
+
+        if self.infos['Group'] == 'APV' or self.infos['Group']=='KETA' : 
+            baseline_diffs_m = np.mean(batches_diffs_m[(int(self.infos["Infusion start"])-5):int(self.infos["Infusion start"])]) 
+            print("took last 5 minutes before infusion. Should always be the case for this protocol when there is infusion")
+            print("mean last 5 min", baseline_diffs_m)
+            print("mean last 10 min", np.mean(batches_diffs_m[(int(self.infos["Infusion start"])-10):int(self.infos["Infusion start"])]) )
+        elif self.infos['Group'] == 'control':
+            baseline_diffs_m = np.mean(batches_diffs_m[5:10]) 
+            print("took 5 min between min 5 and min 10. This should apply when there is no infusion")
+            print("mean last 5 min", baseline_diffs_m)
+            print("mean last 10 min", np.mean(batches_diffs_m[0:10]))
+
+        return baseline_diffs_m
+    
     def normalize(self, list_m, list_std):
         baseline_diffs_m = self.find_baseline_diffs_m()
         # Normalization by baseline mean (Baseline at 100%)
@@ -209,7 +227,7 @@ class DataFile_washout:
             subset2 = norm_batches_corr_diffs[12:17]
             subset3 = norm_batches_corr_diffs[45:50]
         return subset1, subset2, subset3
-    
+
     def get_values_barplot(self):
         subset1, subset2, subset3 = self.get_subsets()
         bsl_m = np.mean(subset1)
@@ -220,23 +238,6 @@ class DataFile_washout:
         wash_std = np.std(subset3)
         return bsl_m, bsl_std, inf_m, inf_std, wash_m, wash_std
 
-    def find_baseline_diffs_m(self):
 
-        batches_diffs_m, _ = self.get_batches(self.corr_diffs) #noise is substracted
-        #print(len(batches_diffs_m))
 
-        try:
-            if (int(self.infos["Infusion start"])-10) >= 0 :
-                #print("10 min baseline")
-                baseline_diffs_m = np.mean(batches_diffs_m[(int(self.infos["Infusion start"])-10):int(self.infos["Infusion start"])]) 
-            elif (int(self.infos["Infusion start"])-10) < 0 :
-                #print("5 min baseline")
-                baseline_diffs_m = np.mean(batches_diffs_m[(int(self.infos["Infusion start"])-5):int(self.infos["Infusion start"])]) 
-        except:
-            try:
-                baseline_diffs_m = np.mean(batches_diffs_m[0:5]) 
-                #print("took first 5 min")
-            except Exception as e:
-                print(f"Error finding the baseline : {e}")
-
-        return baseline_diffs_m
+    
