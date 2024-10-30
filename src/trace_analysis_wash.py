@@ -6,7 +6,7 @@ from scipy.signal import butter, lfilter
 import pandas as pd
 
 #meta_info_directory = 'C:/Users/LauraGonzalez/DATA/Washout_experiment/Files-q.csv' #in laptop
-meta_info_directory = 'C:/Users/laura.gonzalez/DATA/Washout_experiment/Files-q.csv' #in PC
+meta_info_directory = 'C:/Users/laura.gonzalez/DATA/Washout_experiment/Files-SST-q.csv' #in PC
 
 class DataFile_washout:
 
@@ -64,6 +64,7 @@ class DataFile_washout:
             self.recordings_f = np.array(DATA_f, dtype=np.float16 ) #uses less memory
 
             print('OK Recordings were loaded')
+            print('len recording : ', len(self.recordings_f))
             return 0
         except Exception as e:
             print(f'Recordings were not loaded: {e}')
@@ -111,8 +112,10 @@ class DataFile_washout:
                           'Holding (mV)': str(info_df_datafile["Holding (mV)"].item()),
                           'Infusion substance':str(info_df_datafile["infusion"].item()),
                           'Infusion concentration': str(info_df_datafile["infusion concentration"].item()),
-                          'Infusion start':str(info_df_datafile["infusion start"].item()),
-                          'Infusion end':str(info_df_datafile["infusion end"].item()),
+                          #'Infusion start':str(info_df_datafile["infusion start"].item()),
+                          #'Infusion end':str(info_df_datafile["infusion end"].item()),
+                          'Infusion start':float(info_df_datafile["infusion start"].item()),
+                          'Infusion end':float(info_df_datafile["infusion end"].item()),
                           'Group':str(info_df_datafile["Group"].item())
                           }
             print('OK infos were filled correctly')
@@ -165,22 +168,26 @@ class DataFile_washout:
         diff =  avg_baseline - min
         return diff
 
-    def get_baselines(self, bsl_start=52000, bsl_end=58000):
+    def get_baselines(self, bsl_start=52000, bsl_end=58000, debug=False):
         baselines = []
         i=0
         for recording in self.recordings_f:
             baseline = recording[bsl_start:bsl_end]
             baselines.append(baseline)
-            if np.mean(baseline) <= -0.7:
-                print("cell was lost at the sweep ", i, " ( = ", i/6, " min). The leak was ", np.mean(baseline) )
+
+            if debug:
+                if np.mean(baseline) <= -0.7:
+                    print("cell was lost at the sweep ", i, " ( = ", i/6, " min). The leak was ", np.mean(baseline) )
+
             i+=1
+
         return baselines
     
     def get_Ids(self):
         Ids = []
         for recording in self.recordings_f:
             baseline = recording[12000:19000]
-            max = np.max(recording[19000:21000])
+            max = np.max(recording[19500:20500])
             Ids.append(max-baseline)
         return Ids
     
@@ -195,13 +202,13 @@ class DataFile_washout:
     def find_baseline_diffs_m(self):
         batches_diffs_m, _ = self.get_batches(self.corr_diffs) #noise is substracted
 
-        if self.infos['Group'] == 'APV' or self.infos['Group']=='KETA' : 
+        if self.infos['Group'] == 'APV' or self.infos['Group']=='KETA' or self.infos['Group']=='MEMANTINE': 
             baseline_diffs_m = np.mean(batches_diffs_m[(int(self.infos["Infusion start"])-5):int(self.infos["Infusion start"])]) 
             print("took last 5 minutes before infusion. Should always be the case for this protocol when there is infusion")
             print("mean last 5 min", baseline_diffs_m)
             print("mean last 10 min", np.mean(batches_diffs_m[(int(self.infos["Infusion start"])-10):int(self.infos["Infusion start"])]) )
         elif self.infos['Group'] == 'control':
-            baseline_diffs_m = np.mean(batches_diffs_m[5:10]) 
+            baseline_diffs_m = np.mean(batches_diffs_m[5:10])    
             print("took 5 min between min 5 and min 10. This should apply when there is no infusion")
             print("mean last 5 min", baseline_diffs_m)
             print("mean last 10 min", np.mean(batches_diffs_m[0:10]))
@@ -226,6 +233,7 @@ class DataFile_washout:
             subset1 = norm_batches_corr_diffs[5:10]
             subset2 = norm_batches_corr_diffs[12:17]
             subset3 = norm_batches_corr_diffs[45:50]
+            print("subsets 5-10_10-17_45-50")
         return subset1, subset2, subset3
 
     def get_values_barplot(self):

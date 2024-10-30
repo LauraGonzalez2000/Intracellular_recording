@@ -9,8 +9,8 @@ import numpy as np
 #files_directory = 'C:/Users/LauraGonzalez/DATA/Washout_experiment/RAW-DATA-WASHOUT-q' #in laptop
 #meta_info_directory = 'C:/Users/LauraGonzalez/DATA/Washout_experiment/Files-q.csv' #in laptop
 
-files_directory = 'C:/Users/laura.gonzalez/DATA/Washout_experiment/RAW-DATA-WASHOUT-q' #PC
-meta_info_directory = 'C:/Users/laura.gonzalez/DATA/Washout_experiment/Files-q.csv' #PC
+files_directory = 'C:/Users/laura.gonzalez/DATA/Washout_experiment/RAW-DATA-WASHOUT-SST-q' #PC
+meta_info_directory = 'C:/Users/laura.gonzalez/DATA/Washout_experiment/Files-SST-q.csv' #PC
 
 #methods
 def find_nm_files(root_folder):
@@ -101,7 +101,7 @@ def get_avg_std(my_list):
     print("sem_list ",sem_list)
     return mean_list, std_list, sem_list
 
-def create_individual_pdf(files, datafiles_keta, datafiles_APV, datafiles_control):
+def create_individual_pdf(files, datafiles_keta, datafiles_APV, datafiles_control, datafiles_memantine):
     for file in files:
         try:
             print(file)     
@@ -112,6 +112,7 @@ def create_individual_pdf(files, datafiles_keta, datafiles_APV, datafiles_contro
             if datafile.infos['Group'] == 'control': datafiles_control.append(datafile)
             elif datafile.infos['Group'] == 'KETA': datafiles_keta.append(datafile)
             elif datafile.infos['Group'] == 'APV': datafiles_APV.append(datafile)
+            elif datafile.infos['Group'] == 'MEMANTINE': datafiles_memantine.append(datafile)  ######
 
             
             pdf = PdfPage(debug=False)
@@ -155,8 +156,10 @@ def create_group_pdf(datafiles_group, label, filename, final_dict, final_barplot
                        '45-50 min': std_wash}
         '''
         
-        print("barplot ",  barplot)
-        print("berplot sem", barplot_sem)
+        #print("barplot ",  barplot)
+        #print("berplot sem", barplot_sem)
+
+        
         
         pdf = PdfPage(debug=False)
         pdf.fill_PDF_merge(mean_diffs, std_diffs, num_files, label, mean_Ids, std_Ids, mean_leaks, std_leaks, barplot, barplot_sem)
@@ -190,28 +193,36 @@ def final_results_pdf(final_dict, final_dict_std, final_barplot, final_num_files
     print('final results figure saved')
     return 0
 
+
 if __name__=='__main__':
     files = find_nm_files(files_directory)
-    datafiles_keta, datafiles_APV, datafiles_control  = [], [], []
+    datafiles_keta, datafiles_APV, datafiles_control, datafiles_memantine  = [], [], [], []
 
-    final_dict     = {"ketamine": None, "D-AP5": None, "control": None}
-    final_dict_std = {"ketamine": None, "D-AP5": None, "control": None}
-    final_dict_sem = {"ketamine": None, "D-AP5": None, "control": None}
+    final_dict     = {"ketamine": None, "D-AP5": None, "control": None, "memantine": None}
+    final_dict_std = {"ketamine": None, "D-AP5": None, "control": None, "memantine": None}
+    final_dict_sem = {"ketamine": None, "D-AP5": None, "control": None, "memantine": None}
     
 
     final_barplot = []
     final_barplot_sem = []
     final_num_files = []
     
-    #PDF creation individual files
-    create_individual_pdf(files, datafiles_keta, datafiles_APV, datafiles_control)
+    # PDF creation individual files #######################################################################
+    create_individual_pdf(files, datafiles_keta, datafiles_APV, datafiles_control, datafiles_memantine)
+
+    '''
     #PDF creation per group
     create_group_pdf(datafiles_keta, "ketamine", "ketamine_merge", final_dict, final_barplot, final_num_files, final_barplot_sem)
-    create_group_pdf(datafiles_APV, "D-AP5", "D-AP5_merge", final_dict, final_barplot, final_num_files, final_barplot_sem)
+    #create_group_pdf(datafiles_APV, "D-AP5", "D-AP5_merge", final_dict, final_barplot, final_num_files, final_barplot_sem)
     create_group_pdf(datafiles_control, "control", "control_merge", final_dict, final_barplot, final_num_files, final_barplot_sem)
+    create_group_pdf(datafiles_memantine, "memantine", "memantine_merge", final_dict, final_barplot, final_num_files, final_barplot_sem)  #doesn't work for all files
+    
     #PDF creation to compare groups
     #print(final_dict_std)
     #print('temp barplot ',temp_barplot)
+    
+    '''
+    '''
     final_barplot = {'5-10 min keta' : final_barplot[0], 
                      '12-17 min keta': final_barplot[1], 
                      '45-50 min keta': final_barplot[2],
@@ -221,6 +232,18 @@ if __name__=='__main__':
                      '5-10 min control' : final_barplot[6], 
                      '12-17 min control': final_barplot[7], 
                      '45-50 min control': final_barplot[8]}
+    '''
+    '''
+    final_barplot = {'5-10 min keta' : final_barplot[0], 
+                     '12-17 min keta': final_barplot[1], 
+                     '45-50 min keta': final_barplot[2],
+                     '5-10 min control' : final_barplot[3], 
+                     '12-17 min control': final_barplot[4], 
+                     '45-50 min control': final_barplot[5], 
+                     '5-10 min memantine' : final_barplot[6], 
+                     '12-17 min memantine': final_barplot[7], 
+                     '45-50 min memantine': final_barplot[8] }
 
     print('final barplot ',final_barplot)
     final_results_pdf(final_dict, final_dict_sem, final_barplot, final_num_files)
+    '''
