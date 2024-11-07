@@ -4,9 +4,13 @@ from igor2.packed import load as loadpxp
 from scipy.signal import butter, lfilter
 
 import pandas as pd
+import os
 
-#meta_info_directory = 'C:/Users/LauraGonzalez/DATA/Washout_experiment/Files-q.csv' #in laptop
-meta_info_directory = 'C:/Users/laura.gonzalez/DATA/Washout_experiment/Files-SST-q.csv' #in PC
+
+meta_info_directory = "Files-PYR-q.csv"
+base_path = os.path.join(os.path.expanduser('~'), 'DATA', 'Washout_experiment') #keep this aborescence if program used in other computers
+meta_info_directory = os.path.join(base_path, meta_info_directory)
+
 
 class DataFile_washout:
 
@@ -64,7 +68,7 @@ class DataFile_washout:
             self.recordings_f = np.array(DATA_f, dtype=np.float16 ) #uses less memory
 
             print('OK Recordings were loaded')
-            print('len recording : ', len(self.recordings_f))
+            #print('len recording : ', len(self.recordings_f))
             return 0
         except Exception as e:
             print(f'Recordings were not loaded: {e}')
@@ -112,13 +116,11 @@ class DataFile_washout:
                           'Holding (mV)': str(info_df_datafile["Holding (mV)"].item()),
                           'Infusion substance':str(info_df_datafile["infusion"].item()),
                           'Infusion concentration': str(info_df_datafile["infusion concentration"].item()),
-                          #'Infusion start':str(info_df_datafile["infusion start"].item()),
-                          #'Infusion end':str(info_df_datafile["infusion end"].item()),
                           'Infusion start':float(info_df_datafile["infusion start"].item()),
                           'Infusion end':float(info_df_datafile["infusion end"].item()),
-                          'Group':str(info_df_datafile["Group"].item())
-                          }
+                          'Group':str(info_df_datafile["Group"].item())}
             print('OK infos were filled correctly')
+        
         except Exception as e:
             print(f"Infos were not filled correctly: {e}")
 
@@ -204,15 +206,14 @@ class DataFile_washout:
 
         if self.infos['Group'] == 'APV' or self.infos['Group']=='KETA' or self.infos['Group']=='MEMANTINE': 
             baseline_diffs_m = np.mean(batches_diffs_m[(int(self.infos["Infusion start"])-5):int(self.infos["Infusion start"])]) 
-            print("took last 5 minutes before infusion. Should always be the case for this protocol when there is infusion")
-            print("mean last 5 min", baseline_diffs_m)
-            print("mean last 10 min", np.mean(batches_diffs_m[(int(self.infos["Infusion start"])-10):int(self.infos["Infusion start"])]) )
+            #print("took last 5 minutes before infusion. Should always be the case for this protocol when there is infusion")
+            #print("mean last 5 min", baseline_diffs_m)
+            #print("mean last 10 min", np.mean(batches_diffs_m[(int(self.infos["Infusion start"])-10):int(self.infos["Infusion start"])]) )
         elif self.infos['Group'] == 'control':
             baseline_diffs_m = np.mean(batches_diffs_m[5:10])    
-            print("took 5 min between min 5 and min 10. This should apply when there is no infusion")
-            print("mean last 5 min", baseline_diffs_m)
-            print("mean last 10 min", np.mean(batches_diffs_m[0:10]))
-
+            #print("took 5 min between min 5 and min 10. This should apply when there is no infusion")
+            #print("mean last 5 min", baseline_diffs_m)
+            #print("mean last 10 min", np.mean(batches_diffs_m[0:10]))
         return baseline_diffs_m
     
     def normalize(self, list_m, list_std):
@@ -233,7 +234,7 @@ class DataFile_washout:
             subset1 = norm_batches_corr_diffs[5:10]
             subset2 = norm_batches_corr_diffs[12:17]
             subset3 = norm_batches_corr_diffs[45:50]
-            print("subsets 5-10_10-17_45-50")
+            #print("subsets 5-10_10-17_45-50")
         return subset1, subset2, subset3
 
     def get_values_barplot(self):

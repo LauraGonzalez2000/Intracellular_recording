@@ -3,6 +3,7 @@ import matplotlib.pylab as plt
 from trace_analysis_wash import DataFile_washout
 import Curve_fit as cf
 import numpy as np
+from matplotlib.lines import Line2D
 
 
 class PdfPage:
@@ -54,8 +55,8 @@ class PdfPage:
             self.AXs['RespAnalyzed'] = self.create_panel([X0, Y0, DX, DY])
 
             Y0 += 0.32
-            DY = 0.13
-            self.AXs['barplot'] = self.create_panel([X0, Y0, 0.4, DY])
+            DY = 0.20
+            self.AXs['barplot'] = self.create_panel([X0, Y0, 0.6, DY])
 
     def create_panel(self, coords, title=None):
         """ 
@@ -153,8 +154,8 @@ class PdfPage:
                 batches_diffs_m, batches_diffs_std = datafile.batches_correct_diffs() #noise is substracted
 
                 batches_diffs_m_norm, batches_diffs_std_norm =  datafile.normalize(batches_diffs_m, batches_diffs_std)
-                print("test if 100 : ",np.mean(batches_diffs_m_norm[0:10]))
-                print("test if 100 : ",np.mean(batches_diffs_m_norm[5:10]))
+                #print("test if 100 : ",np.mean(batches_diffs_m_norm[0:10]))
+                #print("test if 100 : ",np.mean(batches_diffs_m_norm[5:10]))
 
                 self.AXs[key].plot(batches_diffs_m_norm, marker="o", linewidth=0.5, markersize=2, color= colors[datafile.infos['Group']])
                 self.AXs[key].errorbar(range(len(batches_diffs_m_norm)), batches_diffs_m_norm, yerr=np.abs(batches_diffs_std_norm), linestyle='None', marker='_', color=colors[datafile.infos['Group']], capsize=3, linewidth = 0.5)
@@ -192,7 +193,7 @@ class PdfPage:
                 #print(means)
                 self.AXs[key].bar(categories, means, yerr=std_devs, width=0.4, capsize=5, color=colors[datafile.infos['Group']])
 
-    def fill_PDF_merge(self, mean_diffs, std_diffs, num_files, group, mean_Ids, std_Ids, mean_leaks, std_leaks, barplot, temp_barplot_sem):
+    def fill_PDF_merge(self, mean_diffs, std_diffs, num_files, group, mean_Ids, std_Ids, mean_leaks, std_leaks, barplot):
         
         colors = {'ketamine': 'purple', 'D-AP5': 'orange', 'control': 'grey', 'memantine': 'gold'}
 
@@ -269,47 +270,53 @@ class PdfPage:
              
             elif key=='barplot':
                 keys   = list(barplot.keys())
-                values = list(barplot.values())
-                yerr_  = np.std(values)/np.sqrt(len(values)) #dof=1 not 0  (or the opposite)
-                self.AXs[key].bar(keys, values, color=colors[group])
-                self.AXs[key].errorbar(range(len(keys)), values, yerr=yerr_, linestyle='None', marker='_', capsize=3, linewidth = 0.5, color = colors[group])
-                self.AXs[key].set_xticklabels(list(barplot.keys()), rotation=45, ha='right', fontsize=10)
+                values = [barplot[key]['mean'] for key in keys]
+                sem_values = [barplot[key]['sem'] for key in keys]
+                self.AXs[key].bar(keys, values, color=colors[group], yerr=sem_values)
+                self.AXs[key].set_xticklabels(keys, rotation=45, ha='right', fontsize=10)
                 self.AXs[key].set_ylabel("Normalized NMDAR-eEPSCs (%)")
 
-    def fill_final_results(self, final_dict, final_dict_sem, final_barplot, final_num_files):
+
+    def fill_final_results(self, final_dict, final_barplot, final_num_files):
+
+        colors = {'ketamine' : 'purple', 
+                  'D-AP5'    : 'orange', 
+                  'control'  : 'grey', 
+                  'memantine': 'gold'}
+
         for key in self.AXs:
             
             if key=='RespAnalyzed':  # Normalization by baseline mean (Baseline at 100%)  #why std negative?
-                baseline_diffs_m = np.mean(final_dict["ketamine"][5:10]) 
-                batches_diffs_m_norm = (final_dict["ketamine"] / baseline_diffs_m) * 100  
+                baseline_diffs_m = np.mean(final_dict["ketamine"]['mean'][5:10]) 
+                batches_diffs_m_norm = (final_dict["ketamine"]['mean'] / baseline_diffs_m) * 100  
                 #batches_diffs_std_norm = np.abs((final_dict_std["ketamine"] / baseline_diffs_m) * 100 ) 
-                batches_diffs_sem_norm = np.abs((final_dict_sem["ketamine"] / baseline_diffs_m) * 100 ) 
-                self.AXs[key].plot(batches_diffs_m_norm, marker="o", linewidth=0.5, markersize=2, label = f"ketamine 100uM n= {final_num_files[0]}", color = 'purple')
+                batches_diffs_sem_norm = np.abs((final_dict["ketamine"]['sem'] / baseline_diffs_m) * 100 ) 
+                self.AXs[key].plot(batches_diffs_m_norm, marker="o", linewidth=0.5, markersize=2, label = f"ketamine 100uM n= {final_num_files[0]}", color = colors['ketamine'])
                 self.AXs[key].errorbar(range(len(batches_diffs_m_norm)), batches_diffs_m_norm, yerr=batches_diffs_sem_norm, linestyle='None', marker='_', capsize=3, linewidth = 0.5, color = 'purple')
                 #self.AXs[key].errorbar(range(len(batches_diffs_m_norm)), batches_diffs_m_norm, yerr=batches_diffs_std_norm, linestyle='None', marker='_', capsize=3, linewidth = 0.5, color = 'purple')
                     
-                '''
-                baseline_diffs_m1 = np.mean(final_dict["D-AP5"][5:10]) 
-                batches_diffs_m_norm1 = (final_dict["D-AP5"] / baseline_diffs_m1) * 100  
+                
+                baseline_diffs_m1 = np.mean(final_dict["D-AP5"]['mean'][5:10]) 
+                batches_diffs_m_norm1 = (final_dict["D-AP5"]['mean'] / baseline_diffs_m1) * 100  
                 #batches_diffs_std_norm1 = np.abs((final_dict_std["D-AP5"] / baseline_diffs_m1) * 100  )
-                batches_diffs_sem_norm1 = np.abs((final_dict_sem["D-AP5"] / baseline_diffs_m1) * 100 ) 
-                self.AXs[key].plot(batches_diffs_m_norm1, marker="o", linewidth=0.5, markersize=2, label = f"D-AP5 50uM n= {final_num_files[1]}", color = 'orange')
+                batches_diffs_sem_norm1 = np.abs((final_dict["D-AP5"]['sem'] / baseline_diffs_m1) * 100 ) 
+                self.AXs[key].plot(batches_diffs_m_norm1, marker="o", linewidth=0.5, markersize=2, label = f"D-AP5 50uM n= {final_num_files[1]}", color = colors['D-AP5'])
                 self.AXs[key].errorbar(range(len(batches_diffs_m_norm1)), batches_diffs_m_norm1, yerr=batches_diffs_sem_norm1, linestyle='None', marker='_', capsize=3, linewidth = 0.5, color = 'orange')
                 #self.AXs[key].errorbar(range(len(batches_diffs_m_norm1)), batches_diffs_m_norm1, yerr=batches_diffs_std_norm1, linestyle='None', marker='_', capsize=3, linewidth = 0.5, color = 'orange')
-                '''
-                baseline_diffs_m2 = np.mean(final_dict["control"][5:10]) 
-                batches_diffs_m_norm2 = (final_dict["control"] / baseline_diffs_m2) * 100  
+                
+                baseline_diffs_m2 = np.mean(final_dict["control"]['mean'][5:10]) 
+                batches_diffs_m_norm2 = (final_dict["control"]['mean'] / baseline_diffs_m2) * 100  
                 #batches_diffs_std_norm2 = np.abs((final_dict_std["control"] / baseline_diffs_m2) * 100 )
-                batches_diffs_sem_norm2 = np.abs((final_dict_sem["control"] / baseline_diffs_m2) * 100 ) 
-                self.AXs[key].plot(batches_diffs_m_norm2, marker="o", linewidth=0.5, markersize=2, label = f"control n= {final_num_files[2]}", color = 'grey')
+                batches_diffs_sem_norm2 = np.abs((final_dict["control"]['sem'] / baseline_diffs_m2) * 100 ) 
+                self.AXs[key].plot(batches_diffs_m_norm2, marker="o", linewidth=0.5, markersize=2, label = f"control n= {final_num_files[2]}", color = colors['control'])
                 self.AXs[key].errorbar(range(len(batches_diffs_m_norm2)), batches_diffs_m_norm2, yerr=batches_diffs_sem_norm2, linestyle='None', marker='_', capsize=3, linewidth = 0.5, color = 'grey')
                 #self.AXs[key].errorbar(range(len(batches_diffs_m_norm2)), batches_diffs_m_norm2, yerr=batches_diffs_std_norm2, linestyle='None', marker='_', capsize=3, linewidth = 0.5, color = 'grey')
 
-                baseline_diffs_m3 = np.mean(final_dict["memantine"][5:10]) 
-                batches_diffs_m_norm3 = (final_dict["memantine"] / baseline_diffs_m3) * 100  
+                baseline_diffs_m3 = np.mean(final_dict["memantine"]['mean'][5:10]) 
+                batches_diffs_m_norm3 = (final_dict["memantine"]['mean'] / baseline_diffs_m3) * 100  
                 #batches_diffs_std_norm3 = np.abs((final_dict_std["memantine"] / baseline_diffs_m3) * 100 )
-                batches_diffs_sem_norm3 = np.abs((final_dict_sem["memantine"] / baseline_diffs_m3) * 100 ) 
-                self.AXs[key].plot(batches_diffs_m_norm3, marker="o", linewidth=0.5, markersize=2, label = f"memantine n= {final_num_files[2]}", color = 'gold')
+                batches_diffs_sem_norm3 = np.abs((final_dict["memantine"]['sem'] / baseline_diffs_m3) * 100 ) 
+                self.AXs[key].plot(batches_diffs_m_norm3, marker="o", linewidth=0.5, markersize=2, label = f"memantine n= {final_num_files[2]}", color = colors['memantine'])
                 self.AXs[key].errorbar(range(len(batches_diffs_m_norm3)), batches_diffs_m_norm3, yerr=batches_diffs_sem_norm3, linestyle='None', marker='_', capsize=3, linewidth = 0.5, color = 'gold')
                 #self.AXs[key].errorbar(range(len(batches_diffs_m_norm2)), batches_diffs_m_norm2, yerr=batches_diffs_std_norm2, linestyle='None', marker='_', capsize=3, linewidth = 0.5, color = 'grey')
                     
@@ -324,19 +331,57 @@ class PdfPage:
                 #self.AXs[key].legend()
 
             elif key=='barplot':
-                #colors = ['purple', 'purple', 'purple', 'orange', 'orange', 'orange', 'grey', 'grey', 'grey']
-                colors = ['purple', 'purple', 'purple', 'grey', 'grey', 'grey', 'gold', 'gold', 'gold']
+                
+              
+                #bar_positions = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]
+                #keys   = list(final_barplot.keys())
+                #values = list(final_barplot.values())
+                #yerr_  = np.std(values)/np.sqrt(len(values)) #dof=1 not 0  (or the opposite)
 
-                bar_positions = [0, 1, 2, 3, 4, 5, 6, 7, 8]
-                keys   = list(final_barplot.keys())
-                values = list(final_barplot.values())
-                yerr_  = np.std(values)/np.sqrt(len(values)) #dof=1 not 0  (or the opposite)
-                self.AXs[key].bar(keys, values, color=colors)
-                self.AXs[key].errorbar(range(len(keys)), values, yerr=yerr_, linestyle='None', marker='_', capsize=3, linewidth = 0.5, color = 'black')
-                self.AXs[key].set_xticks(bar_positions)
-                self.AXs[key].set_xticklabels(list(final_barplot.keys()), rotation=45, ha='right', fontsize=10)
+                #self.AXs[key].bar(keys, values, color=colors)
+                #self.AXs[key].errorbar(range(len(keys)), values, yerr=yerr_, linestyle='None', marker='_', capsize=3, linewidth = 0.5, color = 'black')
+                #self.AXs[key].set_xticks(bar_positions)
+                #self.AXs[key].set_xticklabels(list(final_barplot.keys()), rotation=45, ha='right', fontsize=10)
+                
+
+
+                # Extract data for plotting
+                time_periods = list(final_barplot.keys())
+                drug_types = list(final_barplot[time_periods[0]].keys())
+                
+                # Set up positions for each bar
+                x = np.arange(len(drug_types))  # label locations for each drug type
+                width = 0.2  # width of each bar
+
+                for i, time in enumerate(time_periods):
+                    mean_values = [final_barplot[time][drug]['mean'] for drug in drug_types]
+                    sem_values = [final_barplot[time][drug]['sem'] for drug in drug_types]
+
+                    for j, drug in enumerate(drug_types):
+                        self.AXs[key].bar(x[j] + i * width, mean_values[j], width, yerr=sem_values[j], 
+                        color=colors[drug], label=time if j == 0 else "", capsize=5)
+
                 self.AXs[key].set_ylabel("Normalized NMDAR-eEPSCs (%)")
-            
+
+                num_drugs = len(drug_types)
+                num_times = len(time_periods)
+                spacing = 0.05
+                group_width = num_times * (width + spacing)
+                time_positions = [i * group_width + j * (width + spacing) for i in range(num_drugs) for j in range(num_times)]
+                time_labels = [time for _ in range(num_drugs) for time in time_periods]
+                self.AXs[key].set_xticks(time_positions)
+                self.AXs[key].set_xticklabels(time_labels, rotation=45)
+
+                legend_elements = [Line2D([0], [0], color=color, lw=4, label=drug) for drug, color in colors.items()]
+                self.AXs[key].legend(handles=legend_elements, title="Drug Groups")
+
+                #self.AXs[key].set_xticks(x + width * (len(time_periods) - 1) / 2)
+                #self.AXs[key].set_xticklabels(drug_types)
+                #self.AXs[key].set_xticklabels(time_periods, rotation=45, ha='right', fontsize=10)
+
+
+                
+
         return 0
 
 if __name__=='__main__':
