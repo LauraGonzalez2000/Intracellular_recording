@@ -16,6 +16,7 @@ class DataFile_washout:
 
     #Constructor
     def __init__(self, file_path):
+        print('hey')
         self.file_path = file_path
         self.filename = self.file_path.split('/')[-1].replace('.pxp', '')
         self.infos = {}
@@ -27,8 +28,11 @@ class DataFile_washout:
         self.get_diffs()
         self.correct_diffs()
         self.batches_correct_diffs()
+        print('hey')
         self.fill_infos()
+        print('hey')
         self.fill_stim()
+        print('hey')
 
     #Methods
 

@@ -17,7 +17,6 @@ base_path_output = os.path.join(os.path.expanduser('~'), 'Output_expe', 'washout
 files_directory = os.path.join(base_path, directory)
 meta_info_directory = os.path.join(base_path, meta_info_directory)
 
-
 #methods
 def find_nm_files(root_folder):
     nm_paths = []
@@ -119,13 +118,9 @@ def merge_info(datafile, list_of_Ids, list_of_leaks, list_of_diffs, list_of_bsl_
     return 0
 
 def get_avg_std(my_list):
-    #print("my list :", my_list)
-    #print("list size : ", len(my_list))
     mean_list = np.mean(my_list, axis=0)
     std_list = np.std(my_list, axis=0)
     sem_list = np.std(my_list, axis=0)/len(my_list)
-    #print("std list", std_list)
-    #print("sem_list ",sem_list)
     return mean_list, std_list, sem_list
 
 def create_individual_pdf(files, datafiles_keta, datafiles_APV, datafiles_control, datafiles_memantine):
@@ -141,7 +136,6 @@ def create_individual_pdf(files, datafiles_keta, datafiles_APV, datafiles_contro
             elif datafile.infos['Group'] == 'APV': datafiles_APV.append(datafile)
             elif datafile.infos['Group'] == 'MEMANTINE': datafiles_memantine.append(datafile)  ######
 
-            
             pdf = PdfPage(debug=False)
             pdf.fill_PDF(datafile, debug=False)
             plt.savefig(f'C:/Users/laura.gonzalez/Output_expe/washout/Washout_PDFs/{datafile.filename}.pdf') #in PC
@@ -161,8 +155,8 @@ def create_group_pdf(datafiles_group, label, filename, final_dict, final_barplot
         for datafile in datafiles_group:
             merge_info(datafile, list_of_Ids, list_of_leaks, list_of_diffs, list_of_bsl_m, list_of_inf_m, list_of_wash_m)
         
-        mean_Ids, std_Ids, _ = get_avg_std(list_of_Ids)
-        mean_leaks, std_leaks, _ = get_avg_std(list_of_leaks)
+        mean_Ids, std_Ids, sem_Ids = get_avg_std(list_of_Ids)
+        mean_leaks, std_leaks, sem_leaks = get_avg_std(list_of_leaks)
         mean_diffs, std_diffs, sem_diffs = get_avg_std(list_of_diffs)
         
         mean_bsl, std_bsl, sem_bsl = get_avg_std(list_of_bsl_m)
@@ -173,9 +167,16 @@ def create_group_pdf(datafiles_group, label, filename, final_dict, final_barplot
                    '12-17 min': {'mean' : mean_inf, 'sem': sem_inf, 'std': std_inf},
                    '45-50 min': {'mean' :mean_wash, 'sem': sem_wash, 'std': std_wash}}
 
+        Ids   = {'mean': mean_Ids, 'std': std_Ids, 'sem': sem_Ids}
+        leaks = {'mean': mean_leaks, 'std': std_leaks, 'sem': sem_leaks}
+        diffs = {'mean': mean_diffs, 'std': std_diffs, 'sem': sem_diffs}
+
         
         pdf = PdfPage(debug=False)
-        pdf.fill_PDF_merge(mean_diffs, std_diffs, num_files, label, mean_Ids, std_Ids, mean_leaks, std_leaks, barplot)
+
+
+        pdf.fill_PDF_merge(diffs, num_files, label, Ids, leaks, barplot)
+        #pdf.fill_PDF_merge(mean_diffs, std_diffs, num_files, label, mean_Ids, std_Ids, mean_leaks, std_leaks, barplot)
         plt.savefig(f'C:/Users/laura.gonzalez/Output_expe/washout/Washout_PDFs/{filename}.pdf') #PC
         print(f"{label} PDF saved")
 
@@ -189,15 +190,15 @@ def create_group_pdf(datafiles_group, label, filename, final_dict, final_barplot
         final_barplot['5-10 min'][label]['sem'] = sem_bsl
         final_barplot['12-17 min'][label]['sem'] = sem_inf
         final_barplot['45-50 min'][label]['sem'] = sem_wash
-        final_num_files.append(num_files)
+        final_num_files[label] = num_files
         
     except Exception as e:
         print(f"Error doing group analysis for {label}: {e}")
     return 0
 
-def final_results_pdf(final_dict, final_barplot, final_num_files):
+def final_results_pdf(final_dict, final_barplot, final_num_files, concentration, colors, GROUPS):
     pdf = PdfPage(debug=False, final=True)
-    pdf.fill_final_results(final_dict, final_barplot, final_num_files)
+    pdf.fill_final_results(final_dict, final_barplot, final_num_files, concentration, colors, GROUPS)
     plt.savefig(f'C:/Users/laura.gonzalez/Output_expe/washout/Washout_PDFs/final_results.pdf') #PC #plt.savefig(f'C:/Users/LauraGonzalez/Output_expe/Washout_PDFs/final_results.pdf') #in laptop
     print('final results figure saved')
     return 0
@@ -227,7 +228,23 @@ if __name__=='__main__':
                                    "D-AP5"    : {'mean':None, 'sem': None}, 
                                    "memantine": {'mean':None, 'sem': None} }}
 
-    final_num_files = []
+    final_num_files = {"control"  : None, 
+                       "ketamine" : None, 
+                       "D-AP5"    : None, 
+                       "memantine": None}
+    
+    concentration = {'ketamine' : '100uM', 
+                     'D-AP5'    : '50uM', 
+                     'control'  : '-', 
+                     'memantine': '100uM'}
+    
+    colors = {'ketamine' : 'purple', 
+              'D-AP5'    : 'orange', 
+              'control'  : 'grey', 
+              'memantine': 'gold'}
+    
+    GROUPS = ['control', 'ketamine','D-AP5','memantine']
+    
     
     # PDF creation for each individual file ############################################################################
     create_individual_pdf(files, datafiles_keta, datafiles_APV, datafiles_control, datafiles_memantine)
@@ -239,4 +256,4 @@ if __name__=='__main__':
     create_group_pdf(datafiles_memantine, "memantine", "memantine_merge", final_dict, final_barplot, final_num_files)  
     
     #PDF creation to compare groups: ###################################################################################
-    final_results_pdf(final_dict, final_barplot, final_num_files)
+    final_results_pdf(final_dict, final_barplot, final_num_files, concentration, colors, GROUPS)
