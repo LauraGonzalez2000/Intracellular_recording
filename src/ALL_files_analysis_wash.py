@@ -6,8 +6,8 @@ import pandas as pd
 import numpy as np
 
 
-directory = "RAW-DATA-WASHOUT-PYR-q"
-meta_info_directory = "Files-PYR-q.csv"
+directory = "RAW-DATA-WASHOUT-SST"
+meta_info_directory = "Files-SST.csv"
 
 #keep this aborescence if program used in other computers
 base_path = os.path.join(os.path.expanduser('~'), 'DATA', 'Washout_experiment') 
@@ -48,8 +48,8 @@ def add_metadata(datafile):
     datafile.infos['Holding (mV)'] = info_df_datafile["Holding (mV)"].item()
     datafile.infos['Infusion substance'] = info_df_datafile["infusion"].item()
     datafile.infos['Infusion concentration'] = info_df_datafile["infusion concentration"].item()
-    datafile.infos['Infusion start'] = info_df_datafile["infusion start"].item()
-    datafile.infos['Infusion end'] = info_df_datafile["infusion end"].item()
+    datafile.infos['Infusion start'] = info_df_datafile["infusion start"].item().replace(',', '.')
+    datafile.infos['Infusion end'] = info_df_datafile["infusion end"].item().replace(',', '.')
     datafile.infos['Group'] = info_df_datafile["Group"].item()
 
 def merge_Ids(datafile, list_of_Ids): 
@@ -123,12 +123,12 @@ def get_avg_std(my_list):
     sem_list = np.std(my_list, axis=0)/len(my_list)
     return mean_list, std_list, sem_list
 
-def create_individual_pdf(files, datafiles_keta, datafiles_APV, datafiles_control, datafiles_memantine):
+def create_individual_pdf(files, datafiles_keta, datafiles_APV, datafiles_control, datafiles_memantine, debug=False):
     for file in files:
         try:
             print(file)     
-            datafile = DataFile_washout(file)
-            add_metadata(datafile)   
+            datafile = DataFile_washout(file, debug=debug)
+            #add_metadata(datafile)   
 
             #save the datafile in the corresponding group
             if datafile.infos['Group'] == 'control': datafiles_control.append(datafile)
@@ -247,7 +247,7 @@ if __name__=='__main__':
     
     
     # PDF creation for each individual file ############################################################################
-    create_individual_pdf(files, datafiles_keta, datafiles_APV, datafiles_control, datafiles_memantine)
+    create_individual_pdf(files, datafiles_keta, datafiles_APV, datafiles_control, datafiles_memantine, debug=True)
 
     #PDF creation for the chosen groups: ###############################################################################
     create_group_pdf(datafiles_keta, "ketamine", "ketamine_merge", final_dict, final_barplot, final_num_files)

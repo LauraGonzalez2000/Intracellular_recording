@@ -7,7 +7,7 @@ import pandas as pd
 import os
 
 
-meta_info_directory = "Files-PYR-q.csv"
+meta_info_directory = "Files-SST.csv"
 base_path = os.path.join(os.path.expanduser('~'), 'DATA', 'Washout_experiment') #keep this aborescence if program used in other computers
 meta_info_directory = os.path.join(base_path, meta_info_directory)
 
@@ -15,8 +15,7 @@ meta_info_directory = os.path.join(base_path, meta_info_directory)
 class DataFile_washout:
 
     #Constructor
-    def __init__(self, file_path):
-        print('hey')
+    def __init__(self, file_path, debug=False):
         self.file_path = file_path
         self.filename = self.file_path.split('/')[-1].replace('.pxp', '')
         self.infos = {}
@@ -28,11 +27,9 @@ class DataFile_washout:
         self.get_diffs()
         self.correct_diffs()
         self.batches_correct_diffs()
-        print('hey')
-        self.fill_infos()
-        print('hey')
+        self.fill_infos(debug=debug)
         self.fill_stim()
-        print('hey')
+        
 
     #Methods
 
@@ -101,7 +98,7 @@ class DataFile_washout:
         self.batches_corr_diffs = batches_c_diffs_mean
         return batches_c_diffs_mean, _
     
-    def fill_infos(self):
+    def fill_infos(self, debug=False):
         try:
             file_meta_info = open(meta_info_directory, 'r')  
             info_df = pd.read_csv(file_meta_info, header=0, sep=';')
@@ -109,7 +106,8 @@ class DataFile_washout:
 
             if len(info_df_datafile) != 1:
                 raise ValueError(f"Expected one matching row for filename {self.filename}, but found {len(info_df_datafile)}.")
-        
+
+            print("start ", float(info_df_datafile["infusion start"].item().replace(',', '.')))
 
             self.infos = {'SampleInterval' : self.pxp[1]['root'][b'SampleInterval'],
                           'SamplesPerWave' : self.pxp[1]['root'][b'SamplesPerWave'],
@@ -120,9 +118,14 @@ class DataFile_washout:
                           'Holding (mV)': str(info_df_datafile["Holding (mV)"].item()),
                           'Infusion substance':str(info_df_datafile["infusion"].item()),
                           'Infusion concentration': str(info_df_datafile["infusion concentration"].item()),
-                          'Infusion start':float(info_df_datafile["infusion start"].item()),
-                          'Infusion end':float(info_df_datafile["infusion end"].item()),
+                          'Infusion start':float(info_df_datafile["infusion start"].item().replace(',', '.')),  #arrange this ! could not convert string to float: '-'
+                          'Infusion end':float(info_df_datafile["infusion end"].item().replace(',', '.')),  #arrange this ! could not convert string to float: '-'
                           'Group':str(info_df_datafile["Group"].item())}
+            
+            if debug: 
+                for key, value in self.infos.items():
+                    print(f"The key '{key}' is {type(value)} and the value is {value}")
+
             print('OK infos were filled correctly')
         
         except Exception as e:
@@ -209,7 +212,8 @@ class DataFile_washout:
         batches_diffs_m, _ = self.get_batches(self.corr_diffs) #noise is substracted
 
         if self.infos['Group'] == 'APV' or self.infos['Group']=='KETA' or self.infos['Group']=='MEMANTINE': 
-            baseline_diffs_m = np.mean(batches_diffs_m[(int(self.infos["Infusion start"])-5):int(self.infos["Infusion start"])]) 
+            baseline_diffs_m = np.mean(batches_diffs_m[(round(self.infos["Infusion start"])-5):round(self.infos["Infusion start"])]) 
+            #baseline_diffs_m = np.mean(batches_diffs_m[(int(self.infos["Infusion start"])-5):int(self.infos["Infusion start"])]) 
             #print("took last 5 minutes before infusion. Should always be the case for this protocol when there is infusion")
             #print("mean last 5 min", baseline_diffs_m)
             #print("mean last 10 min", np.mean(batches_diffs_m[(int(self.infos["Infusion start"])-10):int(self.infos["Infusion start"])]) )
@@ -231,9 +235,12 @@ class DataFile_washout:
         batches_c_diffs_mean,  batches_c_diffs_std  = self.get_batches(self.corr_diffs)
         norm_batches_corr_diffs, _ = self.normalize(batches_c_diffs_mean,  batches_c_diffs_std)
         try:
-            subset1 = norm_batches_corr_diffs[int(self.infos["Infusion start"])-5: int(self.infos["Infusion start"])]
-            subset2 = norm_batches_corr_diffs[int(self.infos["Infusion end"])-5: int(self.infos["Infusion end"])]
-            subset3 = norm_batches_corr_diffs[int(len(self.recordings)/6)-5:int(len(self.recordings)/6)]
+            subset1 = norm_batches_corr_diffs[round(self.infos["Infusion start"])-5 : round(self.infos["Infusion start"])]
+            subset2 = norm_batches_corr_diffs[round(self.infos["Infusion end"])-5   : round(self.infos["Infusion end"])]
+            subset3 = norm_batches_corr_diffs[round(len(self.recordings)/6)-5       : round(len(self.recordings)/6)]
+            #subset1 = norm_batches_corr_diffs[int(self.infos["Infusion start"])-5: int(self.infos["Infusion start"])]
+            #subset2 = norm_batches_corr_diffs[int(self.infos["Infusion end"])-5: int(self.infos["Infusion end"])]
+            #subset3 = norm_batches_corr_diffs[int(len(self.recordings)/6)-5:int(len(self.recordings)/6)]
         except:
             subset1 = norm_batches_corr_diffs[5:10]
             subset2 = norm_batches_corr_diffs[12:17]

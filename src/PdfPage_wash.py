@@ -98,7 +98,7 @@ class PdfPage:
                 self.AXs[key].set_xlabel("time (min)")
                 
                 try:
-                    self.AXs[key].axvspan(int(datafile.infos["Infusion start"]), int(datafile.infos["Infusion end"]), color='lightgrey')
+                    self.AXs[key].axvspan(float(datafile.infos["Infusion start"]), float(datafile.infos["Infusion end"]), color='lightgrey')
                 except:
                     print("metadata not added correctly or no infusion")
 
@@ -119,7 +119,7 @@ class PdfPage:
                 self.AXs[key].set_xlabel("time (min)")
                 
                 try:
-                    self.AXs[key].axvspan(int(datafile.infos["Infusion start"]), int(datafile.infos["Infusion end"]), color='lightgrey')
+                    self.AXs[key].axvspan(float(datafile.infos["Infusion start"]), float(datafile.infos["Infusion end"]), color='lightgrey')
                 except Exception as e:
                     print(f"metadata not added correctly - or no infusion {e}")
             
@@ -146,7 +146,7 @@ class PdfPage:
                 self.AXs[key].errorbar(range(len(noises_m)), noises_m, yerr=noises_std, linestyle='None', marker='_', color='black', capsize=3, linewidth = 0.5)
                 self.AXs[key].legend()
                 try:
-                    self.AXs[key].axvspan(int(datafile.infos["Infusion start"]), int(datafile.infos["Infusion end"]), color='lightgrey') 
+                    self.AXs[key].axvspan(float(datafile.infos["Infusion start"]), float(datafile.infos["Infusion end"]), color='lightgrey') 
                 except:
                     print("no infusion")
 
@@ -171,7 +171,7 @@ class PdfPage:
                 self.AXs[key].set_xlabel("time (min)")
                 
                 try:
-                    self.AXs[key].axvspan(int(datafile.infos["Infusion start"]), int(datafile.infos["Infusion end"]), color='lightgrey') 
+                    self.AXs[key].axvspan(float(datafile.infos["Infusion start"]), float(datafile.infos["Infusion end"]), color='lightgrey') 
                 except:
                     print("no infusion")
                 self.AXs[key].axhline(100, color="grey", linestyle="--")
