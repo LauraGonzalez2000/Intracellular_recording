@@ -2,20 +2,16 @@ import os
 from PdfPage_wash import PdfPage
 from trace_analysis_wash import DataFile_washout
 import matplotlib.pylab as plt
-import pandas as pd
 import numpy as np
 
-
-directory = "RAW-DATA-WASHOUT-SST"
-meta_info_directory = "Files-SST.csv"
+import pprint
 
 #keep this aborescence if program used in other computers
 base_path = os.path.join(os.path.expanduser('~'), 'DATA', 'Washout_experiment') 
 base_path_output = os.path.join(os.path.expanduser('~'), 'Output_expe', 'washout', 'Washout_PDFs') 
-
-
+directory = "RAW-DATA-WASHOUT-PYR-q"
 files_directory = os.path.join(base_path, directory)
-meta_info_directory = os.path.join(base_path, meta_info_directory)
+
 
 #methods
 def find_nm_files(root_folder):
@@ -38,58 +34,27 @@ def find_nm_files(root_folder):
 
     return nm_paths
 
-def add_metadata(datafile):
-    file_meta_info = open(meta_info_directory, 'r')  
-    info_df = pd.read_csv(file_meta_info, header=0, sep=';')
-    info_df_datafile = info_df.loc[info_df['Files'] == datafile.filename]
-   
-    datafile.infos['File'] = info_df_datafile["Files"].item()
-    datafile.infos['Euthanize method'] = info_df_datafile["euthanize method"].item()
-    datafile.infos['Holding (mV)'] = info_df_datafile["Holding (mV)"].item()
-    datafile.infos['Infusion substance'] = info_df_datafile["infusion"].item()
-    datafile.infos['Infusion concentration'] = info_df_datafile["infusion concentration"].item()
-    datafile.infos['Infusion start'] = info_df_datafile["infusion start"].item().replace(',', '.')
-    datafile.infos['Infusion end'] = info_df_datafile["infusion end"].item().replace(',', '.')
-    datafile.infos['Group'] = info_df_datafile["Group"].item()
+def merge_info(datafile, my_list, list_of_bsl_m, list_of_inf_m, list_of_wash_m):
 
-def merge_Ids(datafile, list_of_Ids): 
-    Ids_datafile_ = datafile.get_Ids()
-    Ids_datafile_m, _ = datafile.get_batches(Ids_datafile_, batch_size=6)
-    list_of_Ids.append(Ids_datafile_m) 
+    for key in my_list:
 
-    # Find the maximum length of all arrays in list_of_Ids and Pad each array to the maximum length
-    max_length = max(len(array) for array in list_of_Ids)
-    #print("max length for padding : ",max_length)
-    for i in range(len(list_of_Ids)):
-        list_of_Ids[i] += [float('nan')] * (max_length - len(list_of_Ids[i]))
-        #print("item of list of Ids :", list_of_Ids[i])
+        if key=='Ids':
+            metric_datafile = datafile.get_Ids()
+            metric_datafile_m, _ = datafile.get_batches(metric_datafile, batch_size=6)
+        elif key=='Leaks':
+            metric_datafile = datafile.get_baselines()
+            metric_datafile_m, _ = datafile.get_batches(metric_datafile, batch_size=6)
+        elif key=='Diffs':
+            metric_datafile_m = datafile.batches_corr_diffs       
 
-    return 0
+        my_list[key]['mean'].append(metric_datafile_m)
 
-def merge_leaks(datafile, list_of_leaks): 
-    leaks_datafile = datafile.get_baselines()
-    leaks_datafile_m, _ = datafile.get_batches(leaks_datafile, batch_size=6)
-    list_of_leaks.append(leaks_datafile_m) 
+        max_length = max(len(array) for array in my_list[key]['mean'])
+        for i in range(len(my_list[key]['mean'])):
+            my_list[key]['mean'][i] += [float('nan')] * (max_length - len(my_list[key]['mean'][i]))
 
-    # Find the maximum length of all arrays in list_of_Ids and Pad each array to the maximum length
-    max_length = max(len(array) for array in list_of_leaks)
-    for i in range(len(list_of_leaks)):
-        list_of_leaks[i] += [float('nan')] * (max_length - len(list_of_leaks[i]))
-
-    return 0
-
-def merge_diffs(datafile, list_of_diffs):
-    diffs_datafile = datafile.batches_corr_diffs
-    list_of_diffs.append(diffs_datafile)
-
-    # Find the maximum length of all arrays in list_of_Ids and Pad each array to the maximum length
-    max_length = max(len(array) for array in list_of_diffs)
-    for i in range(len(list_of_diffs)):
-        list_of_diffs[i] += [float('nan')] * (max_length - len(list_of_diffs[i]))
-
-    return 0
-
-def merge_stats(datafile, list_of_bsl_m, list_of_inf_m, list_of_wash_m): 
+    ############################################################################################
+    
     batches_c_diffs_mean,  batches_c_diffs_std  = datafile.get_batches(datafile.corr_diffs) #noise was removed
     norm_batches_corr_diffs, _ = datafile.normalize(batches_c_diffs_mean,  batches_c_diffs_std)
 
@@ -108,107 +73,83 @@ def merge_stats(datafile, list_of_bsl_m, list_of_inf_m, list_of_wash_m):
     list_of_bsl_m.append(bsl_m_datafile)
     list_of_inf_m.append(inf_m_datafile)
     list_of_wash_m.append(wash_m_datafile)
+    
     return 0
 
-def merge_info(datafile, list_of_Ids, list_of_leaks, list_of_diffs, list_of_bsl_m, list_of_inf_m, list_of_wash_m):
-    merge_Ids(datafile, list_of_Ids)
-    merge_leaks(datafile, list_of_leaks)
-    merge_diffs(datafile, list_of_diffs)
-    merge_stats(datafile, list_of_bsl_m, list_of_inf_m, list_of_wash_m)
-    return 0
-
-def get_avg_std(my_list):
-    mean_list = np.mean(my_list, axis=0)
-    std_list = np.std(my_list, axis=0)
-    sem_list = np.std(my_list, axis=0)/len(my_list)
-    return mean_list, std_list, sem_list
-
-def create_individual_pdf(files, datafiles_keta, datafiles_APV, datafiles_control, datafiles_memantine, debug=False):
-    for file in files:
+def create_individual_pdf(datafiles, debug=False):
+    for datafile in datafiles:
         try:
-            print(file)     
-            datafile = DataFile_washout(file, debug=debug)
-            #add_metadata(datafile)   
-
-            #save the datafile in the corresponding group
-            if datafile.infos['Group'] == 'control': datafiles_control.append(datafile)
-            elif datafile.infos['Group'] == 'KETA': datafiles_keta.append(datafile)
-            elif datafile.infos['Group'] == 'APV': datafiles_APV.append(datafile)
-            elif datafile.infos['Group'] == 'MEMANTINE': datafiles_memantine.append(datafile)  ######
-
-            pdf = PdfPage(debug=False)
-            pdf.fill_PDF(datafile, debug=False)
-            plt.savefig(f'C:/Users/laura.gonzalez/Output_expe/washout/Washout_PDFs/{datafile.filename}.pdf') #in PC
-            #plt.savefig(f'C:/Users/LauraGonzalez/Output_expe/Washout_PDFs/{datafile.filename}.pdf') #in laptop
+            pdf = PdfPage(debug=debug)
+            pdf.fill_PDF(datafile, debug=debug)
+            plt.savefig(f'C:/Users/laura.gonzalez/Output_expe/washout/Washout_PDFs/{datafile.filename}.pdf')
             print("OK File saved successfully")
-            
         except Exception as e:
-            print(f"Error analysing this file : {e}")
-            
+            print(f"Error analysing this file : {e}")      
     return 0
 
-def create_group_pdf(datafiles_group, label, filename, final_dict, final_barplot, final_num_files):
+def create_group_pdf(datafiles_group, label, filename, final_dict, final_barplot, final_num_files, debug=False):
     try:
-        num_files = len(datafiles_group)
-        list_of_Ids, list_of_leaks, list_of_diffs, list_of_bsl_m, list_of_inf_m, list_of_wash_m = [], [], [], [], [], []
+        my_list = {'Ids'  : {'mean': [], 'std': [], 'sem': []},
+                   'Leaks': {'mean': [], 'std': [], 'sem': []}, 
+                   'Diffs': {'mean': [], 'std': [], 'sem': []}}
+        
+
+        list_of_bsl_m, list_of_inf_m, list_of_wash_m = [], [], []
 
         for datafile in datafiles_group:
-            merge_info(datafile, list_of_Ids, list_of_leaks, list_of_diffs, list_of_bsl_m, list_of_inf_m, list_of_wash_m)
+            merge_info(datafile, my_list, list_of_bsl_m, list_of_inf_m, list_of_wash_m)
         
-        mean_Ids, std_Ids, sem_Ids = get_avg_std(list_of_Ids)
-        mean_leaks, std_leaks, sem_leaks = get_avg_std(list_of_leaks)
-        mean_diffs, std_diffs, sem_diffs = get_avg_std(list_of_diffs)
+        for key in my_list:
+            metric_datafile_std = np.std(my_list[key]['mean'], axis=0)   #std of the different files's mean for each one of the 50 positions  
+            metric_datafile_sem = np.std(my_list[key]['mean'], axis=0)/len(my_list[key]['mean']) #sem of the different files's mean for each one of the 50 positions  
+            my_list[key]['std'].append(metric_datafile_std)
+            my_list[key]['sem'].append(metric_datafile_sem)
+            my_list[key]['mean'] = np.mean(my_list[key]['mean'], axis=0)  #updates the mean!!! #mean of the different files's mean for each one of the 50 positions  
+
+        if debug : 
+            print("Ids, Leaks, Diffs that are given for the pdf ")
+            pprint.pprint(my_list)
         
-        mean_bsl, std_bsl, sem_bsl = get_avg_std(list_of_bsl_m)
-        mean_inf, std_inf, sem_inf = get_avg_std(list_of_inf_m)
-        mean_wash, std_wash, sem_wash = get_avg_std(list_of_wash_m)
+        ################################################################################
+        mean_bsl,  std_bsl,  sem_bsl  = np.mean(list_of_bsl_m, axis=0),  np.std(list_of_bsl_m, axis=0),  np.std(list_of_bsl_m, axis=0)/len(list_of_bsl_m)
+        mean_inf,  std_inf,  sem_inf  = np.mean(list_of_inf_m, axis=0),  np.std(list_of_inf_m, axis=0),  np.std(list_of_inf_m, axis=0)/len(list_of_inf_m)
+        mean_wash, std_wash, sem_wash = np.mean(list_of_wash_m, axis=0), np.std(list_of_wash_m, axis=0), np.std(list_of_wash_m, axis=0)/len(list_of_wash_m)
         
         barplot = {'5-10 min' : {'mean' : mean_bsl, 'sem': sem_bsl, 'std': std_bsl},
                    '12-17 min': {'mean' : mean_inf, 'sem': sem_inf, 'std': std_inf},
-                   '45-50 min': {'mean' :mean_wash, 'sem': sem_wash, 'std': std_wash}}
-
-        Ids   = {'mean': mean_Ids, 'std': std_Ids, 'sem': sem_Ids}
-        leaks = {'mean': mean_leaks, 'std': std_leaks, 'sem': sem_leaks}
-        diffs = {'mean': mean_diffs, 'std': std_diffs, 'sem': sem_diffs}
-
+                   '45-50 min': {'mean' : mean_wash,'sem': sem_wash,'std': std_wash}}
+        #################################################################################
         
         pdf = PdfPage(debug=False)
-
-
-        pdf.fill_PDF_merge(diffs, num_files, label, Ids, leaks, barplot)
-        #pdf.fill_PDF_merge(mean_diffs, std_diffs, num_files, label, mean_Ids, std_Ids, mean_leaks, std_leaks, barplot)
+        pdf.fill_PDF_merge(num_files = len(datafiles_group), group = label, my_list = my_list, barplot = barplot)
         plt.savefig(f'C:/Users/laura.gonzalez/Output_expe/washout/Washout_PDFs/{filename}.pdf') #PC
         print(f"{label} PDF saved")
 
-        #useful for final results pdf
-        final_dict[label]['mean'] = mean_diffs
-        final_dict[label]['std'] = std_diffs
-        final_dict[label]['sem'] = sem_diffs
-        final_barplot['5-10 min'][label]['mean'] = mean_bsl
-        final_barplot['12-17 min'][label]['mean'] = mean_inf
-        final_barplot['45-50 min'][label]['mean'] = mean_wash
-        final_barplot['5-10 min'][label]['sem'] = sem_bsl
-        final_barplot['12-17 min'][label]['sem'] = sem_inf
-        final_barplot['45-50 min'][label]['sem'] = sem_wash
-        final_num_files[label] = num_files
-        
     except Exception as e:
         print(f"Error doing group analysis for {label}: {e}")
+ 
+    #useful for final PDF
+    final_dict[label]['mean'] = my_list['Diffs']['mean']
+    final_dict[label]['std'] = np.std(my_list['Diffs']['mean'], axis=0)
+    final_dict[label]['sem'] = np.std(my_list['Diffs']['mean'], axis=0)/len(my_list['Diffs']['mean'])
+    final_barplot['5-10 min'][label]['mean'] = mean_bsl
+    final_barplot['12-17 min'][label]['mean'] = mean_inf
+    final_barplot['45-50 min'][label]['mean'] = mean_wash
+    final_barplot['5-10 min'][label]['sem'] = sem_bsl
+    final_barplot['12-17 min'][label]['sem'] = sem_inf
+    final_barplot['45-50 min'][label]['sem'] = sem_wash
+    final_num_files[label] = len(datafiles_group)
+    
     return 0
 
-def final_results_pdf(final_dict, final_barplot, final_num_files, concentration, colors, GROUPS):
-    pdf = PdfPage(debug=False, final=True)
+def final_results_pdf(final_dict, final_barplot, final_num_files, concentration, colors, GROUPS, debug=False):
+    pdf = PdfPage(debug=debug, final=True)
     pdf.fill_final_results(final_dict, final_barplot, final_num_files, concentration, colors, GROUPS)
     plt.savefig(f'C:/Users/laura.gonzalez/Output_expe/washout/Washout_PDFs/final_results.pdf') #PC #plt.savefig(f'C:/Users/LauraGonzalez/Output_expe/Washout_PDFs/final_results.pdf') #in laptop
     print('final results figure saved')
     return 0
 
-
 if __name__=='__main__':
-
-    files = find_nm_files(files_directory)
-
-    datafiles_keta, datafiles_APV, datafiles_control, datafiles_memantine  = [], [], [], []
 
     final_dict = {"control"  : {'mean':None, 'sem': None, 'std': None}, 
                   "ketamine" : {'mean':None, 'sem': None, 'std': None}, 
@@ -245,15 +186,28 @@ if __name__=='__main__':
     
     GROUPS = ['control', 'ketamine','D-AP5','memantine']
     
-    
-    # PDF creation for each individual file ############################################################################
-    create_individual_pdf(files, datafiles_keta, datafiles_APV, datafiles_control, datafiles_memantine, debug=True)
 
-    #PDF creation for the chosen groups: ###############################################################################
-    create_group_pdf(datafiles_keta, "ketamine", "ketamine_merge", final_dict, final_barplot, final_num_files)
-    create_group_pdf(datafiles_APV, "D-AP5", "D-AP5_merge", final_dict, final_barplot, final_num_files)
-    create_group_pdf(datafiles_control, "control", "control_merge", final_dict, final_barplot, final_num_files)
-    create_group_pdf(datafiles_memantine, "memantine", "memantine_merge", final_dict, final_barplot, final_num_files)  
+    #Load and sort datafiles: ###################################################################################################
     
-    #PDF creation to compare groups: ###################################################################################
-    final_results_pdf(final_dict, final_barplot, final_num_files, concentration, colors, GROUPS)
+    files = find_nm_files(files_directory)
+    datafiles, datafiles_keta, datafiles_APV, datafiles_control, datafiles_memantine = [], [], [], [], []
+    for file in files:
+            print(file)     
+            datafile = DataFile_washout(file, debug=False)
+            if datafile.infos['Group'] == 'control': datafiles_control.append(datafile)
+            elif datafile.infos['Group'] == 'KETA': datafiles_keta.append(datafile)
+            elif datafile.infos['Group'] == 'APV': datafiles_APV.append(datafile)
+            elif datafile.infos['Group'] == 'MEMANTINE': datafiles_memantine.append(datafile)
+
+    
+    # PDF creation for each individual file ######################################################################################
+    create_individual_pdf(datafiles, debug=False)
+
+    #PDF creation for the chosen groups: #########################################################################################
+    create_group_pdf(datafiles_keta, "ketamine", "ketamine_merge", final_dict, final_barplot, final_num_files, debug=True)
+    create_group_pdf(datafiles_APV, "D-AP5", "D-AP5_merge", final_dict, final_barplot, final_num_files, debug=True)
+    create_group_pdf(datafiles_control, "control", "control_merge", final_dict, final_barplot, final_num_files, debug=True)
+    create_group_pdf(datafiles_memantine, "memantine", "memantine_merge", final_dict, final_barplot, final_num_files, debug=True)  
+    
+    #PDF creation to compare groups: ##############################################################################################
+    final_results_pdf(final_dict, final_barplot, final_num_files, concentration, colors, GROUPS, debug=False)

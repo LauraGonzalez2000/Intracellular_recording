@@ -7,7 +7,7 @@ import pandas as pd
 import os
 
 
-meta_info_directory = "Files-SST.csv"
+meta_info_directory = "Files-PYR-q.csv"
 base_path = os.path.join(os.path.expanduser('~'), 'DATA', 'Washout_experiment') #keep this aborescence if program used in other computers
 meta_info_directory = os.path.join(base_path, meta_info_directory)
 
@@ -107,38 +107,38 @@ class DataFile_washout:
             if len(info_df_datafile) != 1:
                 raise ValueError(f"Expected one matching row for filename {self.filename}, but found {len(info_df_datafile)}.")
 
-            print("start ", float(info_df_datafile["infusion start"].item().replace(',', '.')))
+            try: 
+                inf_start = float(info_df_datafile["infusion start"].item().replace(',', '.'))
+                inf_stop = float(info_df_datafile["infusion end"].item().replace(',', '.'))
+            except: 
+                inf_start = str(info_df_datafile["infusion start"].item())
+                inf_stop = str(info_df_datafile["infusion end"].item())
 
             self.infos = {'SampleInterval' : self.pxp[1]['root'][b'SampleInterval'],
                           'SamplesPerWave' : self.pxp[1]['root'][b'SamplesPerWave'],
                           'FileDate' : self.pxp[1]['root'][b'FileDate'],
                           'FileTime' : self.pxp[1]['root'][b'FileTime'],
-                          'File': str(info_df_datafile["Files"].item()),
+                          'File': self.filename,
                           'Euthanize method':str(info_df_datafile["euthanize method"].item()),
                           'Holding (mV)': str(info_df_datafile["Holding (mV)"].item()),
                           'Infusion substance':str(info_df_datafile["infusion"].item()),
                           'Infusion concentration': str(info_df_datafile["infusion concentration"].item()),
-                          'Infusion start':float(info_df_datafile["infusion start"].item().replace(',', '.')),  #arrange this ! could not convert string to float: '-'
-                          'Infusion end':float(info_df_datafile["infusion end"].item().replace(',', '.')),  #arrange this ! could not convert string to float: '-'
+                          'Infusion start': inf_start,  
+                          'Infusion end': inf_stop,  
                           'Group':str(info_df_datafile["Group"].item())}
             
+            print('OK infos were filled correctly')
+
             if debug: 
                 for key, value in self.infos.items():
                     print(f"The key '{key}' is {type(value)} and the value is {value}")
-
-            print('OK infos were filled correctly')
         
         except Exception as e:
             print(f"Infos were not filled correctly: {e}")
 
     def fill_stim(self):
-        keys = [
-            b'nm_washout_keta2', 
-            b'nm_washout_keta1', 
-            b'nm_washout_keta', 
-            b'nmStimSofia1', 
-            b'nmStimSofia'
-        ]
+        keys = [ b'nm_washout_keta2', b'nm_washout_keta1', b'nm_washout_keta', 
+                 b'nmStimSofia1', b'nmStimSofia']
         for key in keys:
             try:
                 pulse_DAC0 = self.pxp[1]['root'][key][b'DAC_0_0'].wave['wave']['wData']
