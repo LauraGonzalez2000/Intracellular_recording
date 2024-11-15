@@ -9,7 +9,7 @@ import pprint
 #keep this aborescence if program used in other computers
 base_path = os.path.join(os.path.expanduser('~'), 'DATA', 'Washout_experiment') 
 base_path_output = os.path.join(os.path.expanduser('~'), 'Output_expe', 'washout', 'Washout_PDFs') 
-directory = "RAW-DATA-WASHOUT-PYR-q"
+directory = "RAW-DATA-WASHOUT-PYR"
 files_directory = os.path.join(base_path, directory)
 
 
@@ -58,22 +58,10 @@ def merge_info(datafile, my_list, list_of_bsl_m, list_of_inf_m, list_of_wash_m):
     batches_c_diffs_mean,  batches_c_diffs_std  = datafile.get_batches(datafile.corr_diffs) #noise was removed
     norm_batches_corr_diffs, _ = datafile.normalize(batches_c_diffs_mean,  batches_c_diffs_std)
 
-    subset1 = norm_batches_corr_diffs[5:10]
-    subset2 = norm_batches_corr_diffs[12:17]
-    subset3 = norm_batches_corr_diffs[45:50]
-    
-    bsl_m = np.mean(subset1)
-    bsl_std = np.std(subset1)
-    inf_m = np.mean(subset2)
-    inf_std = np.std(subset2)
-    wash_m = np.mean(subset3)
-    wash_std = np.std(subset3)
+    list_of_bsl_m.append(np.mean(norm_batches_corr_diffs[5:10]))
+    list_of_inf_m.append(np.mean(norm_batches_corr_diffs[12:17]))
+    list_of_wash_m.append(np.mean(norm_batches_corr_diffs[45:50]))
 
-    bsl_m_datafile, _, inf_m_datafile, _, wash_m_datafile, _ = bsl_m, bsl_std, inf_m, inf_std, wash_m, wash_std 
-    list_of_bsl_m.append(bsl_m_datafile)
-    list_of_inf_m.append(inf_m_datafile)
-    list_of_wash_m.append(wash_m_datafile)
-    
     return 0
 
 def create_individual_pdf(datafiles, debug=False):
@@ -100,27 +88,34 @@ def create_group_pdf(datafiles_group, label, filename, final_dict, final_barplot
             merge_info(datafile, my_list, list_of_bsl_m, list_of_inf_m, list_of_wash_m)
         
         for key in my_list:
+            #print(my_list[key]['mean'])
             metric_datafile_std = np.std(my_list[key]['mean'], axis=0)   #std of the different files's mean for each one of the 50 positions  
             metric_datafile_sem = np.std(my_list[key]['mean'], axis=0)/len(my_list[key]['mean']) #sem of the different files's mean for each one of the 50 positions  
             my_list[key]['std'].append(metric_datafile_std)
             my_list[key]['sem'].append(metric_datafile_sem)
             my_list[key]['mean'] = np.mean(my_list[key]['mean'], axis=0)  #updates the mean!!! #mean of the different files's mean for each one of the 50 positions  
+            #print("metric_datafile_std", my_list[key]['std'])
+            #print("metric_datafile_m", my_list[key]['mean'])
+
 
         if debug : 
             print("Ids, Leaks, Diffs that are given for the pdf ")
             pprint.pprint(my_list)
         
         ################################################################################
+
         mean_bsl,  std_bsl,  sem_bsl  = np.mean(list_of_bsl_m, axis=0),  np.std(list_of_bsl_m, axis=0),  np.std(list_of_bsl_m, axis=0)/len(list_of_bsl_m)
         mean_inf,  std_inf,  sem_inf  = np.mean(list_of_inf_m, axis=0),  np.std(list_of_inf_m, axis=0),  np.std(list_of_inf_m, axis=0)/len(list_of_inf_m)
         mean_wash, std_wash, sem_wash = np.mean(list_of_wash_m, axis=0), np.std(list_of_wash_m, axis=0), np.std(list_of_wash_m, axis=0)/len(list_of_wash_m)
         
-        barplot = {'5-10 min' : {'mean' : mean_bsl, 'sem': sem_bsl, 'std': std_bsl},
-                   '12-17 min': {'mean' : mean_inf, 'sem': sem_inf, 'std': std_inf},
-                   '45-50 min': {'mean' : mean_wash,'sem': sem_wash,'std': std_wash}}
+        barplot = {'5-10 min' : {'mean' : mean_bsl, 'sem': sem_bsl,  'std': std_bsl},
+                   '12-17 min': {'mean' : mean_inf, 'sem': sem_inf,  'std': std_inf},
+                   '45-50 min': {'mean' : mean_wash,'sem': sem_wash, 'std': std_wash}}
         #################################################################################
         
         pdf = PdfPage(debug=False)
+
+        #pprint.pprint("my_list" , my_list)
         pdf.fill_PDF_merge(num_files = len(datafiles_group), group = label, my_list = my_list, barplot = barplot)
         plt.savefig(f'C:/Users/laura.gonzalez/Output_expe/washout/Washout_PDFs/{filename}.pdf') #PC
         print(f"{label} PDF saved")
@@ -128,7 +123,7 @@ def create_group_pdf(datafiles_group, label, filename, final_dict, final_barplot
     except Exception as e:
         print(f"Error doing group analysis for {label}: {e}")
  
-    #useful for final PDF
+    #useful for final PDF ##############################################################################
     final_dict[label]['mean'] = my_list['Diffs']['mean']
     final_dict[label]['std'] = np.std(my_list['Diffs']['mean'], axis=0)
     final_dict[label]['sem'] = np.std(my_list['Diffs']['mean'], axis=0)/len(my_list['Diffs']['mean'])
@@ -138,6 +133,9 @@ def create_group_pdf(datafiles_group, label, filename, final_dict, final_barplot
     final_barplot['5-10 min'][label]['sem'] = sem_bsl
     final_barplot['12-17 min'][label]['sem'] = sem_inf
     final_barplot['45-50 min'][label]['sem'] = sem_wash
+    final_barplot['5-10 min'][label]['std'] = std_bsl
+    final_barplot['12-17 min'][label]['std'] = std_inf
+    final_barplot['45-50 min'][label]['std'] = std_wash
     final_num_files[label] = len(datafiles_group)
     
     return 0
@@ -156,18 +154,18 @@ if __name__=='__main__':
                   "D-AP5"    : {'mean':None, 'sem': None, 'std': None}, 
                   "memantine": {'mean':None, 'sem': None, 'std': None}}
 
-    final_barplot = {"5-10 min" : {"control"  : {'mean':None, 'sem': None}, 
-                                   "ketamine" : {'mean':None, 'sem': None}, 
-                                   "D-AP5"    : {'mean':None, 'sem': None}, 
-                                   "memantine": {'mean':None, 'sem': None} },
-                     "12-17 min": {"control"  : {'mean':None, 'sem': None}, 
-                                   "ketamine" : {'mean':None, 'sem': None}, 
-                                   "D-AP5"    : {'mean':None, 'sem': None}, 
-                                   "memantine": {'mean':None, 'sem': None}}, 
-                     "45-50 min": {"control"  : {'mean':None, 'sem': None}, 
-                                   "ketamine" : {'mean':None, 'sem': None}, 
-                                   "D-AP5"    : {'mean':None, 'sem': None}, 
-                                   "memantine": {'mean':None, 'sem': None} }}
+    final_barplot = {"5-10 min" : {"control"  : {'mean':None, 'sem': None, 'std': None}, 
+                                   "ketamine" : {'mean':None, 'sem': None, 'std': None}, 
+                                   "D-AP5"    : {'mean':None, 'sem': None, 'std': None}, 
+                                   "memantine": {'mean':None, 'sem': None, 'std': None} },
+                     "12-17 min": {"control"  : {'mean':None, 'sem': None, 'std': None}, 
+                                   "ketamine" : {'mean':None, 'sem': None, 'std': None}, 
+                                   "D-AP5"    : {'mean':None, 'sem': None, 'std': None}, 
+                                   "memantine": {'mean':None, 'sem': None, 'std': None}}, 
+                     "45-50 min": {"control"  : {'mean':None, 'sem': None, 'std': None}, 
+                                   "ketamine" : {'mean':None, 'sem': None, 'std': None}, 
+                                   "D-AP5"    : {'mean':None, 'sem': None, 'std': None}, 
+                                   "memantine": {'mean':None, 'sem': None, 'std': None} }}
 
     final_num_files = {"control"  : None, 
                        "ketamine" : None, 

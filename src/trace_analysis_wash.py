@@ -7,7 +7,7 @@ import pandas as pd
 import os
 
 
-meta_info_directory = "Files-PYR-q.csv"
+meta_info_directory = "Files-PYR.csv"
 base_path = os.path.join(os.path.expanduser('~'), 'DATA', 'Washout_experiment') #keep this aborescence if program used in other computers
 meta_info_directory = os.path.join(base_path, meta_info_directory)
 

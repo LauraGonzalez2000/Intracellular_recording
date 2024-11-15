@@ -243,6 +243,8 @@ class PdfPage:
                 baseline_diffs_m = np.mean(my_list['Diffs']['mean'][5:10]) 
                 batches_diffs_m_norm = (my_list['Diffs']['mean'] / baseline_diffs_m) * 100  
                 batches_diffs_std_norm = (my_list['Diffs']['std'] / baseline_diffs_m) * 100  
+                print("m ",batches_diffs_m_norm)
+                print("std ", batches_diffs_std_norm)
                 self.AXs[key].plot(batches_diffs_m_norm, marker="o", linewidth=0.5, markersize=2, color=colors[group])
                 self.AXs[key].errorbar(range(len(batches_diffs_m_norm)), batches_diffs_m_norm, yerr=batches_diffs_std_norm, linestyle='None', marker='_', color=colors[group], capsize=3, linewidth = 0.5)
                 if len(batches_diffs_m_norm)> 50:
@@ -273,14 +275,13 @@ class PdfPage:
             
             if key=='RespAnalyzed':  # Normalization by baseline mean (Baseline at 100%)  #why std negative?
 
-                
                 for group in GROUPS:
                     baseline_diffs_m = np.mean(final_dict[group]['mean'][5:10]) 
                     batches_diffs_m_norm = (final_dict[group]['mean'] / baseline_diffs_m) * 100  
                     batches_diffs_std_norm = (final_dict[group]['std'] / baseline_diffs_m) * 100  
                     batches_diffs_sem_norm = np.abs((final_dict[group]['sem'] / baseline_diffs_m) * 100 ) #batches_diffs_std_norm = np.abs((final_dict_std["ketamine"] / baseline_diffs_m) * 100 ) 
                     self.AXs[key].plot(batches_diffs_m_norm, marker="o", linewidth=0.5, markersize=2, label = f"{group} , {concentration[group]} , n= {final_num_files[group]}", color = colors[group])
-                    self.AXs[key].errorbar(range(len(batches_diffs_m_norm)), batches_diffs_m_norm, yerr=batches_diffs_std_norm, linestyle='None', marker='_', capsize=3, linewidth = 0.5, color = colors[group])
+                    self.AXs[key].errorbar(range(len(batches_diffs_m_norm)), batches_diffs_m_norm, yerr=batches_diffs_sem_norm, linestyle='None', marker='_', capsize=3, linewidth = 0.5, color = colors[group])
 
                 self.AXs[key].set_xlim(-1, 50 )
                 #self.AXs[key].set_ylim( -10, 170)
