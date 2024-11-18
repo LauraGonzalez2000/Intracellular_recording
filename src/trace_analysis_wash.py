@@ -267,9 +267,13 @@ class DataFile_washout:
         Ids = self.get_Ids()
         print("Ids : aaaa ", Ids)
         print(len(Ids))
+
         
-        '''
         Ids_batches, _ = self.get_batches(self, Ids)
+        print("Ids batches : ", Ids_batches)
+        print(len(Ids_batches))
+
+        '''
         print("a")
         i=0  #min
         j=0  
