@@ -9,7 +9,7 @@ import pprint
 #keep this aborescence if program used in other computers
 base_path = os.path.join(os.path.expanduser('~'), 'DATA', 'Washout_experiment') 
 base_path_output = os.path.join(os.path.expanduser('~'), 'Output_expe', 'washout', 'Washout_PDFs') 
-directory = "RAW-DATA-WASHOUT-PYR"
+directory = "RAW-DATA-WASHOUT-test"
 files_directory = os.path.join(base_path, directory)
 
 
@@ -188,10 +188,11 @@ if __name__=='__main__':
     #Load and sort datafiles: ###################################################################################################
     
     files = find_nm_files(files_directory)
-    datafiles, datafiles_keta, datafiles_APV, datafiles_control, datafiles_memantine = [], [], [], [], []
+    datafiles, datafiles_keta, datafiles_APV, datafiles_control, datafiles_memantine = [], [], [], [], []   #make only 1 dict?
     for file in files:
             print(file)     
             datafile = DataFile_washout(file, debug=False)
+            datafiles.append(datafile)
             if datafile.infos['Group'] == 'control': datafiles_control.append(datafile)
             elif datafile.infos['Group'] == 'KETA': datafiles_keta.append(datafile)
             elif datafile.infos['Group'] == 'APV': datafiles_APV.append(datafile)
@@ -201,6 +202,7 @@ if __name__=='__main__':
     # PDF creation for each individual file ######################################################################################
     create_individual_pdf(datafiles, debug=False)
 
+    '''
     #PDF creation for the chosen groups: #########################################################################################
     create_group_pdf(datafiles_keta, "ketamine", "ketamine_merge", final_dict, final_barplot, final_num_files, debug=True)
     create_group_pdf(datafiles_APV, "D-AP5", "D-AP5_merge", final_dict, final_barplot, final_num_files, debug=True)
@@ -209,3 +211,4 @@ if __name__=='__main__':
     
     #PDF creation to compare groups: ##############################################################################################
     final_results_pdf(final_dict, final_barplot, final_num_files, concentration, colors, GROUPS, debug=False)
+    '''

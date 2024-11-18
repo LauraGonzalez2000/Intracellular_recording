@@ -7,7 +7,7 @@ import pandas as pd
 import os
 
 
-meta_info_directory = "Files-PYR.csv"
+meta_info_directory = "Files-test.csv"
 base_path = os.path.join(os.path.expanduser('~'), 'DATA', 'Washout_experiment') #keep this aborescence if program used in other computers
 meta_info_directory = os.path.join(base_path, meta_info_directory)
 
@@ -29,6 +29,7 @@ class DataFile_washout:
         self.batches_correct_diffs()
         self.fill_infos(debug=debug)
         self.fill_stim()
+        self.clean_end()
         
 
     #Methods
@@ -152,7 +153,6 @@ class DataFile_washout:
         
     #process info
     
-
     def find_noise(self, rec, bsl_start=52000, bsl_end=58000):
         baseline = rec[bsl_start:bsl_end]
         mean_baseline = np.mean(baseline)
@@ -224,9 +224,10 @@ class DataFile_washout:
             #print("mean last 10 min", np.mean(batches_diffs_m[0:10]))
         return baseline_diffs_m
     
-    def normalize(self, list_m, list_std):
+
+    #utils?
+    def normalize(self, list_m, list_std):   # Normalization by baseline mean (Baseline at 100%)
         baseline_diffs_m = self.find_baseline_diffs_m()
-        # Normalization by baseline mean (Baseline at 100%)
         list_m_norm = (list_m / baseline_diffs_m) * 100  
         list_std_norm = (list_std / baseline_diffs_m) * 100  
         return list_m_norm, list_std_norm
@@ -259,5 +260,30 @@ class DataFile_washout:
         return bsl_m, bsl_std, inf_m, inf_std, wash_m, wash_std
 
 
+    def clean_end(self):
 
-    
+        #print("before ", self.batches_corr_diffs)
+        
+        Ids = self.get_Ids()
+        print("Ids : aaaa ", Ids)
+        print(len(Ids))
+        
+        '''
+        Ids_batches, _ = self.get_batches(self, Ids)
+        print("a")
+        i=0  #min
+        j=0  
+        for Id_i in Ids_batches:
+            if Id_i > 0.8:
+                start = i
+                j+=1
+            i+=1
+
+        print(j)
+        if j>=4:
+            print(f"cell was lost for too long, end was thus erased from min {start} to {len(self.batches_corr_diffs)}")
+            self.batches_corr_diffs = self.batches_corr_diffs[0:start]
+        
+        print("after ", self.batches_corr_diffs)
+        '''
+        return 0
