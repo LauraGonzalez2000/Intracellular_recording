@@ -6,8 +6,8 @@ from scipy.signal import butter, lfilter
 import pandas as pd
 import os
 
-
-meta_info_directory = "Files-test.csv"
+meta_info_directory = "Files-PYR-q.csv"
+#meta_info_directory = "Files-test2.csv"
 base_path = os.path.join(os.path.expanduser('~'), 'DATA', 'Washout_experiment') #keep this aborescence if program used in other computers
 meta_info_directory = os.path.join(base_path, meta_info_directory)
 
@@ -29,7 +29,7 @@ class DataFile_washout:
         self.batches_correct_diffs()
         self.fill_infos(debug=debug)
         self.fill_stim()
-        self.clean_end()
+        #self.clean_end()
         
 
     #Methods
@@ -212,7 +212,7 @@ class DataFile_washout:
         batches_diffs_m, _ = self.get_batches(self.corr_diffs) #noise is substracted
 
         if self.infos['Group'] == 'APV' or self.infos['Group']=='KETA' or self.infos['Group']=='MEMANTINE': 
-            baseline_diffs_m = np.mean(batches_diffs_m[(round(self.infos["Infusion start"])-5):round(self.infos["Infusion start"])]) 
+            baseline_diffs_m = np.mean(batches_diffs_m[(round(float(self.infos["Infusion start"]))-5):round(float(self.infos["Infusion start"]))]) 
             #baseline_diffs_m = np.mean(batches_diffs_m[(int(self.infos["Infusion start"])-5):int(self.infos["Infusion start"])]) 
             #print("took last 5 minutes before infusion. Should always be the case for this protocol when there is infusion")
             #print("mean last 5 min", baseline_diffs_m)

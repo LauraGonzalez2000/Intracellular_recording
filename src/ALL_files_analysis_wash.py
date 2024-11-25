@@ -9,7 +9,8 @@ import pprint
 #keep this aborescence if program used in other computers
 base_path = os.path.join(os.path.expanduser('~'), 'DATA', 'Washout_experiment') 
 base_path_output = os.path.join(os.path.expanduser('~'), 'Output_expe', 'washout', 'Washout_PDFs') 
-directory = "RAW-DATA-WASHOUT-test"
+directory = "RAW-DATA-WASHOUT-PYR-q"
+#directory = "RAW-DATA-WASHOUT-test2"
 files_directory = os.path.join(base_path, directory)
 
 
@@ -35,23 +36,29 @@ def find_nm_files(root_folder):
     return nm_paths
 
 def merge_info(datafile, my_list, list_of_bsl_m, list_of_inf_m, list_of_wash_m):
-
     for key in my_list:
 
         if key=='Ids':
+
             metric_datafile = datafile.get_Ids()
             metric_datafile_m, _ = datafile.get_batches(metric_datafile, batch_size=6)
         elif key=='Leaks':
+            
             metric_datafile = datafile.get_baselines()
             metric_datafile_m, _ = datafile.get_batches(metric_datafile, batch_size=6)
         elif key=='Diffs':
+        
             metric_datafile_m = datafile.batches_corr_diffs       
 
+        #print("metric_datafile_m  ", metric_datafile_m)
         my_list[key]['mean'].append(metric_datafile_m)
 
+        #useless?
+        #print("len my list before", len(my_list[key]['mean']))
         max_length = max(len(array) for array in my_list[key]['mean'])
         for i in range(len(my_list[key]['mean'])):
             my_list[key]['mean'][i] += [float('nan')] * (max_length - len(my_list[key]['mean'][i]))
+        #print("len my list after", len(my_list[key]['mean']))
 
     ############################################################################################
     
@@ -88,18 +95,17 @@ def create_group_pdf(datafiles_group, label, filename, final_dict, final_barplot
             merge_info(datafile, my_list, list_of_bsl_m, list_of_inf_m, list_of_wash_m)
         
         for key in my_list:
-            #print(my_list[key]['mean'])
+            #print("my_list[key]['mean'] ", my_list[key]['mean'])
             metric_datafile_std = np.std(my_list[key]['mean'], axis=0)   #std of the different files's mean for each one of the 50 positions  
             metric_datafile_sem = np.std(my_list[key]['mean'], axis=0)/len(my_list[key]['mean']) #sem of the different files's mean for each one of the 50 positions  
             my_list[key]['std'].append(metric_datafile_std)
             my_list[key]['sem'].append(metric_datafile_sem)
             my_list[key]['mean'] = np.mean(my_list[key]['mean'], axis=0)  #updates the mean!!! #mean of the different files's mean for each one of the 50 positions  
-            #print("metric_datafile_std", my_list[key]['std'])
-            #print("metric_datafile_m", my_list[key]['mean'])
-
-
+            
         if debug : 
-            print("Ids, Leaks, Diffs that are given for the pdf ")
+            #print(" datafiles_group  ", datafiles_group)
+            #print("Ids, Leaks, Diffs that are given for the pdf ")
+            print()
             pprint.pprint(my_list)
         
         ################################################################################
@@ -124,9 +130,14 @@ def create_group_pdf(datafiles_group, label, filename, final_dict, final_barplot
         print(f"Error doing group analysis for {label}: {e}")
  
     #useful for final PDF ##############################################################################
+
     final_dict[label]['mean'] = my_list['Diffs']['mean']
+    print("std", np.std(my_list['Diffs']['mean'], axis=0))
     final_dict[label]['std'] = np.std(my_list['Diffs']['mean'], axis=0)
+    print("sem", np.std(my_list['Diffs']['mean'], axis=0)/len(my_list['Diffs']['mean']))
     final_dict[label]['sem'] = np.std(my_list['Diffs']['mean'], axis=0)/len(my_list['Diffs']['mean'])
+
+
     final_barplot['5-10 min'][label]['mean'] = mean_bsl
     final_barplot['12-17 min'][label]['mean'] = mean_inf
     final_barplot['45-50 min'][label]['mean'] = mean_wash
@@ -193,22 +204,32 @@ if __name__=='__main__':
             print(file)     
             datafile = DataFile_washout(file, debug=False)
             datafiles.append(datafile)
-            if datafile.infos['Group'] == 'control': datafiles_control.append(datafile)
-            elif datafile.infos['Group'] == 'KETA': datafiles_keta.append(datafile)
-            elif datafile.infos['Group'] == 'APV': datafiles_APV.append(datafile)
-            elif datafile.infos['Group'] == 'MEMANTINE': datafiles_memantine.append(datafile)
+            if datafile.infos['Group'] == 'control': 
+                datafiles_control.append(datafile)
+            elif datafile.infos['Group'] == 'KETA':
+                datafiles_keta.append(datafile)
+            elif datafile.infos['Group'] == 'APV': 
+                datafiles_APV.append(datafile)
+            elif datafile.infos['Group'] == 'MEMANTINE': 
+                datafiles_memantine.append(datafile)
 
     
     # PDF creation for each individual file ######################################################################################
-    create_individual_pdf(datafiles, debug=False)
+    debug1 = False
+    create_individual_pdf(datafiles, debug=debug1)
 
-    '''
     #PDF creation for the chosen groups: #########################################################################################
+    debug2 = True
     create_group_pdf(datafiles_keta, "ketamine", "ketamine_merge", final_dict, final_barplot, final_num_files, debug=True)
     create_group_pdf(datafiles_APV, "D-AP5", "D-AP5_merge", final_dict, final_barplot, final_num_files, debug=True)
     create_group_pdf(datafiles_control, "control", "control_merge", final_dict, final_barplot, final_num_files, debug=True)
-    create_group_pdf(datafiles_memantine, "memantine", "memantine_merge", final_dict, final_barplot, final_num_files, debug=True)  
+    create_group_pdf(datafiles_memantine, "memantine", "memantine_merge", final_dict, final_barplot, final_num_files, debug=debug2)  
+
+    if debug2: 
+        print("final dict")
+        pprint.pprint(final_dict)
+        
     
     #PDF creation to compare groups: ##############################################################################################
-    final_results_pdf(final_dict, final_barplot, final_num_files, concentration, colors, GROUPS, debug=False)
-    '''
+    #final_results_pdf(final_dict, final_barplot, final_num_files, concentration, colors, GROUPS, debug=False)
+    
