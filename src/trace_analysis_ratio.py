@@ -313,7 +313,7 @@ class DataFile:
         self.rise_time = rise_time
         self.decay_time = decay_time
 
-        return peak, amp_resp1,amp_resp2, PPR, rise_time, decay_time
+        return peak, amp_resp1, amp_resp2, PPR, rise_time, decay_time
 
     def analyse_pos_peak(self, bis=False):
         

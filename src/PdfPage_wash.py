@@ -8,9 +8,9 @@ from matplotlib.lines import Line2D
 
 class PdfPage:
 
-    def __init__(self, 
+    def __init__(self, PDF_sheet,
                  structure_dict={},
-                 debug=False, final=False):
+                 debug=False):
         
         # figure in A0 format
         if debug:
@@ -24,7 +24,7 @@ class PdfPage:
         # dictionary of axes
         self.AXs = {}
 
-        if final==False:
+        if PDF_sheet == 'individual':
             # build the axes one by one
             Y0, DY = 0.05, 0.18
             self.AXs['Notes'] = self.create_panel([X0, Y0, DX, DY], 'Notes')
@@ -50,7 +50,34 @@ class PdfPage:
             DY = 0.13
             self.AXs['barplot'] = self.create_panel([X0, Y0, 0.4, DY])
 
-        elif final==True:
+        elif PDF_sheet == 'group analysis':
+            # build the axes one by one
+            Y0, DY = 0.05, 0.07
+            self.AXs['Notes'] = self.create_panel([X0, Y0, DX, DY], 'Notes')
+            self.AXs['Notes'].axis('off')
+
+            Y0 += 0.10
+            DY = 0.06
+            self.AXs['Id (nA)'] = self.create_panel([X0, Y0, DX, DY])
+
+            Y0 += 0.10
+            DY = 0.06
+            self.AXs['Leak (nA)'] = self.create_panel([X0, Y0, DX, DY])
+
+            Y0 += 0.10
+            DY = 0.18
+            self.AXs['Difference_peak_baseline'] = self.create_panel([X0, Y0, DX, DY], 'Response')
+
+            Y0 += 0.22
+            DY = 0.18
+            self.AXs['RespAnalyzed'] = self.create_panel([X0, Y0, DX, DY])
+
+            Y0 += 0.22
+            DY = 0.13
+            self.AXs['barplot'] = self.create_panel([X0, Y0, 0.4, DY])
+
+
+        elif PDF_sheet == 'final':
             X0, DX, Y0, DY = 0.12, 0.85, 0.05, 0.18
             self.AXs['RespAnalyzed'] = self.create_panel([X0, Y0, DX, DY])
 
@@ -126,7 +153,7 @@ class PdfPage:
             
             elif key=='Difference_peak_baseline': #plot with noise    
                 batches_m, batches_std = datafile.get_batches(datafile.diffs) #with noise
-                print("values for individual pdf", len(batches_m)) 
+                #print("values for individual pdf", len(batches_m)) 
                 self.AXs[key].plot(batches_m, marker="o", linewidth=0.5, markersize=2, color= colors[datafile.infos['Group']], label='Response')
                 self.AXs[key].errorbar(range(len(batches_m)), batches_m, yerr=batches_std, linestyle='None', marker='_', color=colors[datafile.infos['Group']], capsize=3, linewidth = 0.5)
                 
@@ -175,13 +202,32 @@ class PdfPage:
                 self.AXs[key].axhline(100, color="grey", linestyle="--")
                 self.AXs[key].axhline(0, color="grey", linestyle="--")
 
-            elif key=='barplot':
-                values = datafile.get_values_barplot()  
-                categories = ['Baseline (5 last)', 'Infusion (5 last)', 'Washout (5 last)']
-                means = values[0::2]
-                std_devs = values[1::2]
-                self.AXs[key].bar(categories, means, yerr=std_devs, width=0.4, capsize=5, color=colors[datafile.infos['Group']])
 
+            elif key=='barplot':
+                barplot = datafile.get_barplot()
+                keys = list(barplot.keys())
+                means = [barplot[key]['mean'] for key in keys]
+                sem_values = [barplot[key]['sem'] for key in keys]
+
+                # Create the bar plot
+                self.AXs[key].bar(
+                    keys, means, color=colors[datafile.infos['Group']], yerr=sem_values, capsize=5, alpha=0.8
+                )
+
+                # Add scatter points for individual values
+                for i, key_name in enumerate(keys):
+                    if barplot[key_name]['values'] is not None:
+                        scatter_x = np.full_like(barplot[key_name]['values'], fill_value=i, dtype=float)  # Align with bar index
+                        scatter_x += (np.random.rand(len(scatter_x)) - 0.5) * 0.2  # Add small jitter for clarity
+                        scatter_y = barplot[key_name]['values']
+                        self.AXs[key].scatter(scatter_x, scatter_y, color='black', s=10, alpha=0.7)
+
+                # Customize axes
+                self.AXs[key].set_xticks(range(len(keys)))  # Align xticks with bar positions
+                self.AXs[key].set_xticklabels(keys, rotation=45, ha='right', fontsize=10)
+                self.AXs[key].set_ylabel("Normalized NMDAR-eEPSCs (%)")
+
+            
     def fill_PDF_merge(self, num_files, group, my_list, barplot):
 
         
@@ -209,7 +255,10 @@ class PdfPage:
                 
                 self.AXs[key].set_ylabel("Id (=acces) (nA)")
                 self.AXs[key].set_xlabel("time (min)")
-                self.AXs[key].axvspan(10, 17, color='lightgrey')  #check this 
+                if group=='memantine':
+                    self.AXs[key].axvspan(6, 13, color='lightgrey') 
+                else:
+                    self.AXs[key].axvspan(10, 17, color='lightgrey')
           
 
             elif key=='Leak (nA)':
@@ -233,7 +282,7 @@ class PdfPage:
       
                 self.AXs[key].plot(my_list['Diffs']['mean'], marker="o", linewidth=0.5, markersize=2, color=colors[group])
                 self.AXs[key].errorbar(range(len(my_list['Diffs']['mean'])), my_list['Diffs']['mean'], yerr=my_list['Diffs']['std'], linestyle='None', marker='_', color=colors[group], capsize=3, linewidth = 0.5)
-                print("len for merge plot ", len(my_list['Diffs']['mean']))
+                #print("len for merge plot ", len(my_list['Diffs']['mean']))
                 if len(my_list['Diffs']['mean'])> 50:
                     self.AXs[key].set_xlim(-1, len(my_list['Diffs']['mean']))
                     self.AXs[key].set_xticks(np.arange(0, len(my_list['Diffs']['mean'])+1, 5))
@@ -250,7 +299,7 @@ class PdfPage:
                 baseline_diffs_m = np.mean(my_list['Diffs']['mean'][5:10]) 
                 batches_diffs_m_norm = (my_list['Diffs']['mean'] / baseline_diffs_m) * 100  
                 batches_diffs_std_norm = (my_list['Diffs']['std'] / baseline_diffs_m) * 100  
-                print("values for merge", len(batches_diffs_m_norm ))
+                #print("values for merge", len(batches_diffs_m_norm ))
                 self.AXs[key].plot(batches_diffs_m_norm, marker="o", linewidth=0.5, markersize=2, color=colors[group])
                 self.AXs[key].errorbar(range(len(batches_diffs_m_norm)), batches_diffs_m_norm, yerr=batches_diffs_std_norm, linestyle='None', marker='_', color=colors[group], capsize=3, linewidth = 0.5)
                 if len(batches_diffs_m_norm)> 50:
@@ -267,14 +316,31 @@ class PdfPage:
                 self.AXs[key].axhline(0, color="grey", linestyle="--")
                 self.AXs[key].axvspan(10, 17, color='lightgrey')
              
-            elif key=='barplot':
-      
-                keys   = list(barplot.keys())
-                values = [barplot[key]['mean'] for key in keys]
+
+            elif key == 'barplot':
+                # Extract data
+                keys = list(barplot.keys())
+                means = [barplot[key]['mean'] for key in keys]
                 sem_values = [barplot[key]['sem'] for key in keys]
-                self.AXs[key].bar(keys, values, color=colors[group], yerr=sem_values)
+
+                # Create the bar plot
+                self.AXs[key].bar(
+                    keys, means, color=colors[group], yerr=sem_values, capsize=5, alpha=0.8
+                )
+
+                # Add scatter points for individual values
+                for i, key_name in enumerate(keys):
+                    if barplot[key_name]['values'] is not None:
+                        scatter_x = np.full_like(barplot[key_name]['values'], fill_value=i, dtype=float)  # Align with bar index
+                        scatter_x += (np.random.rand(len(scatter_x)) - 0.5) * 0.2  # Add small jitter for clarity
+                        scatter_y = barplot[key_name]['values']
+                        self.AXs[key].scatter(scatter_x, scatter_y, color='black', s=10, alpha=0.7)
+
+                # Customize axes
+                self.AXs[key].set_xticks(range(len(keys)))  # Align xticks with bar positions
                 self.AXs[key].set_xticklabels(keys, rotation=45, ha='right', fontsize=10)
                 self.AXs[key].set_ylabel("Normalized NMDAR-eEPSCs (%)")
+            
 
     def fill_final_results(self, final_dict, final_barplot, final_num_files, concentration, colors, GROUPS):
         
@@ -286,7 +352,7 @@ class PdfPage:
                     baseline_diffs_m = np.mean(final_dict[group]['mean'][5:10]) 
                     batches_diffs_m_norm = (final_dict[group]['mean'] / baseline_diffs_m) * 100  
                     batches_diffs_std_norm = (final_dict[group]['std'] / baseline_diffs_m) * 100  
-                    batches_diffs_sem_norm = np.abs((final_dict[group]['sem'] / baseline_diffs_m) * 100 ) #batches_diffs_std_norm = np.abs((final_dict_std["ketamine"] / baseline_diffs_m) * 100 ) 
+                    batches_diffs_sem_norm = np.abs((final_dict[group]['sem'] / baseline_diffs_m) * 100 ) 
                     self.AXs[key].plot(batches_diffs_m_norm, marker="o", linewidth=0.5, markersize=2, label = f"{group} , {concentration[group]} , n= {final_num_files[group]}", color = colors[group])
                     self.AXs[key].errorbar(range(len(batches_diffs_m_norm)), batches_diffs_m_norm, yerr=batches_diffs_sem_norm, linestyle='None', marker='_', capsize=3, linewidth = 0.5, color = colors[group])
 
@@ -301,29 +367,40 @@ class PdfPage:
                 #self.AXs[key].legend()
 
             elif key=='barplot':
+
                 time_periods = list(final_barplot.keys())
                 drug_types = list(final_barplot[time_periods[0]].keys())
                 num_times = len(time_periods)
                 num_drugs = len(drug_types)
-                x = np.arange(num_drugs)  # label locations for each drug type
+                x = np.arange(num_drugs)  # label locations for each drug type  #x coordinates of bars
                 width = 0.2  # width of each bar
                 spacing = 0.05
                 group_width = num_times * (width + spacing)
-                time_positions = [i * group_width + j * (width + spacing) for i in range(num_drugs) for j in range(num_times)]
-                time_labels = [time for _ in range(num_drugs) for time in time_periods]
 
-
+                # Iterate through time periods and drug types for bar plot
                 for i, time in enumerate(time_periods):
                     mean_values = [final_barplot[time][drug]['mean'] for drug in drug_types]
                     sem_values = [final_barplot[time][drug]['sem'] for drug in drug_types]
 
                     for j, drug in enumerate(drug_types):
-                        self.AXs[key].bar(x[j] + i * width, mean_values[j], width, yerr=sem_values[j], 
-                        color=colors[drug], label=time if j == 0 else "", capsize=5)
+                        # Plot the bars
+                        self.AXs[key].bar(
+                            x[j] + i * width, mean_values[j], width, yerr=sem_values[j], 
+                            color=colors[drug], label=time if j == 0 else "", capsize=5
+                        )
 
+                        # Overlay scatter points for individual values
+                        if final_barplot[time][drug]['values'] is not None:
+                            # Scatter points for individual values
+                            scatter_x = np.full_like(final_barplot[time][drug]['values'], fill_value=x[j] + i * width, dtype=float)
+                            scatter_x += (np.random.rand(len(scatter_x)) - 0.5) * width * 0.5  # Add small jitter
+                            scatter_y = final_barplot[time][drug]['values']
+                            self.AXs[key].scatter(scatter_x, scatter_y, color='black', s=10, alpha=0.7)
+
+                # Set labels and legend
                 self.AXs[key].set_ylabel("Normalized NMDAR-eEPSCs (%)")
-                self.AXs[key].set_xticks(time_positions)
-                self.AXs[key].set_xticklabels(time_labels, rotation=45)
+                self.AXs[key].set_xticks([x_val + (group_width - spacing) / 2 for x_val in x])  # Center xticks under groups
+                self.AXs[key].set_xticklabels(drug_types, rotation=45)
                 legend_elements = [Line2D([0], [0], color=color, lw=4, label=drug) for drug, color in colors.items()]
                 self.AXs[key].legend(handles=legend_elements, title="Drug Groups")
 
@@ -334,7 +411,7 @@ if __name__=='__main__':
     example = os.path.join(base_path, 'RAW-DATA-WASHOUT-PYR', 'nm17Jul2024c0', 'nm17Jul2024c0_000.pxp')
     datafile = DataFile_washout(example)
     print(datafile.filename)
-    page = PdfPage()
+    page = PdfPage(PDF_sheet='individual', debug=False)
     page.fill_PDF(datafile)
     plt.savefig(f'C:/Users/laura.gonzalez/DATA/PDFs/{datafile.filename}.pdf')
     plt.show()

@@ -6,7 +6,7 @@ from scipy.signal import butter, lfilter
 import pandas as pd
 import os
 
-meta_info_directory = "Files-PYR-q.csv"
+meta_info_directory = "Files-PYR.csv"
 #meta_info_directory = "Files-test2.csv"
 base_path = os.path.join(os.path.expanduser('~'), 'DATA', 'Washout_experiment') #keep this aborescence if program used in other computers
 meta_info_directory = os.path.join(base_path, meta_info_directory)
@@ -236,28 +236,34 @@ class DataFile_washout:
         batches_c_diffs_mean,  batches_c_diffs_std  = self.get_batches(self.corr_diffs)
         norm_batches_corr_diffs, _ = self.normalize(batches_c_diffs_mean,  batches_c_diffs_std)
         try:
-            subset1 = norm_batches_corr_diffs[round(self.infos["Infusion start"])-5 : round(self.infos["Infusion start"])]
-            subset2 = norm_batches_corr_diffs[round(self.infos["Infusion end"])-5   : round(self.infos["Infusion end"])]
+            #tesssst!
+            subset1 = norm_batches_corr_diffs[round(self.infos["Infusion start"])-4 : round(self.infos["Infusion start"])+1]
+            subset2 = norm_batches_corr_diffs[round(self.infos["Infusion end"])-2   : round(self.infos["Infusion end"])+2]
             subset3 = norm_batches_corr_diffs[round(len(self.recordings)/6)-5       : round(len(self.recordings)/6)]
             #subset1 = norm_batches_corr_diffs[int(self.infos["Infusion start"])-5: int(self.infos["Infusion start"])]
             #subset2 = norm_batches_corr_diffs[int(self.infos["Infusion end"])-5: int(self.infos["Infusion end"])]
             #subset3 = norm_batches_corr_diffs[int(len(self.recordings)/6)-5:int(len(self.recordings)/6)]
         except:
-            subset1 = norm_batches_corr_diffs[5:10]
-            subset2 = norm_batches_corr_diffs[12:17]
-            subset3 = norm_batches_corr_diffs[45:50]
-            #print("subsets 5-10_10-17_45-50")
+            if self.infos['Group']=='memantine':
+                subset1 = norm_batches_corr_diffs[2:7]
+                subset2 = norm_batches_corr_diffs[11:15]
+                subset3 = norm_batches_corr_diffs[round(len(self.recordings)/6)-5       : round(len(self.recordings)/6)]
+                print("subsets 5-10_10-17_end-5-end")
+
+            else: 
+                subset1 = norm_batches_corr_diffs[5:10]
+                subset2 = norm_batches_corr_diffs[12:17]
+                subset3 = norm_batches_corr_diffs[45:50]
+                print("subsets 5-10_10-17_45-50")
         return subset1, subset2, subset3
 
-    def get_values_barplot(self):
+
+    def get_barplot(self):
         subset1, subset2, subset3 = self.get_subsets()
-        bsl_m = np.mean(subset1)
-        bsl_std = np.std(subset1)
-        inf_m = np.mean(subset2)
-        inf_std = np.std(subset2)
-        wash_m = np.mean(subset3)
-        wash_std = np.std(subset3)
-        return bsl_m, bsl_std, inf_m, inf_std, wash_m, wash_std
+        barplot = {'End baseline' : {'values': subset1,  'mean' : np.mean(subset1), 'sem': np.std(subset1)/np.sqrt(len(subset1)),  'std': np.std(subset1)},
+                   'End infusion' : {'values': subset2,  'mean' : np.mean(subset2), 'sem': np.std(subset2)/np.sqrt(len(subset2)),  'std': np.std(subset2)},
+                   'End wash'     : {'values': subset3,  'mean' : np.mean(subset3), 'sem': np.std(subset3)/np.sqrt(len(subset3)),  'std': np.std(subset3)}}
+        return barplot
 
 
     def clean_end(self):
@@ -268,26 +274,8 @@ class DataFile_washout:
         print("Ids : aaaa ", Ids)
         print(len(Ids))
 
-        
         Ids_batches, _ = self.get_batches(self, Ids)
         print("Ids batches : ", Ids_batches)
         print(len(Ids_batches))
 
-        '''
-        print("a")
-        i=0  #min
-        j=0  
-        for Id_i in Ids_batches:
-            if Id_i > 0.8:
-                start = i
-                j+=1
-            i+=1
-
-        print(j)
-        if j>=4:
-            print(f"cell was lost for too long, end was thus erased from min {start} to {len(self.batches_corr_diffs)}")
-            self.batches_corr_diffs = self.batches_corr_diffs[0:start]
-        
-        print("after ", self.batches_corr_diffs)
-        '''
         return 0
