@@ -180,7 +180,9 @@ class PdfPage:
                     print("no infusion")
 
             elif key=='RespAnalyzed':
-                batches_diffs_m, batches_diffs_std = datafile.batches_correct_diffs() #noise is substracted
+                #batches_diffs_m, batches_diffs_std = datafile.batches_correct_diffs() #noise is substracted
+                
+                batches_diffs_m, batches_diffs_std = datafile.batches_corr_diffs, np.std(datafile.batches_corr_diffs)
                 batches_diffs_m_norm, batches_diffs_std_norm =  datafile.normalize(batches_diffs_m, batches_diffs_std)
                 #print("test if 100 : ",np.mean(batches_diffs_m_norm[0:10]))
                 #print("test if 100 : ",np.mean(batches_diffs_m_norm[5:10]))
@@ -227,7 +229,6 @@ class PdfPage:
                 self.AXs[key].set_xticklabels(keys, rotation=45, ha='right', fontsize=10)
                 self.AXs[key].set_ylabel("Normalized NMDAR-eEPSCs (%)")
 
-            
     def fill_PDF_merge(self, num_files, group, my_list, barplot):
 
         
@@ -341,7 +342,6 @@ class PdfPage:
                 self.AXs[key].set_xticklabels(keys, rotation=45, ha='right', fontsize=10)
                 self.AXs[key].set_ylabel("Normalized NMDAR-eEPSCs (%)")
             
-
     def fill_final_results(self, final_dict, final_barplot, final_num_files, concentration, colors, GROUPS):
         
         for key in self.AXs:

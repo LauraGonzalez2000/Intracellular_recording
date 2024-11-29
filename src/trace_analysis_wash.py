@@ -6,8 +6,8 @@ from scipy.signal import butter, lfilter
 import pandas as pd
 import os
 
+#meta_info_directory = "Files-PYR.csv"
 meta_info_directory = "Files-PYR.csv"
-#meta_info_directory = "Files-test2.csv"
 base_path = os.path.join(os.path.expanduser('~'), 'DATA', 'Washout_experiment') #keep this aborescence if program used in other computers
 meta_info_directory = os.path.join(base_path, meta_info_directory)
 
@@ -29,7 +29,7 @@ class DataFile_washout:
         self.batches_correct_diffs()
         self.fill_infos(debug=debug)
         self.fill_stim()
-        #self.clean_end()
+        self.clean_end(debug=debug)
         
 
     #Methods
@@ -194,8 +194,8 @@ class DataFile_washout:
     
     def get_Ids(self):
         Ids = []
-        for recording in self.recordings_f:
-            baseline = recording[12000:19000]
+        for recording in self.recordings:  #calculate the Ids (access) without filtering!
+            baseline = recording[0:5000]
             max = np.max(recording[19500:20500])
             Ids.append(max-baseline)
         return Ids
@@ -266,16 +266,83 @@ class DataFile_washout:
         return barplot
 
 
-    def clean_end(self):
+    def clean_end(self, debug=False):
 
-        #print("before ", self.batches_corr_diffs)
-        
+        erase1, erase2 = False, False
         Ids = self.get_Ids()
-        print("Ids : aaaa ", Ids)
-        print(len(Ids))
+        Ids_batches, _ = self.get_batches(Ids)
 
-        Ids_batches, _ = self.get_batches(self, Ids)
-        print("Ids batches : ", Ids_batches)
-        print(len(Ids_batches))
+        min = 0
+        problem1 = 0
+        start_pb1 = 0
+        
+        for Id in Ids_batches: 
+            if Id < 0.29:
+                
+                if problem1==0: 
+                    start_pb1 = min
+                print(f'cell closed at min {min}')
+                problem1 +=1
+                
+            min +=1
+
+        if debug: 
+            print("Ids batches : ", Ids_batches)
+            print("len Ids batches: ", len(Ids_batches))
+            print("problem1", problem1)
+            print("start pb1", start_pb1)
+
+        if problem1 > 15 :
+            print(f'cell closed for {problem1} min -> end recording should be erased since min {start_pb1}')
+            erase1 = True
+
+        ########################################
+
+        leaks = self.get_baselines()
+        leaks_batches, _ = self.get_batches(leaks)
+        min = 0
+        problem2 = 0
+        start_pb2 = 0
+        for leak in leaks_batches:
+            if leak < -1:
+                if problem2==0: 
+                    start_pb2 = min
+                print(f'Leak is too big at min {min}')
+                problem2 +=1
+                
+            min +=1
+
+        if debug: 
+            print("leak batches : ", leaks_batches)
+            print("len leak batches: ", len(leaks_batches))
+            print("problem2", problem2)
+            print("start pb2", start_pb2)
+
+        if problem2 > 3 and start_pb2 > len(leaks_batches) - 10 :
+            print(f'cell died for {problem2} min -> end recording should be erased since min {start_pb2}')
+            erase2 = True
+
+
+        ######################## cleaning end #######################
+
+        if erase1 or erase2: 
+        
+            if erase1 and not erase2: 
+                min_cutoff = start_pb1
+            
+            if erase2 and not erase1:
+                min_cutoff = start_pb2
+
+            if erase1 and erase2 :
+                print(start_pb1, start_pb2)
+                min_cutoff = np.min(start_pb1, start_pb2)
+                print(self.batches_corr_diffs)
+                print(len(self.batches_corr_diffs))
+
+            print(len(self.batches_corr_diffs))
+            #self.batches_corr_diffs = self.batches_corr_diffs[0:min_cutoff]
+            #self.batches_corr_diffs[min_cutoff:] = np.nan
+            self.batches_corr_diffs = [val if idx < min_cutoff else float('nan') for idx, val in enumerate(self.batches_corr_diffs)]
+            print(len(self.batches_corr_diffs))
 
         return 0

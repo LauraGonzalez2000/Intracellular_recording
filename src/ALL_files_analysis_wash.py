@@ -9,8 +9,8 @@ import pprint
 #keep this aborescence if program used in other computers
 base_path = os.path.join(os.path.expanduser('~'), 'DATA', 'Washout_experiment') 
 base_path_output = os.path.join(os.path.expanduser('~'), 'Output_expe', 'washout', 'Washout_PDFs') 
+#directory = "RAW-DATA-WASHOUT-PYR"
 directory = "RAW-DATA-WASHOUT-PYR"
-#directory = "RAW-DATA-WASHOUT-test2"
 files_directory = os.path.join(base_path, directory)
 
 
@@ -50,7 +50,7 @@ def merge_info(datafile, my_list, list_of_bsl_m, list_of_inf_m, list_of_wash_m):
         
             metric_datafile_m = datafile.batches_corr_diffs       
 
-        #print("metric_datafile_m  ", metric_datafile_m)
+        print("metric_datafile_m  ", metric_datafile_m)
         my_list[key]['mean'].append(metric_datafile_m)
 
 
@@ -168,7 +168,7 @@ def create_group_pdf(datafiles_group, label, filename, final_dict, final_barplot
     
     return 0
 
-def final_results_pdf(final_dict, final_barplot, final_num_files, concentration, colors, GROUPS, debug=False):
+def create_final_results_pdf(final_dict, final_barplot, final_num_files, concentration, colors, GROUPS, debug=False):
     pdf = PdfPage(PDF_sheet = 'final', debug=debug )
     pdf.fill_final_results(final_dict, final_barplot, final_num_files, concentration, colors, GROUPS)
     plt.savefig(f'C:/Users/laura.gonzalez/Output_expe/washout/Washout_PDFs/final_results.pdf') #PC #plt.savefig(f'C:/Users/LauraGonzalez/Output_expe/Washout_PDFs/final_results.pdf') #in laptop
@@ -217,10 +217,15 @@ if __name__=='__main__':
     
     files = find_nm_files(files_directory)
     datafiles, datafiles_keta, datafiles_APV, datafiles_control, datafiles_memantine = [], [], [], [], []   #make only 1 dict?
+    
+    # PDF creation for each individual file ######################################################################################
+    debug1 = True
+
     for file in files:
             print(file)     
-            datafile = DataFile_washout(file, debug=False)
+            datafile = DataFile_washout(file, debug=debug1)
             datafiles.append(datafile)
+            
             if datafile.infos['Group'] == 'control': 
                 datafiles_control.append(datafile)
             elif datafile.infos['Group'] == 'KETA':
@@ -229,28 +234,42 @@ if __name__=='__main__':
                 datafiles_APV.append(datafile)
             elif datafile.infos['Group'] == 'MEMANTINE': 
                 datafiles_memantine.append(datafile)
+            
 
-    
-    # PDF creation for each individual file ######################################################################################
-    debug1 = False
     create_individual_pdf(datafiles, debug=debug1)
 
+    
     #PDF creation for the chosen groups: #########################################################################################
-    debug2 = False
+    debug2 = True
+
+    if debug2: 
+        print("Debug for group analysis")
+        print("final dict : ")
+        pprint.pprint(final_dict)
+        print("datafiles keta : ")
+        print(datafiles_keta)
+        print("datafiles control : ")
+        print(datafiles_control)
+        print("datafiles AP5 : ")
+        print(datafiles_APV)
+        print("datafiles memantine : ")
+        print(datafiles_memantine)
+
+
     create_group_pdf(datafiles_keta, "ketamine", "ketamine_merge", final_dict, final_barplot, final_num_files, debug=debug2)
     create_group_pdf(datafiles_APV, "D-AP5", "D-AP5_merge", final_dict, final_barplot, final_num_files, debug=debug2)
     create_group_pdf(datafiles_control, "control", "control_merge", final_dict, final_barplot, final_num_files, debug=debug2)
     create_group_pdf(datafiles_memantine, "memantine", "memantine_merge", final_dict, final_barplot, final_num_files, debug=debug2)  
 
-    if debug2: 
-        print("final dict")
-        pprint.pprint(final_dict)
         
     #PDF creation to compare groups: ##############################################################################################
     debug3 = False
-    
-    final_results_pdf(final_dict, final_barplot, final_num_files, concentration, colors, GROUPS, debug=debug3)
 
     if debug3: 
+        print("Debug for final PDF")
         print("final barplot")
         print(final_barplot)
+    
+    create_final_results_pdf(final_dict, final_barplot, final_num_files, concentration, colors, GROUPS, debug=debug3)
+    
+    
