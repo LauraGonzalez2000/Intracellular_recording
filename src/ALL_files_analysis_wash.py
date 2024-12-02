@@ -7,7 +7,7 @@ import numpy as np
 import pprint
 
 #keep this aborescence if program used in other computers
-base_path = os.path.join(os.path.expanduser('~'), 'DATA', 'Washout_experiment') 
+base_path = os.path.join(os.path.expanduser('~'), 'DATA','In_Vitro_experiments', 'Washout_experiment') 
 base_path_output = os.path.join(os.path.expanduser('~'), 'Output_expe', 'washout', 'Washout_PDFs') 
 #directory = "RAW-DATA-WASHOUT-PYR"
 directory = "RAW-DATA-WASHOUT-PYR"
