@@ -29,7 +29,7 @@ class DataFile_washout:
         self.batches_correct_diffs()
         self.fill_infos(debug=debug)
         self.fill_stim()
-        self.clean_end(debug=debug)
+        #self.clean_end(debug=debug)
         
 
     #Methods
@@ -212,7 +212,8 @@ class DataFile_washout:
         batches_diffs_m, _ = self.get_batches(self.corr_diffs) #noise is substracted
 
         if self.infos['Group'] == 'APV' or self.infos['Group']=='KETA' or self.infos['Group']=='MEMANTINE': 
-            baseline_diffs_m = np.mean(batches_diffs_m[(round(float(self.infos["Infusion start"]))-5):round(float(self.infos["Infusion start"]))]) 
+            baseline_diffs_m = np.mean(batches_diffs_m[(round(float(self.infos["Infusion start"]))-4):round(float(self.infos["Infusion start"]))+1])
+            print("baseline_diffs_m ", baseline_diffs_m) 
             #baseline_diffs_m = np.mean(batches_diffs_m[(int(self.infos["Infusion start"])-5):int(self.infos["Infusion start"])]) 
             #print("took last 5 minutes before infusion. Should always be the case for this protocol when there is infusion")
             #print("mean last 5 min", baseline_diffs_m)
@@ -232,14 +233,17 @@ class DataFile_washout:
         list_std_norm = (list_std / baseline_diffs_m) * 100  
         return list_m_norm, list_std_norm
 
-    def get_subsets(self):
+    def get_subsets(self, wash='all'):
         batches_c_diffs_mean,  batches_c_diffs_std  = self.get_batches(self.corr_diffs)
         norm_batches_corr_diffs, _ = self.normalize(batches_c_diffs_mean,  batches_c_diffs_std)
         try:
-            #tesssst!
             subset1 = norm_batches_corr_diffs[round(self.infos["Infusion start"])-4 : round(self.infos["Infusion start"])+1]
             subset2 = norm_batches_corr_diffs[round(self.infos["Infusion end"])-2   : round(self.infos["Infusion end"])+2]
-            subset3 = norm_batches_corr_diffs[round(len(self.recordings)/6)-5       : round(len(self.recordings)/6)]
+            if wash=='all':
+                subset3 = norm_batches_corr_diffs[round(len(self.recordings)/6)-5       : round(len(self.recordings)/6)]
+            elif wash=='50 min':
+                subset3 = norm_batches_corr_diffs[46-5:46]
+                
             #subset1 = norm_batches_corr_diffs[int(self.infos["Infusion start"])-5: int(self.infos["Infusion start"])]
             #subset2 = norm_batches_corr_diffs[int(self.infos["Infusion end"])-5: int(self.infos["Infusion end"])]
             #subset3 = norm_batches_corr_diffs[int(len(self.recordings)/6)-5:int(len(self.recordings)/6)]
@@ -258,8 +262,8 @@ class DataFile_washout:
         return subset1, subset2, subset3
 
 
-    def get_barplot(self):
-        subset1, subset2, subset3 = self.get_subsets()
+    def get_barplot(self, wash='all'):
+        subset1, subset2, subset3 = self.get_subsets(wash)
         barplot = {'End baseline' : {'values': subset1,  'mean' : np.mean(subset1), 'sem': np.std(subset1)/np.sqrt(len(subset1)),  'std': np.std(subset1)},
                    'End infusion' : {'values': subset2,  'mean' : np.mean(subset2), 'sem': np.std(subset2)/np.sqrt(len(subset2)),  'std': np.std(subset2)},
                    'End wash'     : {'values': subset3,  'mean' : np.mean(subset3), 'sem': np.std(subset3)/np.sqrt(len(subset3)),  'std': np.std(subset3)}}

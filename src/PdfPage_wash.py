@@ -26,7 +26,7 @@ class PdfPage:
 
         if PDF_sheet == 'individual':
             # build the axes one by one
-            Y0, DY = 0.05, 0.18
+            Y0, DY = 0.05, 0.13
             self.AXs['Notes'] = self.create_panel([X0, Y0, DX, DY], 'Notes')
             self.AXs['Notes'].axis('off')
 
@@ -56,7 +56,7 @@ class PdfPage:
             self.AXs['Notes'] = self.create_panel([X0, Y0, DX, DY], 'Notes')
             self.AXs['Notes'].axis('off')
 
-            Y0 += 0.10
+            Y0 += 0.08
             DY = 0.06
             self.AXs['Id (nA)'] = self.create_panel([X0, Y0, DX, DY])
 
@@ -78,12 +78,16 @@ class PdfPage:
 
 
         elif PDF_sheet == 'final':
-            X0, DX, Y0, DY = 0.12, 0.85, 0.05, 0.18
-            self.AXs['RespAnalyzed'] = self.create_panel([X0, Y0, DX, DY])
+            X0, DX, Y0, DY = 0.12, 0.85, 0.05, 0.25
+            self.AXs['RespAnalyzed'] = self.create_panel([X0, Y0, DX, DY], 'Response')
 
             Y0 += 0.32
-            DY = 0.20
-            self.AXs['barplot'] = self.create_panel([X0, Y0, 0.6, DY])
+            DY = 0.25
+            self.AXs['barplot'] = self.create_panel([X0, Y0, 0.85, DY], 'Barplot 33 min wash')
+
+            Y0 += 0.32
+            DY = 0.25
+            self.AXs['barplot2'] = self.create_panel([X0, Y0, 0.50, DY], 'Barplot memantine 33 min vs 50 min wash')
 
     def create_panel(self, coords, title=None):
         """ 
@@ -98,14 +102,14 @@ class PdfPage:
             ax.set_title(title, loc='left', pad=2, fontsize=10)
         return ax
 
-    def fill_PDF(self, datafile, debug=False): 
+    def fill_PDF(self, datafile, wash= 'all', debug=False): 
 
         colors = {'KETA': 'purple', 'APV': 'orange', 'control': 'grey', 'MEMANTINE': 'gold'}
 
         for key in self.AXs:
            
             if key=='Notes': ##includes metadata           
-                txt = f"ID file data: {datafile.filename}\nNumber of sweeps: {len(datafile.recordings)}\nID file excel: {datafile.infos['File']}\nEuthanize method: {datafile.infos['Euthanize method']}\nHolding:{datafile.infos['Holding (mV)']}\nInfusion:{datafile.infos['Infusion substance']}\nInfusion concentration:{datafile.infos['Infusion concentration']}\nInfusion start:{datafile.infos['Infusion start']}\nInfusion end:{datafile.infos['Infusion end']}\n"
+                txt = f"ID file data: {datafile.filename}\nNumber of sweeps: {len(datafile.recordings)}\nEuthanize method: {datafile.infos['Euthanize method']}\nHolding:{datafile.infos['Holding (mV)']}\nInfusion:{datafile.infos['Infusion substance']}\nInfusion concentration:{datafile.infos['Infusion concentration']}\nInfusion start:{datafile.infos['Infusion start']}\nInfusion end:{datafile.infos['Infusion end']}\n"
                 self.AXs[key].annotate(txt,(0, 1), va='top', xycoords='axes fraction')
               
             elif key=='Id (nA)':  
@@ -122,7 +126,7 @@ class PdfPage:
                     self.AXs[key].set_xlim(-1, 50 )
                     self.AXs[key].set_xticks(np.arange(0, 51, 5))
 
-                self.AXs[key].set_ylabel("Id (=acces) (nA)")
+                self.AXs[key].set_ylabel("Acces (nA)")
                 self.AXs[key].set_xlabel("time (min)")
                 
                 try:
@@ -143,7 +147,7 @@ class PdfPage:
                     self.AXs[key].set_xlim(-1, 50 )
                     self.AXs[key].set_xticks(np.arange(0, 51, 5))
 
-                self.AXs[key].set_ylabel("Baseline (=leak) (nA)")
+                self.AXs[key].set_ylabel("Leak (nA)")
                 self.AXs[key].set_xlabel("time (min)")
                 
                 try:
@@ -204,9 +208,8 @@ class PdfPage:
                 self.AXs[key].axhline(100, color="grey", linestyle="--")
                 self.AXs[key].axhline(0, color="grey", linestyle="--")
 
-
             elif key=='barplot':
-                barplot = datafile.get_barplot()
+                barplot = datafile.get_barplot(wash='all')
                 keys = list(barplot.keys())
                 means = [barplot[key]['mean'] for key in keys]
                 sem_values = [barplot[key]['sem'] for key in keys]
@@ -236,7 +239,6 @@ class PdfPage:
 
         for key in self.AXs:
             if key =='Notes':
-    
                 txt = f"Group: {group}\nNumber of cells: {str(num_files)}"
                 self.AXs[key].annotate(txt,(0, 1), va='top', xycoords='axes fraction')
             
@@ -254,11 +256,12 @@ class PdfPage:
                     self.AXs[key].set_xticks(np.arange(0, 51, 5))
 
                 
-                self.AXs[key].set_ylabel("Id (=acces) (nA)")
+                self.AXs[key].set_ylabel("Acces (nA)")
                 self.AXs[key].set_xlabel("time (min)")
+
                 if group=='memantine':
                     self.AXs[key].axvspan(6, 13, color='lightgrey') 
-                else:
+                elif group=='ketamine' or group=='D-AP5':
                     self.AXs[key].axvspan(10, 17, color='lightgrey')
           
 
@@ -274,9 +277,15 @@ class PdfPage:
                     self.AXs[key].set_xlim(-1, 50)
                     self.AXs[key].set_xticks(np.arange(0, 51, 5))
      
-                self.AXs[key].set_ylabel("Baseline (=leak) (nA)")
+                self.AXs[key].set_ylabel("Leak (nA)")
                 self.AXs[key].set_xlabel("time (min)")
-                self.AXs[key].axvspan(10, 17, color='lightgrey')
+
+                if group=='memantine':
+                    self.AXs[key].axvspan(6, 13, color='lightgrey') 
+                elif group=='ketamine' or group=='D-AP5':
+                    self.AXs[key].axvspan(10, 17, color='lightgrey')
+
+                #self.AXs[key].axvspan(10, 17, color='lightgrey')
     
             
             elif key=='Difference_peak_baseline':
@@ -291,13 +300,20 @@ class PdfPage:
                     self.AXs[key].set_xlim(-1, 50)
                     self.AXs[key].set_xticks(np.arange(0, 51, 5))
                 
-                self.AXs[key].set_ylabel("Difference_peak_baseline (nA)")
+                self.AXs[key].set_ylabel("Difference Peak-baseline (nA)")
                 self.AXs[key].set_xlabel("time (min)")
-                self.AXs[key].axvspan(10, 17, color='lightgrey')
+                self.AXs[key].axhline(0, color="grey", linestyle="--")
+
+                if group=='memantine':
+                    self.AXs[key].axvspan(6, 13, color='lightgrey') 
+                elif group=='ketamine' or group=='D-AP5':
+                    self.AXs[key].axvspan(10, 17, color='lightgrey')
+
+                #self.AXs[key].axvspan(10, 17, color='lightgrey')
 
             elif key=='RespAnalyzed':  # Normalization by baseline mean (Baseline at 100%)
  
-                baseline_diffs_m = np.mean(my_list['Diffs']['mean'][5:10]) 
+                baseline_diffs_m = np.mean(my_list['Diffs']['mean'][6:11]) 
                 batches_diffs_m_norm = (my_list['Diffs']['mean'] / baseline_diffs_m) * 100  
                 batches_diffs_std_norm = (my_list['Diffs']['std'] / baseline_diffs_m) * 100  
                 #print("values for merge", len(batches_diffs_m_norm ))
@@ -315,7 +331,13 @@ class PdfPage:
                 self.AXs[key].set_xlabel("time (min)")
                 self.AXs[key].axhline(100, color="grey", linestyle="--")
                 self.AXs[key].axhline(0, color="grey", linestyle="--")
-                self.AXs[key].axvspan(10, 17, color='lightgrey')
+
+                if group=='memantine':
+                    self.AXs[key].axvspan(6, 13, color='lightgrey') 
+                elif group=='ketamine' or group=='D-AP5':
+                    self.AXs[key].axvspan(10, 17, color='lightgrey')
+
+                #self.AXs[key].axvspan(10, 17, color='lightgrey')
              
 
             elif key == 'barplot':
@@ -342,25 +364,25 @@ class PdfPage:
                 self.AXs[key].set_xticklabels(keys, rotation=45, ha='right', fontsize=10)
                 self.AXs[key].set_ylabel("Normalized NMDAR-eEPSCs (%)")
             
-    def fill_final_results(self, final_dict, final_barplot, final_num_files, concentration, colors, GROUPS):
+    def fill_final_results(self, final_dict, final_barplot, final_num_files, concentration, colors, GROUPS, final_barplot2):
         
         for key in self.AXs:
             
             if key=='RespAnalyzed':  # Normalization by baseline mean (Baseline at 100%)  #why std negative?
 
                 for group in GROUPS:
-                    baseline_diffs_m = np.mean(final_dict[group]['mean'][5:10]) 
-                    batches_diffs_m_norm = (final_dict[group]['mean'] / baseline_diffs_m) * 100  
-                    batches_diffs_std_norm = (final_dict[group]['std'] / baseline_diffs_m) * 100  
-                    batches_diffs_sem_norm = np.abs((final_dict[group]['sem'] / baseline_diffs_m) * 100 ) 
+                    baseline_diffs_m = np.mean(final_dict[group]['mean'][6:11]) 
+                    batches_diffs_m_norm   = (final_dict[group]['mean'] / baseline_diffs_m) * 100  
+                    batches_diffs_std_norm = (final_dict[group]['std']  / baseline_diffs_m) * 100  
+                    batches_diffs_sem_norm = (final_dict[group]['sem']  / baseline_diffs_m) * 100 
                     self.AXs[key].plot(batches_diffs_m_norm, marker="o", linewidth=0.5, markersize=2, label = f"{group} , {concentration[group]} , n= {final_num_files[group]}", color = colors[group])
                     self.AXs[key].errorbar(range(len(batches_diffs_m_norm)), batches_diffs_m_norm, yerr=batches_diffs_sem_norm, linestyle='None', marker='_', capsize=3, linewidth = 0.5, color = colors[group])
 
-                self.AXs[key].set_xlim(-1, 50 )
+                self.AXs[key].set_xlim(-1, 63 )
                 #self.AXs[key].set_ylim( -10, 170)
                 self.AXs[key].set_ylabel("Normalized NMDAR-eEPSCs (%)")
                 self.AXs[key].set_xlabel("time (min)")
-                self.AXs[key].set_xticks(np.arange(0, 51, 5))
+                self.AXs[key].set_xticks(np.arange(0, 63, 5))
                 self.AXs[key].axhline(100, color="grey", linestyle="--")
                 self.AXs[key].axhline(0, color="grey", linestyle="--")
                 self.AXs[key].axvspan(10, 17, color='lightgrey')
@@ -404,6 +426,34 @@ class PdfPage:
                 legend_elements = [Line2D([0], [0], color=color, lw=4, label=drug) for drug, color in colors.items()]
                 self.AXs[key].legend(handles=legend_elements, title="Drug Groups")
 
+            
+            elif key=='barplot2':
+                barplot = final_barplot2
+                print("final barplot 2 : ",barplot)
+                keys = list(barplot.keys())
+                means = [barplot[key]['mean'] for key in keys]
+                sem_values = [barplot[key]['sem'] for key in keys]
+
+                # Create the bar plot
+                self.AXs[key].bar(
+                    keys, means, color=colors['memantine'], yerr=sem_values, capsize=5, alpha=0.8
+                )
+
+                # Add scatter points for individual values
+                for i, key_name in enumerate(keys):
+                    if barplot[key_name]['values'] is not None:
+                        scatter_x = np.full_like(barplot[key_name]['values'], fill_value=i, dtype=float)  # Align with bar index
+                        scatter_x += (np.random.rand(len(scatter_x)) - 0.5) * 0.2  # Add small jitter for clarity
+                        scatter_y = barplot[key_name]['values']
+                        self.AXs[key].scatter(scatter_x, scatter_y, color='black', s=10, alpha=0.7)
+
+                # Customize axes
+                self.AXs[key].set_xticks(range(len(keys)))  # Align xticks with bar positions
+                self.AXs[key].set_xticklabels(keys, rotation=45, ha='right', fontsize=10)
+                self.AXs[key].set_ylabel("Normalized NMDAR-eEPSCs (%)")
+
+               
+            
         return 0
 
 if __name__=='__main__':
