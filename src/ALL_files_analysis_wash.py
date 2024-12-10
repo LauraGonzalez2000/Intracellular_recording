@@ -125,13 +125,14 @@ def create_group_pdf(datafiles_group, label, filename, final_dict, final_barplot
         print("list of bsl m ", list_of_bsl_m)
 
         for key in my_list:
-            print("my_list[key]['mean'] ", my_list[key]['mean'])
+            print("my_list[key]['mean'] before", my_list[key]['mean'])
             metric_datafile_std = np.std(my_list[key]['mean'], axis=0)   #std of the different files's mean for each one of the 50 positions  
             metric_datafile_sem = np.std(my_list[key]['mean'], axis=0)/np.sqrt(len(my_list[key]['mean'])) #sem of the different files's mean for each one of the 50 positions  
             my_list[key]['std'].append(metric_datafile_std)
             my_list[key]['sem'].append(metric_datafile_sem)
             my_list[key]['mean'] = np.mean(my_list[key]['mean'], axis=0)  #updates the mean!!! #mean of the different files's mean for each one of the 50 positions  
-            
+            print("my_list[key]['mean'] after", my_list[key]['mean'])
+
         if debug : 
             #print(" datafiles_group  ", datafiles_group)
             #print("Ids, Leaks, Diffs that are given for the pdf ")

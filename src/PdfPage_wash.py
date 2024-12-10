@@ -263,7 +263,7 @@ class PdfPage:
                     self.AXs[key].axvspan(6, 13, color='lightgrey') 
                 elif group=='ketamine' or group=='D-AP5':
                     self.AXs[key].axvspan(10, 17, color='lightgrey')
-          
+                self.AXs[key].axvline(50, color="grey", linestyle="-")
 
             elif key=='Leak (nA)':
         
@@ -286,6 +286,7 @@ class PdfPage:
                     self.AXs[key].axvspan(10, 17, color='lightgrey')
 
                 #self.AXs[key].axvspan(10, 17, color='lightgrey')
+                self.AXs[key].axvline(50, color="grey", linestyle="-")
     
             
             elif key=='Difference_peak_baseline':
@@ -308,12 +309,14 @@ class PdfPage:
                     self.AXs[key].axvspan(6, 13, color='lightgrey') 
                 elif group=='ketamine' or group=='D-AP5':
                     self.AXs[key].axvspan(10, 17, color='lightgrey')
-
+                self.AXs[key].axvline(50, color="grey", linestyle="-")
                 #self.AXs[key].axvspan(10, 17, color='lightgrey')
 
             elif key=='RespAnalyzed':  # Normalization by baseline mean (Baseline at 100%)
- 
-                baseline_diffs_m = np.mean(my_list['Diffs']['mean'][6:11]) 
+                if group=='memantine':
+                    baseline_diffs_m = np.mean(my_list['Diffs']['mean'][2:7]) 
+                else:
+                    baseline_diffs_m = np.mean(my_list['Diffs']['mean'][6:11])
                 batches_diffs_m_norm = (my_list['Diffs']['mean'] / baseline_diffs_m) * 100  
                 batches_diffs_std_norm = (my_list['Diffs']['std'] / baseline_diffs_m) * 100  
                 #print("values for merge", len(batches_diffs_m_norm ))
@@ -331,6 +334,7 @@ class PdfPage:
                 self.AXs[key].set_xlabel("time (min)")
                 self.AXs[key].axhline(100, color="grey", linestyle="--")
                 self.AXs[key].axhline(0, color="grey", linestyle="--")
+                self.AXs[key].axvline(50, color="grey", linestyle="-")
 
                 if group=='memantine':
                     self.AXs[key].axvspan(6, 13, color='lightgrey') 
@@ -386,6 +390,7 @@ class PdfPage:
                 self.AXs[key].axhline(100, color="grey", linestyle="--")
                 self.AXs[key].axhline(0, color="grey", linestyle="--")
                 self.AXs[key].axvspan(10, 17, color='lightgrey')
+                self.AXs[key].axvline(50, color="grey", linestyle="-")
                 #self.AXs[key].legend()
 
             elif key=='barplot':
