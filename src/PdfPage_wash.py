@@ -391,7 +391,7 @@ class PdfPage:
                 #self.AXs[key].set_xlim(-1, 63 )
                 self.AXs[key].set_xlim(-1, 50 )
                 #self.AXs[key].set_ylim( -10, 170)
-                self.AXs[key].set_ylabel("Normalized NMDAR-eEPSCs (%)")
+                self.AXs[key].set_ylabel("Normalized NMDAR-eEPSCs (%) (± SEM)")
                 self.AXs[key].set_xlabel("time (min)")
                 #self.AXs[key].set_xticks(np.arange(0, 63, 5))
                 self.AXs[key].axhline(100, color="grey", linestyle="--")
@@ -405,8 +405,6 @@ class PdfPage:
                 # Extract the data for plotting
                 drugs = ["control", "ketamine", "D-AP5"]
                 timings = ["End baseline", "End infusion", "End wash"]
-                #colors = {'ketamine': 'purple', 'D-AP5': 'orange', 'control': 'grey'}
-                colors = {'grey', 'purple', 'orange'}
 
                 # Rearrange data: Group by timings, with drugs within each group
                 timing_means = [[final_barplot[timing][drug]['mean'] for drug in drugs] for timing in timings]
@@ -419,40 +417,10 @@ class PdfPage:
                 # Plot bars for each timing
                 
                 for i, (timing_mean, timing_sem) in enumerate(zip(timing_means, timing_sems)):
-                    self.AXs[key].bar(x + i * width, timing_mean, width, yerr=timing_sem, color=colors, capsize=5)
+                    self.AXs[key].bar(x + i * width, timing_mean, width, yerr=timing_sem, color=[colors[drug] for drug in drugs], capsize=5)
 
-                    # Overlay scatter points for individual values
-                    #if final_barplot[timings][drugs]['values'] is not None:
-                            # Scatter points for individual values
-                    '''
-                    for j in range(3):
-                        scatter_x = np.full_like(final_barplot[timings[j]][drugs[i]]['mean'], fill_value = x[j] + i * width, dtype=float)
-                        scatter_x += (np.random.rand(len(scatter_x)) - 0.5) * width * 0.5  # Add small jitter
-                        scatter_y = final_barplot[timings[i]][drugs[j]]['mean']
-                        self.AXs[key].scatter(scatter_x, scatter_y, color='black', s=10, alpha=0.7)
-                    '''
-                '''
-                for i, time in enumerate(timings):
-                    mean_values = [final_barplot[time][drug]['mean'] for drug in drugs]
-                    sem_values = [final_barplot[time][drug]['sem'] for drug in drugs]
-
-                    for j, drug in enumerate(drugs):
-                        # Plot the bars
-                        self.AXs[key].bar(
-                            x[j] + i * width, mean_values[j], width, yerr=sem_values[j], 
-                            color=colors, label=time if j == 0 else "", capsize=5
-                        )
-
-                        # Overlay scatter points for individual values
-                        if final_barplot[time][drug]['values'] is not None:
-                            # Scatter points for individual values
-                            scatter_x = np.full_like(final_barplot[time][drug]['values'], fill_value=x[j] + i * width, dtype=float)
-                            scatter_x += (np.random.rand(len(scatter_x)) - 0.5) * width * 0.5  # Add small jitter
-                            scatter_y = final_barplot[time][drug]['values']
-                            self.AXs[key].scatter(scatter_x, scatter_y, color='black', s=10, alpha=0.7)
-                '''
                 # Formatting the plot
-                self.AXs[key].set_xlabel('Drugs', fontsize=12)
+                #self.AXs[key].set_xlabel('Drugs', fontsize=12)
                 self.AXs[key].set_ylabel('Normalized NMDAR-eEPSCs (%) (± SEM)', fontsize=12)
                 self.AXs[key].set_xticks(x + width)
                 self.AXs[key].set_xticklabels(drugs)
