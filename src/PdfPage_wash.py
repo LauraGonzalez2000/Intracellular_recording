@@ -83,11 +83,12 @@ class PdfPage:
 
             Y0 += 0.32
             DY = 0.25
-            self.AXs['barplot'] = self.create_panel([X0, Y0, 0.85, DY], 'Barplot 33 min wash')
+            self.AXs['barplot'] = self.create_panel([X0, Y0, 0.85, DY], 'Barplot')
+            #self.AXs['barplot'] = self.create_panel([X0, Y0, 0.85, DY], 'Barplot 33 min wash')
 
-            Y0 += 0.32
-            DY = 0.25
-            self.AXs['barplot2'] = self.create_panel([X0, Y0, 0.50, DY], 'Barplot memantine 33 min vs 50 min wash')
+            #Y0 += 0.32
+            #DY = 0.25
+            #self.AXs['barplot2'] = self.create_panel([X0, Y0, 0.50, DY], 'Barplot memantine 33 min vs 50 min wash')
 
     def create_panel(self, coords, title=None):
         """ 
@@ -104,7 +105,7 @@ class PdfPage:
 
     def fill_PDF(self, datafile, wash= 'all', debug=False): 
 
-        colors = {'KETA': 'purple', 'APV': 'orange', 'control': 'grey', 'MEMANTINE': 'gold'}
+        colors = {'KETA': 'purple', 'APV': 'orange', 'control': 'grey'} #, 'MEMANTINE': 'gold'}
 
         for key in self.AXs:
            
@@ -112,7 +113,7 @@ class PdfPage:
                 txt = f"ID file data: {datafile.filename}\nNumber of sweeps: {len(datafile.recordings)}\nEuthanize method: {datafile.infos['Euthanize method']}\nHolding:{datafile.infos['Holding (mV)']}\nInfusion:{datafile.infos['Infusion substance']}\nInfusion concentration:{datafile.infos['Infusion concentration']}\nInfusion start:{datafile.infos['Infusion start']}\nInfusion end:{datafile.infos['Infusion end']}\n"
                 self.AXs[key].annotate(txt,(0, 1), va='top', xycoords='axes fraction')
               
-            elif key=='Id (nA)':  
+            elif key=='Id (nA)':  #peak membrane test
                      
                 Ids = datafile.get_Ids()
                 Ids_m, Ids_std = datafile.get_batches(Ids)
@@ -128,13 +129,14 @@ class PdfPage:
 
                 self.AXs[key].set_ylabel("Acces (nA)")
                 self.AXs[key].set_xlabel("time (min)")
+                self.AXs[key].axhline(0.29, color="firebrick", linestyle="-", linewidth=0.8)
                 
                 try:
                     self.AXs[key].axvspan(float(datafile.infos["Infusion start"]), float(datafile.infos["Infusion end"]), color='lightgrey')
                 except:
                     print("metadata not added correctly or no infusion")
 
-            elif key=='Leak (nA)':     
+            elif key=='Leak (nA)':    #baseline 
                 baselines = datafile.get_baselines()
                 baselines_m, baselines_std = datafile.get_batches(baselines)
                 self.AXs[key].plot(baselines_m, marker="o", linewidth=0.5, markersize=2, color= colors[datafile.infos['Group']])
@@ -149,6 +151,9 @@ class PdfPage:
 
                 self.AXs[key].set_ylabel("Leak (nA)")
                 self.AXs[key].set_xlabel("time (min)")
+
+                if any(baseline < -0.7 for baseline in baselines_m): 
+                    self.AXs[key].axhline(-0.70, color="firebrick", linestyle="-", linewidth=0.8)
                 
                 try:
                     self.AXs[key].axvspan(float(datafile.infos["Infusion start"]), float(datafile.infos["Infusion end"]), color='lightgrey')
@@ -171,6 +176,7 @@ class PdfPage:
                 
                 self.AXs[key].set_ylabel("Difference_peak_baseline (nA)")
                 self.AXs[key].set_xlabel("time (min)")
+                self.AXs[key].axhline(0.02, color="firebrick", linestyle="-", linewidth=0.8)
                 
                 #plot also noises
                 noises = datafile.get_noises() 
@@ -235,7 +241,7 @@ class PdfPage:
     def fill_PDF_merge(self, num_files, group, my_list, barplot):
 
         
-        colors = {'ketamine': 'purple', 'D-AP5': 'orange', 'control': 'grey', 'memantine': 'gold'}
+        colors = {'ketamine': 'purple', 'D-AP5': 'orange', 'control': 'grey'}#, 'memantine': 'gold'}
 
         for key in self.AXs:
             if key =='Notes':
@@ -382,17 +388,77 @@ class PdfPage:
                     self.AXs[key].plot(batches_diffs_m_norm, marker="o", linewidth=0.5, markersize=2, label = f"{group} , {concentration[group]} , n= {final_num_files[group]}", color = colors[group])
                     self.AXs[key].errorbar(range(len(batches_diffs_m_norm)), batches_diffs_m_norm, yerr=batches_diffs_sem_norm, linestyle='None', marker='_', capsize=3, linewidth = 0.5, color = colors[group])
 
-                self.AXs[key].set_xlim(-1, 63 )
+                #self.AXs[key].set_xlim(-1, 63 )
+                self.AXs[key].set_xlim(-1, 50 )
                 #self.AXs[key].set_ylim( -10, 170)
                 self.AXs[key].set_ylabel("Normalized NMDAR-eEPSCs (%)")
                 self.AXs[key].set_xlabel("time (min)")
-                self.AXs[key].set_xticks(np.arange(0, 63, 5))
+                #self.AXs[key].set_xticks(np.arange(0, 63, 5))
                 self.AXs[key].axhline(100, color="grey", linestyle="--")
                 self.AXs[key].axhline(0, color="grey", linestyle="--")
                 self.AXs[key].axvspan(10, 17, color='lightgrey')
-                self.AXs[key].axvline(50, color="grey", linestyle="-")
+                #self.AXs[key].axvline(50, color="grey", linestyle="-")
                 #self.AXs[key].legend()
 
+            elif key=='barplot':
+
+                # Extract the data for plotting
+                drugs = ["control", "ketamine", "D-AP5"]
+                timings = ["End baseline", "End infusion", "End wash"]
+                #colors = {'ketamine': 'purple', 'D-AP5': 'orange', 'control': 'grey'}
+                colors = {'grey', 'purple', 'orange'}
+
+                # Rearrange data: Group by timings, with drugs within each group
+                timing_means = [[final_barplot[timing][drug]['mean'] for drug in drugs] for timing in timings]
+                timing_sems = [[final_barplot[timing][drug]['sem'] for drug in drugs] for timing in timings]
+
+                # Bar positions
+                x = np.arange(len(drugs))
+                width = 0.25
+
+                # Plot bars for each timing
+                
+                for i, (timing_mean, timing_sem) in enumerate(zip(timing_means, timing_sems)):
+                    self.AXs[key].bar(x + i * width, timing_mean, width, yerr=timing_sem, color=colors, capsize=5)
+
+                    # Overlay scatter points for individual values
+                    #if final_barplot[timings][drugs]['values'] is not None:
+                            # Scatter points for individual values
+                    '''
+                    for j in range(3):
+                        scatter_x = np.full_like(final_barplot[timings[j]][drugs[i]]['mean'], fill_value = x[j] + i * width, dtype=float)
+                        scatter_x += (np.random.rand(len(scatter_x)) - 0.5) * width * 0.5  # Add small jitter
+                        scatter_y = final_barplot[timings[i]][drugs[j]]['mean']
+                        self.AXs[key].scatter(scatter_x, scatter_y, color='black', s=10, alpha=0.7)
+                    '''
+                '''
+                for i, time in enumerate(timings):
+                    mean_values = [final_barplot[time][drug]['mean'] for drug in drugs]
+                    sem_values = [final_barplot[time][drug]['sem'] for drug in drugs]
+
+                    for j, drug in enumerate(drugs):
+                        # Plot the bars
+                        self.AXs[key].bar(
+                            x[j] + i * width, mean_values[j], width, yerr=sem_values[j], 
+                            color=colors, label=time if j == 0 else "", capsize=5
+                        )
+
+                        # Overlay scatter points for individual values
+                        if final_barplot[time][drug]['values'] is not None:
+                            # Scatter points for individual values
+                            scatter_x = np.full_like(final_barplot[time][drug]['values'], fill_value=x[j] + i * width, dtype=float)
+                            scatter_x += (np.random.rand(len(scatter_x)) - 0.5) * width * 0.5  # Add small jitter
+                            scatter_y = final_barplot[time][drug]['values']
+                            self.AXs[key].scatter(scatter_x, scatter_y, color='black', s=10, alpha=0.7)
+                '''
+                # Formatting the plot
+                self.AXs[key].set_xlabel('Drugs', fontsize=12)
+                self.AXs[key].set_ylabel('Normalized NMDAR-eEPSCs (%) (± SEM)', fontsize=12)
+                self.AXs[key].set_xticks(x + width)
+                self.AXs[key].set_xticklabels(drugs)
+                #self.AXs[key].legend(title="Timings")
+
+            '''
             elif key=='barplot':
 
                 time_periods = list(final_barplot.keys())
@@ -430,8 +496,8 @@ class PdfPage:
                 self.AXs[key].set_xticklabels(drug_types, rotation=45)
                 legend_elements = [Line2D([0], [0], color=color, lw=4, label=drug) for drug, color in colors.items()]
                 self.AXs[key].legend(handles=legend_elements, title="Drug Groups")
-
-            
+            '''
+            '''
             elif key=='barplot2':
                 barplot = final_barplot2
                 print("final barplot 2 : ",barplot)
@@ -456,9 +522,7 @@ class PdfPage:
                 self.AXs[key].set_xticks(range(len(keys)))  # Align xticks with bar positions
                 self.AXs[key].set_xticklabels(keys, rotation=45, ha='right', fontsize=10)
                 self.AXs[key].set_ylabel("Normalized NMDAR-eEPSCs (%)")
-
-               
-            
+            '''
         return 0
 
 if __name__=='__main__':
