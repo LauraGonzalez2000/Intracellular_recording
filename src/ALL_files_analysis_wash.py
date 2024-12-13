@@ -10,7 +10,7 @@ import pprint
 base_path = os.path.join(os.path.expanduser('~'), 'DATA','In_Vitro_experiments', 'Washout_experiment') 
 base_path_output = os.path.join(os.path.expanduser('~'), 'Output_expe', 'washout', 'Washout_PDFs') 
 #directory = "RAW-DATA-WASHOUT-PYR"
-directory = "RAW-DATA-WASHOUT-PYR"
+directory = "RAW-DATA-WASHOUT-L1"
 files_directory = os.path.join(base_path, directory)
 
 
@@ -36,6 +36,7 @@ def find_nm_files(root_folder):
     return nm_paths
 
 def merge_info(datafile, my_list, list_of_bsl_m, list_of_inf_m, list_of_wash_m, list_of_wash_end_m):
+
     for key in my_list:
 
         if key=='Ids':
@@ -48,6 +49,8 @@ def merge_info(datafile, my_list, list_of_bsl_m, list_of_inf_m, list_of_wash_m, 
             metric_datafile_m = datafile.batches_corr_diffs       
 
         #print("metric_datafile_m  ",key, " :", metric_datafile_m)
+        
+        
         my_list[key]['mean'].append(metric_datafile_m)
 
     #print("my_list[key]['mean']", my_list[key]['mean'])
@@ -126,6 +129,8 @@ def create_group_pdf(datafiles_group, label, filename, final_dict, final_barplot
 
         for key in my_list:
             print("my_list[key]['mean'] before", my_list[key]['mean'])
+
+
             metric_datafile_std = np.std(my_list[key]['mean'], axis=0)   #std of the different files's mean for each one of the 50 positions  
             metric_datafile_sem = np.std(my_list[key]['mean'], axis=0)/np.sqrt(len(my_list[key]['mean'])) #sem of the different files's mean for each one of the 50 positions  
             my_list[key]['std'].append(metric_datafile_std)
@@ -281,7 +286,7 @@ if __name__=='__main__':
 
     create_individual_pdf(datafiles, wash='all', debug=debug1)
 
-    
+    '''
     #PDF creation for the chosen groups: #########################################################################################
     debug2 = False
 
@@ -349,3 +354,5 @@ if __name__=='__main__':
     ##################################### if we take only 33 min wash ##################
 
     #create_final_results_pdf()
+
+    '''
