@@ -127,7 +127,7 @@ class PdfPage:
                     self.AXs[key].set_xlim(-1, 50 )
                     self.AXs[key].set_xticks(np.arange(0, 51, 5))
 
-                self.AXs[key].set_ylabel("Acces (nA)")
+                self.AXs[key].set_ylabel("Acces (nA) \n(± Std)")
                 self.AXs[key].set_xlabel("time (min)")
                 self.AXs[key].axhline(0.29, color="firebrick", linestyle="-", linewidth=0.8)
                 
@@ -149,7 +149,7 @@ class PdfPage:
                     self.AXs[key].set_xlim(-1, 50 )
                     self.AXs[key].set_xticks(np.arange(0, 51, 5))
 
-                self.AXs[key].set_ylabel("Leak (nA)")
+                self.AXs[key].set_ylabel("Leak (nA) \n(± Std)")
                 self.AXs[key].set_xlabel("time (min)")
 
                 if any(baseline < -0.7 for baseline in baselines_m): 
@@ -174,7 +174,7 @@ class PdfPage:
                     self.AXs[key].set_xticks(np.arange(0, 51, 5))
                 
                 
-                self.AXs[key].set_ylabel("Difference_peak_baseline (nA)")
+                self.AXs[key].set_ylabel("Difference \n peak-baseline (nA) (± Std)")
                 self.AXs[key].set_xlabel("time (min)")
                 self.AXs[key].axhline(0.02, color="firebrick", linestyle="-", linewidth=0.8)
                 
@@ -205,7 +205,7 @@ class PdfPage:
                     self.AXs[key].set_xlim(-1, 50 )
                     self.AXs[key].set_xticks(np.arange(0, 51, 5))
                 
-                self.AXs[key].set_ylabel("Normalized NMDAR-eEPSCs (%)")
+                self.AXs[key].set_ylabel("Normalized \nNMDAR-eEPSCs (%) (± Std)")
                 self.AXs[key].set_xlabel("time (min)")
                 try:
                     self.AXs[key].axvspan(float(datafile.infos["Infusion start"]), float(datafile.infos["Infusion end"]), color='lightgrey') 
@@ -236,12 +236,12 @@ class PdfPage:
                 # Customize axes
                 self.AXs[key].set_xticks(range(len(keys)))  # Align xticks with bar positions
                 self.AXs[key].set_xticklabels(keys, rotation=45, ha='right', fontsize=10)
-                self.AXs[key].set_ylabel("Normalized NMDAR-eEPSCs (%)")
+                self.AXs[key].set_ylabel("Normalized \nNMDAR-eEPSCs (%) (± SEM)")
 
     def fill_PDF_merge(self, num_files, group, my_list, barplot):
 
         
-        colors = {'ketamine': 'purple', 'D-AP5': 'orange', 'control': 'grey'}#, 'memantine': 'gold'}
+        colors = {'ketamine': 'purple', 'D-AP5': 'orange', 'control': 'grey', 'memantine': 'gold'}
 
         for key in self.AXs:
             if key =='Notes':
@@ -262,7 +262,7 @@ class PdfPage:
                     self.AXs[key].set_xticks(np.arange(0, 51, 5))
 
                 
-                self.AXs[key].set_ylabel("Acces (nA)")
+                self.AXs[key].set_ylabel("Acces (nA) (± Std)")
                 self.AXs[key].set_xlabel("time (min)")
 
                 if group=='memantine':
@@ -283,7 +283,7 @@ class PdfPage:
                     self.AXs[key].set_xlim(-1, 50)
                     self.AXs[key].set_xticks(np.arange(0, 51, 5))
      
-                self.AXs[key].set_ylabel("Leak (nA)")
+                self.AXs[key].set_ylabel("Leak (nA) (± Std)")
                 self.AXs[key].set_xlabel("time (min)")
 
                 if group=='memantine':
@@ -307,7 +307,7 @@ class PdfPage:
                     self.AXs[key].set_xlim(-1, 50)
                     self.AXs[key].set_xticks(np.arange(0, 51, 5))
                 
-                self.AXs[key].set_ylabel("Difference Peak-baseline (nA)")
+                self.AXs[key].set_ylabel("Difference Peak-baseline (nA) (± Std)")
                 self.AXs[key].set_xlabel("time (min)")
                 self.AXs[key].axhline(0, color="grey", linestyle="--")
 
@@ -336,7 +336,7 @@ class PdfPage:
                     self.AXs[key].set_xticks(np.arange(0, 51, 5))
 
                 #self.AXs[key].set_ylim( -10, 170)
-                self.AXs[key].set_ylabel("Normalized NMDAR-eEPSCs (%)")
+                self.AXs[key].set_ylabel("Normalized NMDAR-eEPSCs (%) (± Std)")
                 self.AXs[key].set_xlabel("time (min)")
                 self.AXs[key].axhline(100, color="grey", linestyle="--")
                 self.AXs[key].axhline(0, color="grey", linestyle="--")
@@ -372,7 +372,7 @@ class PdfPage:
                 # Customize axes
                 self.AXs[key].set_xticks(range(len(keys)))  # Align xticks with bar positions
                 self.AXs[key].set_xticklabels(keys, rotation=45, ha='right', fontsize=10)
-                self.AXs[key].set_ylabel("Normalized NMDAR-eEPSCs (%)")
+                self.AXs[key].set_ylabel("Normalized NMDAR-eEPSCs (%) (± SEM)")
             
     def fill_final_results(self, final_dict, final_barplot, final_num_files, concentration, colors, GROUPS, final_barplot2):
         
@@ -381,10 +381,11 @@ class PdfPage:
             if key=='RespAnalyzed':  # Normalization by baseline mean (Baseline at 100%)  #why std negative?
 
                 for group in GROUPS:
-                    baseline_diffs_m = np.mean(final_dict[group]['mean'][6:11]) 
+                    baseline_diffs_m = np.mean(final_dict[group]['mean'][6:11]) #memantine has nan for the first values
                     batches_diffs_m_norm   = (final_dict[group]['mean'] / baseline_diffs_m) * 100  
                     batches_diffs_std_norm = (final_dict[group]['std']  / baseline_diffs_m) * 100  
                     batches_diffs_sem_norm = (final_dict[group]['sem']  / baseline_diffs_m) * 100 
+                    print("values for graph ", batches_diffs_m_norm)
                     self.AXs[key].plot(batches_diffs_m_norm, marker="o", linewidth=0.5, markersize=2, label = f"{group} , {concentration[group]} , n= {final_num_files[group]}", color = colors[group])
                     self.AXs[key].errorbar(range(len(batches_diffs_m_norm)), batches_diffs_m_norm, yerr=batches_diffs_sem_norm, linestyle='None', marker='_', capsize=3, linewidth = 0.5, color = colors[group])
 
@@ -399,12 +400,16 @@ class PdfPage:
                 self.AXs[key].axvspan(10, 17, color='lightgrey')
                 #self.AXs[key].axvline(50, color="grey", linestyle="-")
                 #self.AXs[key].legend()
-
+                '''
             elif key=='barplot':
 
                 # Extract the data for plotting
-                drugs = ["control", "ketamine", "D-AP5"]
-                timings = ["End baseline", "End infusion", "End wash"]
+                timings = list(final_barplot.keys())
+                drugs = list(final_barplot[timings[0]].keys())
+                num_times = len(timings)
+                num_drugs = len(drugs)
+                #drugs = ["control", "ketamine", "D-AP5"]
+                #timings = ["End baseline", "End infusion", "End wash"]
 
                 # Rearrange data: Group by timings, with drugs within each group
                 timing_means = [[final_barplot[timing][drug]['mean'] for drug in drugs] for timing in timings]
@@ -425,47 +430,55 @@ class PdfPage:
                 self.AXs[key].set_xticks(x + width)
                 self.AXs[key].set_xticklabels(drugs)
                 #self.AXs[key].legend(title="Timings")
-
-            '''
-            elif key=='barplot':
+                '''
+            
+            elif key=='barplot': 
 
                 time_periods = list(final_barplot.keys())
                 drug_types = list(final_barplot[time_periods[0]].keys())
-                num_times = len(time_periods)
-                num_drugs = len(drug_types)
-                x = np.arange(num_drugs)  # label locations for each drug type  #x coordinates of bars
+                x = np.arange(len(drug_types))  # location for each group
                 width = 0.2  # width of each bar
-                spacing = 0.05
-                group_width = num_times * (width + spacing)
+                spacing = 0.05 #space between bars
+                ticks = []
 
                 # Iterate through time periods and drug types for bar plot
                 for i, time in enumerate(time_periods):
                     mean_values = [final_barplot[time][drug]['mean'] for drug in drug_types]
                     sem_values = [final_barplot[time][drug]['sem'] for drug in drug_types]
-
                     for j, drug in enumerate(drug_types):
-                        # Plot the bars
-                        self.AXs[key].bar(
-                            x[j] + i * width, mean_values[j], width, yerr=sem_values[j], 
-                            color=colors[drug], label=time if j == 0 else "", capsize=5
-                        )
-
+                        position = x[j] + i * (width + spacing)
+                        self.AXs[key].bar(position, mean_values[j], width, yerr=sem_values[j], color=colors[drug], label=time if j == 0 else "", capsize=5)
+                        ticks.append(position)
                         # Overlay scatter points for individual values
                         if final_barplot[time][drug]['values'] is not None:
-                            # Scatter points for individual values
-                            scatter_x = np.full_like(final_barplot[time][drug]['values'], fill_value=x[j] + i * width, dtype=float)
+                            scatter_x = np.full_like(final_barplot[time][drug]['values'], fill_value=position, dtype=float)
                             scatter_x += (np.random.rand(len(scatter_x)) - 0.5) * width * 0.5  # Add small jitter
                             scatter_y = final_barplot[time][drug]['values']
                             self.AXs[key].scatter(scatter_x, scatter_y, color='black', s=10, alpha=0.7)
 
-                # Set labels and legend
-                self.AXs[key].set_ylabel("Normalized NMDAR-eEPSCs (%)")
-                self.AXs[key].set_xticks([x_val + (group_width - spacing) / 2 for x_val in x])  # Center xticks under groups
-                self.AXs[key].set_xticklabels(drug_types, rotation=45)
-                legend_elements = [Line2D([0], [0], color=color, lw=4, label=drug) for drug, color in colors.items()]
-                self.AXs[key].legend(handles=legend_elements, title="Drug Groups")
-            '''
-            '''
+                self.AXs[key].set_ylabel("Normalized NMDAR-eEPSCs (%) (± SEM)")
+                # Set ticks
+                ticks.sort()
+                
+                if len(drug_types)==4:
+                     labels_ticks = ['6-11', '15-19', '45-50', '6-11', '15-19', '45-50', '6-11', '15-19', '45-50','6-11', '15-19', '45-50' ]
+                     labels_groupticks = ['\n\nControl', '\n\nKetamine', '\n\nD-APV', '\n\nMemantine']
+
+                if len(drug_types)==3:
+                     labels_ticks = ['6-11', '15-19', '45-50', '6-11', '15-19', '45-50', '6-11', '15-19', '45-50' ]
+                     labels_groupticks = ['\n\nControl', '\n\nKetamine', '\n\nD-APV']
+
+                self.AXs[key].set_xticks(ticks, labels = labels_ticks)
+                group_ticks = [x_val + (width + spacing) for x_val in x]
+                sec = self.AXs[key].secondary_xaxis(location=0)
+                sec.set_xticks(group_ticks, labels=labels_groupticks) # Center xticks under groups
+                sec.tick_params('x', length=0)
+                
+                #legend
+                #legend_elements = [Line2D([0], [0], color=color, lw=4, label=drug) for drug, color in colors.items()]
+                #self.AXs[key].legend(handles=legend_elements, title="Drug Groups")
+
+            
             elif key=='barplot2':
                 barplot = final_barplot2
                 print("final barplot 2 : ",barplot)
@@ -490,7 +503,7 @@ class PdfPage:
                 self.AXs[key].set_xticks(range(len(keys)))  # Align xticks with bar positions
                 self.AXs[key].set_xticklabels(keys, rotation=45, ha='right', fontsize=10)
                 self.AXs[key].set_ylabel("Normalized NMDAR-eEPSCs (%)")
-            '''
+            
         return 0
 
 if __name__=='__main__':
@@ -500,5 +513,5 @@ if __name__=='__main__':
     print(datafile.filename)
     page = PdfPage(PDF_sheet='individual', debug=False)
     page.fill_PDF(datafile)
-    plt.savefig(f'C:/Users/laura.gonzalez/DATA/PDFs/{datafile.filename}.pdf')
+    #plt.savefig(f'C:/Users/laura.gonzalez/DATA/PDFs/{datafile.filename}.pdf')
     plt.show()

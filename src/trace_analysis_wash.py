@@ -218,7 +218,7 @@ class DataFile_washout:
             #print("mean last 5 min", baseline_diffs_m)
             #print("mean last 10 min", np.mean(batches_diffs_m[(int(self.infos["Infusion start"])-10):int(self.infos["Infusion start"])]) )
         elif self.infos['Group'] == 'control':
-            baseline_diffs_m = np.mean(batches_diffs_m[5:10])    
+            baseline_diffs_m = np.mean(batches_diffs_m[6:11])    
             #print("took 5 min between min 5 and min 10. This should apply when there is no infusion")
             #print("mean last 5 min", baseline_diffs_m)
             #print("mean last 10 min", np.mean(batches_diffs_m[0:10]))
@@ -254,12 +254,11 @@ class DataFile_washout:
                 print("subsets 5-10_10-17_end-5-end")
 
             else: 
-                subset1 = norm_batches_corr_diffs[5:10]
-                subset2 = norm_batches_corr_diffs[12:17]
+                subset1 = norm_batches_corr_diffs[6:11]
+                subset2 = norm_batches_corr_diffs[15:19]
                 subset3 = norm_batches_corr_diffs[45:50]
                 print("subsets 5-10_10-17_45-50")
         return subset1, subset2, subset3
-
 
     def get_barplot(self, wash='all'):
         subset1, subset2, subset3 = self.get_subsets(wash)
@@ -267,7 +266,6 @@ class DataFile_washout:
                    'End infusion' : {'values': subset2,  'mean' : np.mean(subset2), 'sem': np.std(subset2)/np.sqrt(len(subset2)),  'std': np.std(subset2)},
                    'End wash'     : {'values': subset3,  'mean' : np.mean(subset3), 'sem': np.std(subset3)/np.sqrt(len(subset3)),  'std': np.std(subset3)}}
         return barplot
-
 
     def clean_end(self, debug=False):
 
