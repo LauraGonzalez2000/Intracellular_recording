@@ -105,25 +105,34 @@ class PdfPage:
 
     def fill_PDF(self, datafile, wash= 'all', debug=False): 
 
-        colors = {'KETA': 'purple', 'APV': 'orange', 'control': 'grey'} #, 'MEMANTINE': 'gold'}
+        colors = {'KETA': 'purple', 'APV': 'orange', 'control': 'grey', 'MEMANTINE': 'gold'}
 
         for key in self.AXs:
+            
            
-            if key=='Notes': ##includes metadata           
+            if key=='Notes': ##includes metadata 
+                print("c1")          
                 txt = f"ID file data: {datafile.filename}\nNumber of sweeps: {len(datafile.recordings)}\nEuthanize method: {datafile.infos['Euthanize method']}\nHolding:{datafile.infos['Holding (mV)']}\nInfusion:{datafile.infos['Infusion substance']}\nInfusion concentration:{datafile.infos['Infusion concentration']}\nInfusion start:{datafile.infos['Infusion start']}\nInfusion end:{datafile.infos['Infusion end']}\n"
                 self.AXs[key].annotate(txt,(0, 1), va='top', xycoords='axes fraction')
               
             elif key=='Id (nA)':  #peak membrane test
-                     
+                print("c2")
                 Ids = datafile.get_Ids()
+                print("c21")
                 Ids_m, Ids_std = datafile.get_batches(Ids)
+                print("c22")
+                print(Ids_m)
+                print(datafile.infos['Group'])
                 self.AXs[key].plot(Ids_m, marker="o", linewidth=0.5, markersize=2, color=colors[datafile.infos['Group']])
+                print("c23")
                 self.AXs[key].errorbar(range(len(Ids_m)), Ids_m, yerr=Ids_std, linestyle='None', marker='_', color=colors[datafile.infos['Group']], capsize=3, linewidth = 0.5)
-                
+                print("c24")
                 if len(Ids_m)> 50:
+                    print("c25")
                     self.AXs[key].set_xlim(-1, len(Ids_m))
                     self.AXs[key].set_xticks(np.arange(0, len(Ids_m)+1, 5))
                 else : 
+                    print("c26")
                     self.AXs[key].set_xlim(-1, 50 )
                     self.AXs[key].set_xticks(np.arange(0, 51, 5))
 
@@ -137,6 +146,7 @@ class PdfPage:
                     print("metadata not added correctly or no infusion")
 
             elif key=='Leak (nA)':    #baseline 
+                print("c3")
                 baselines = datafile.get_baselines()
                 baselines_m, baselines_std = datafile.get_batches(baselines)
                 self.AXs[key].plot(baselines_m, marker="o", linewidth=0.5, markersize=2, color= colors[datafile.infos['Group']])
@@ -160,7 +170,8 @@ class PdfPage:
                 except Exception as e:
                     print(f"metadata not added correctly - or no infusion {e}")
             
-            elif key=='Difference_peak_baseline': #plot with noise    
+            elif key=='Difference_peak_baseline': #plot with noise 
+                print("c4")   
                 batches_m, batches_std = datafile.get_batches(datafile.diffs) #with noise
                 #print("values for individual pdf", len(batches_m)) 
                 self.AXs[key].plot(batches_m, marker="o", linewidth=0.5, markersize=2, color= colors[datafile.infos['Group']], label='Response')
@@ -190,6 +201,7 @@ class PdfPage:
                     print("no infusion")
 
             elif key=='RespAnalyzed':
+                print("c5")
                 #batches_diffs_m, batches_diffs_std = datafile.batches_correct_diffs() #noise is substracted
                 
                 batches_diffs_m, batches_diffs_std = datafile.batches_corr_diffs, np.std(datafile.batches_corr_diffs)
@@ -215,6 +227,7 @@ class PdfPage:
                 self.AXs[key].axhline(0, color="grey", linestyle="--")
 
             elif key=='barplot':
+                print("c6")
                 barplot = datafile.get_barplot(wash='all')
                 keys = list(barplot.keys())
                 means = [barplot[key]['mean'] for key in keys]
@@ -242,6 +255,7 @@ class PdfPage:
 
         
         colors = {'ketamine': 'purple', 'D-AP5': 'orange', 'control': 'grey', 'memantine': 'gold'}
+        #colors = {'ketamine': 'purple', 'control': 'grey', 'memantine': 'gold'}
 
         for key in self.AXs:
             if key =='Notes':
@@ -503,7 +517,6 @@ class PdfPage:
                 self.AXs[key].set_xticks(range(len(keys)))  # Align xticks with bar positions
                 self.AXs[key].set_xticklabels(keys, rotation=45, ha='right', fontsize=10)
                 self.AXs[key].set_ylabel("Normalized NMDAR-eEPSCs (%)")
-            
         return 0
 
 if __name__=='__main__':

@@ -8,7 +8,7 @@ import pprint
 
 #keep this aborescence if program used in other computers
 base_path = os.path.join(os.path.expanduser('~'), 'DATA','In_Vitro_experiments', 'Washout_experiment') 
-directory = "RAW-DATA-WASHOUT-PYR"
+directory = "RAW-DATA-WASHOUT-SST"
 files_directory = os.path.join(base_path, directory)
 
 
@@ -50,10 +50,11 @@ def create_individual_pdf(datafiles, wash= 'all', debug=False):
     for datafile in datafiles:
         try:
             pdf = PdfPage(PDF_sheet = 'individual', debug=debug )
+            print("b0")
             pdf.fill_PDF(datafile, wash= wash, debug=debug)
+            print("b1")
             plt.savefig(f'C:/Users/sofia/Output_expe/washout/Washout_PDFs/{datafile.filename}.pdf')
             #plt.savefig(f'C:/Users/sofia/Output_expe/washout/Washout_PDFs/end_cut/PYR-Nelson/{datafile.filename}.pdf')
-            print(datafile.filename)
             print("OK File saved successfully")
         except Exception as e:
             print(f"Error analysing this file : {e}")      
@@ -171,53 +172,64 @@ def create_final_results_pdf(final_dict, final_barplot, final_num_files, concent
     print('final results figure saved')
     return 0
 
+
+
+
+
+
+
 if __name__=='__main__':
 
     final_dict = {"control"  : {'mean':None, 'sem': None, 'std': None}, 
                   "ketamine" : {'mean':None, 'sem': None, 'std': None}, 
                   "D-AP5"    : {'mean':None, 'sem': None, 'std': None}, 
                   "memantine": {'mean':None, 'sem': None, 'std': None}}
+    #"D-AP5"    : {'mean':None, 'sem': None, 'std': None}, 
 
     final_barplot = {"End baseline" : {"control"  : {'values' : None, 'mean': None, 'sem': None, 'std': None}, 
-                                       "ketamine" : {'values' : None, 'mean': None, 'sem': None, 'std': None}, 
+                                       "ketamine" : {'values' : None, 'mean': None, 'sem': None, 'std': None},
                                        "D-AP5"    : {'values' : None, 'mean': None, 'sem': None, 'std': None}, 
                                        "memantine": {'values' : None, 'mean': None, 'sem': None, 'std': None} },
                      "End infusion" : {"control"  : {'values' : None, 'mean': None, 'sem': None, 'std': None}, 
                                        "ketamine" : {'values' : None, 'mean': None, 'sem': None, 'std': None}, 
-                                       "D-AP5"    : {'values' : None, 'mean': None, 'sem': None, 'std': None}, 
-                                       "memantine": {'values' : None, 'mean': None, 'sem': None, 'std': None}}, 
-                     "End wash"    : {"control"  : {'values' : None, 'mean': None, 'sem': None, 'std': None}, 
+                                       "D-AP5"    : {'values' : None, 'mean': None, 'sem': None, 'std': None},
+                                       "memantine": {'values' : None, 'mean': None, 'sem': None, 'std': None}},
+                     "End wash"     : {"control"  : {'values' : None, 'mean': None, 'sem': None, 'std': None}, 
                                        "ketamine" : {'values' : None, 'mean': None, 'sem': None, 'std': None}, 
-                                       "D-AP5"    : {'values' : None, 'mean': None, 'sem': None, 'std': None}, 
+                                       "D-AP5"    : {'values' : None, 'mean': None, 'sem': None, 'std': None},
                                        "memantine": {'values' : None, 'mean': None, 'sem': None, 'std': None} }}
+    #"D-AP5"    : {'values' : None, 'mean': None, 'sem': None, 'std': None},  #####x3
     
     final_barplot2 = {"End wash"      : {'values' : None, 'mean': None, 'sem': None, 'std': None},
                       "End wash long" : {'values' : None, 'mean': None, 'sem': None, 'std': None}}
 
     final_num_files = {"control"  : None, 
                        "ketamine" : None, 
-                       "D-AP5"    : None, 
+                       "D-AP5"    : None,
                        "memantine": None}
+    #"D-AP5"    : None,
     
     concentration = {'ketamine' : '100uM', 
-                     'D-AP5'    : '50uM', 
                      'control'  : '-', 
+                     'D-AP5'    : '50uM', 
                      'memantine': '100uM'}
+    #'D-AP5'    : '50uM', 
     
     colors = {'ketamine' : 'purple', 
-              'D-AP5'    : 'orange', 
               'control'  : 'grey', 
+              'D-AP5'    : 'orange',
               'memantine': 'gold'}
+    #'D-AP5'    : 'orange',
     
-    GROUPS = ['control', 'ketamine','D-AP5','memantine']
+    GROUPS = ['control', 'ketamine', 'D-AP5', 'memantine'] #'D-AP5','memantine']
     
 
     #Load and sort datafiles: ###################################################################################################
-    
+    print("a")
     files = find_nm_files(files_directory)
     #datafiles, datafiles_keta, datafiles_APV, datafiles_control = [], [], [], []
-    datafiles, datafiles_keta, datafiles_APV, datafiles_control, datafiles_memantine = [], [], [], [], []   #make only 1 dict?
-    
+    datafiles, datafiles_keta, datafiles_control, datafiles_memantine = [], [], [], []   #make only 1 dict?
+    print("b")
     # PDF creation for each individual file ######################################################################################
     debug1 = True
     infusion_start = []
@@ -231,15 +243,15 @@ if __name__=='__main__':
                 datafiles_control.append(datafile)
             elif datafile.infos['Group'] == 'KETA':
                 datafiles_keta.append(datafile)
-            elif datafile.infos['Group'] == 'APV': 
-                datafiles_APV.append(datafile)
+            #elif datafile.infos['Group'] == 'APV': 
+            #    datafiles_APV.append(datafile)
             elif datafile.infos['Group'] == 'MEMANTINE': 
                 datafiles_memantine.append(datafile)
 
             infusion_start.append(datafile.infos['Infusion start'])
 
     create_individual_pdf(datafiles, wash='all', debug=debug1)
-
+    print("c")
     
     #PDF creation for the chosen groups: #########################################################################################
     debug2 = False
@@ -252,17 +264,16 @@ if __name__=='__main__':
         print(datafiles_keta)
         print("datafiles control : ")
         print(datafiles_control)
-        print("datafiles AP5 : ")
-        print(datafiles_APV)
+        #print("datafiles AP5 : ")
+        #print(datafiles_APV)
         #print("datafiles memantine : ")
         #print(datafiles_memantine)
 
 
     create_group_pdf(datafiles_keta, "ketamine", "ketamine_merge", final_dict, final_barplot, final_num_files, final_barplot2, debug=debug2)
+    create_group_pdf(datafiles_memantine, "memantine", "memantine_merge", final_dict, final_barplot, final_num_files, final_barplot2, debug=debug2)  
     create_group_pdf(datafiles_APV, "D-AP5", "D-AP5_merge", final_dict, final_barplot, final_num_files, final_barplot2, debug=debug2)
     create_group_pdf(datafiles_control, "control", "control_merge", final_dict, final_barplot, final_num_files, final_barplot2, debug=debug2)
-    create_group_pdf(datafiles_memantine, "memantine", "memantine_merge", final_dict, final_barplot, final_num_files, final_barplot2, debug=debug2)  
-
         
     #PDF creation to compare groups: ##############################################################################################
     debug3 = False

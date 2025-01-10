@@ -229,6 +229,7 @@ class DataFile:
         '''
 
     def analyse_neg_peak(self):
+        print("neg called")
         peak = "negative"
         
         start, stop, start2, stop2 = self.get_boundaries()
@@ -317,6 +318,7 @@ class DataFile:
 
     def analyse_pos_peak(self, bis=False):
         
+        print("pos called")
         peak = "positive"
         #data = get_data(path)
         #average_data = get_average_recordings(get_recordings(data))
@@ -423,6 +425,7 @@ class DataFile:
         self.PPR = PPR
         self.rise_time = rise_time
         self.decay_time = decay_time
+        
         
         
         return peak, amp_resp1, amp_resp2, PPR, rise_time, decay_time

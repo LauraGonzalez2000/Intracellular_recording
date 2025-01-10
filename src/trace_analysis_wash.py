@@ -6,7 +6,7 @@ from scipy.signal import butter, lfilter
 import pandas as pd
 import os
 
-meta_info_directory = "Files-PYR.csv"
+meta_info_directory = "Files-SST.csv"
 base_path = os.path.join(os.path.expanduser('~'), 'DATA', 'In_Vitro_experiments','Washout_experiment') #keep this aborescence if program used in other computers
 meta_info_directory = os.path.join(base_path, meta_info_directory)
 

@@ -54,10 +54,21 @@ def final_names(files):
         files_id_ = [x for x in files_id if x not in used and (used.add(x) or True)]
     return files_id_
 
-def analyse_datafiles(datafiles, data_list, files_id, bis=False, PDF=False, Excel1=False, final_excel=False, barplots=False):
+def analyse_datafiles(datafiles, data_list, files_id, debug=False, bis=False, PDF=False, Excel1=False, final_excel=False, barplots=False):
+    
+    datafiles_ = []
     for datafile in datafiles:
 
         datafile.calc_values(bis)
+
+        print("AAAAAAAAAAAAAAA", datafile)
+        print(datafile.filename)
+        print(datafile.Id_A)
+        print(datafile.Rm)
+        print(datafile.Ra)
+        print(datafile.Cm)
+        print(datafile.amp_resp1)
+
 
         try:
             if bis:
@@ -85,7 +96,6 @@ def analyse_datafiles(datafiles, data_list, files_id, bis=False, PDF=False, Exce
                             'Decay time 50% (ms)': datafile.decay_time,
                             'Group': datafile.infos['Euthanize method']}
 
-            
             data_list.append(data_dict)
 
             if PDF==True:
@@ -112,7 +122,8 @@ def create_pdf(datafile, bis):
     try:
             pdf = PdfPage(debug=False)
             pdf.fill_PDF(datafile, debug=False, bis=bis)
-            plt.savefig(f'C:/Users/laura.gonzalez/Output_expe/ratio/Ratio_PDFs/{datafile.filename}.pdf')  #plt.savefig(f'C:/Users/LauraGonzalez/Output_expe/Ratio_PDFs/{datafile.filename}.pdf') #laptop
+            #plt.savefig(f'C:/Users/laura.gonzalez/Output_expe/ratio/Ratio_PDFs/{datafile.filename}.pdf')  #plt.savefig(f'C:/Users/LauraGonzalez/Output_expe/Ratio_PDFs/{datafile.filename}.pdf') #laptop
+            plt.savefig(f'C:/Users/sofia/Output_expe/ratio/Ratio_PDFs/{datafile.filename}.pdf')
             print("Individual PDF File saved successfully :", datafile.filename, '\n')
 
     except Exception as e:
@@ -124,9 +135,11 @@ def create_excel(data_list, bis=False):
         print("data for individual results excel : ", data_for_excel)
         # Create a Pandas Excel writer using openpyxl as the engine  
         if bis:
-            path = 'C:/Users/laura.gonzalez/Output_expe/ratio/ratio_prog_bis.xlsx'
+            #path = 'C:/Users/laura.gonzalez/Output_expe/ratio/ratio_prog_bis.xlsx'
+            path = 'C:/Users/sofia/Output_expe/ratio/ratio_prog_bis.xlsx'
         else:
-            path = 'C:/Users/laura.gonzalez/Output_expe/ratio/ratio_prog.xlsx'
+            #path = 'C:/Users/laura.gonzalez/Output_expe/ratio/ratio_prog.xlsx'
+            path = 'C:/Users/sofia/Output_expe/ratio/ratio_prog.xlsx'
         
         with pd.ExcelWriter(path, engine='openpyxl') as writer: #with pd.ExcelWriter('C:/Users/LauraGonzalez/Output_expe/ratio_prog.xlsx', engine='openpyxl') as writer:
             data_for_excel.to_excel(writer, sheet_name='Data analysis', index=False)
@@ -145,28 +158,32 @@ def create_excel(data_list, bis=False):
 
 def create_final_excel(datafiles, files_id):
     try:
-
+        print("a")
         Ampa1amp, Ampa_rise, Ampa_decay, Ampa2amp  = [],[],[],[]
         Nmda1amp, Nmda_rise, Nmda_decay, Nmda2amp  = [],[],[],[]
         Ratio1, Ratio2 = [], []
         Group,  Group_sh = [], []
 
         for datafile in datafiles:
+            print("a1")
             type = datafile.infos['Type']
             Group.append(datafile.infos['Euthanize method'])
-
+            print("a2")
+            print(type)
             if type == 'AMPA' :
                 Ampa1amp.append(round(datafile.amp_resp1*(-1)*1000, 2))
                 Ampa_rise.append(datafile.rise_time)
                 Ampa_decay.append(datafile.decay_time)
                 Ampa2amp.append(round(datafile.amp_resp2*(-1)*1000, 2))
-                
+                print("a3")    
             elif type == 'NMDA' :
                 Nmda1amp.append(round(datafile.amp_resp1*1000, 2))
                 Nmda_rise.append(datafile.rise_time)
                 Nmda_decay.append(datafile.decay_time)
                 Nmda2amp.append(round(datafile.amp_resp2*1000, 2))
-                
+                print("a3bis")
+
+        print("b")        
             
         data = {'Files_ID'   : files_id,
                 "1 AMPA Amplitude (pA)":Ampa1amp , 
@@ -180,23 +197,24 @@ def create_final_excel(datafiles, files_id):
                 "1 NMDA/AMPA": None, 
                 "2 NMDA/AMPA": None,
                 "Group": None}
-        
+        print("c")
         for j in range(len(files_id)):
             Group_sh.append(Group[j])
             j+=2
-        
+        print("d")
         for i in range(len(files_id)):
             Ratio1.append(data["1 NMDA Amplitude (pA)"][i]/data["1 AMPA Amplitude (pA)"][i])
             Ratio2.append(data["2 NMDA Amplitude (pA)"][i]/data["2 AMPA Amplitude (pA)"][i])
-
+        print("e")
         data["1 NMDA/AMPA"] = Ratio1
         data["2 NMDA/AMPA"] = Ratio2
         data["Group"] = Group_sh
-
+        print("f")
         data_for_excel = pd.DataFrame(data)
 
-        with pd.ExcelWriter('C:/Users/laura.gonzalez/Output_expe/ratio/final_ratio.xlsx', engine='openpyxl') as writer:
-            
+        #with pd.ExcelWriter('C:/Users/laura.gonzalez/Output_expe/ratio/final_ratio.xlsx', engine='openpyxl') as writer:
+        with pd.ExcelWriter('C:/Users/sofia/Output_expe/ratio/final_excel.xlsx', engine='openpyxl') as writer:
+            print("g")
             data_for_excel.to_excel(writer, sheet_name='Data analysis', index=False)
             # Access the workbook and the sheets
             workbook  = writer.book
@@ -207,21 +225,29 @@ def create_final_excel(datafiles, files_id):
                 column_length = max(data_for_excel[column].astype(str).map(len).max(), len(column))
                 col_idx = data_for_excel.columns.get_loc(column)
                 worksheet.column_dimensions[openpyxl.utils.get_column_letter(col_idx + 1)].width = column_length
-        print("Excel 2 file saved successfully.")
+            print("h")
+        print("Final Excel file saved successfully.")
     except Exception as e:
-        print(f"ERROR when saving the file to excel2 : {e}")
+        print(f"ERROR when saving the file to final excel : {e}")
 
 def create_final_barplots(bis=False):
-    manual_results_path = 'C:/Users/laura.gonzalez/Output_expe/ratio/ratio_results_.xlsx'
-    automatic_results_path = 'C:/Users/laura.gonzalez/Output_expe/ratio/final_ratio.xlsx' #compare with IGOR results
-    metrics = ["1 AMPA Amplitude (pA)", "1 AMPA rise time (10-90%)", "1 AMPA decay time (50%)", "2 AMPA Amplitude (pA)",
-            "1 NMDA Amplitude (pA)", "1 NMDA rise time (10-90%)", "1 NMDA decay time (50%)", "2 NMDA Amplitude (pA)",
-            "1 NMDA/AMPA", "2 NMDA/AMPA"]  
-    #plot_barplots(manual_results_path, metrics)
-    #plt.savefig(f'C:/Users/laura.gonzalez/Output_expe/Ratio_PDFs/manual_barplots.pdf')
-    
-    plot_barplots(automatic_results_path, metrics) #PC  #plot_barplots('C:/Users/LauraGonzalez/Output_expe/ratio_results_.xlsx', metrics) #laptop
-    plt.savefig(f'C:/Users/laura.gonzalez/Output_expe/ratio/Ratio_PDFs/auto_barplots.pdf')
+    try:
+        manual_results_path = 'C:/Users/sofia/Output_expe/ratio/ratio_results_.xlsx'   #LauraGonzalez in lab laptop, #laura.gonzalez in PC
+        #automatic_results_path = 'C:/Users/laura.gonzalez/Output_expe/ratio/final_ratio.xlsx' #compare with IGOR results
+        automatic_results_path = 'C:/Users/sofia/Output_expe/ratio/final_ratio.xlsx' #compare with IGOR results
+
+        metrics = ["1 AMPA Amplitude (pA)", "1 AMPA rise time (10-90%)", "1 AMPA decay time (50%)", "2 AMPA Amplitude (pA)",
+                "1 NMDA Amplitude (pA)", "1 NMDA rise time (10-90%)", "1 NMDA decay time (50%)", "2 NMDA Amplitude (pA)",
+                "1 NMDA/AMPA", "2 NMDA/AMPA"]  
+        #plot_barplots(manual_results_path, metrics)
+        #plt.savefig(f'C:/Users/laura.gonzalez/Output_expe/Ratio_PDFs/manual_barplots.pdf')
+        #plt.savefig(f'C:/Users/sofia/Output_expe/Ratio_PDFs/manual_barplots.pdf')
+        
+        plot_barplots(automatic_results_path, metrics) #PC  #plot_barplots('C:/Users/LauraGonzalez/Output_expe/ratio_results_.xlsx', metrics) #laptop
+        #plt.savefig(f'C:/Users/laura.gonzalez/Output_expe/ratio/Ratio_PDFs/auto_barplots.pdf')
+        plt.savefig(f'C:/Users/sofia/Output_expe/ratio/Ratio_PDFs/auto_barplots.pdf')
+    except Exception as e:
+        print(f"Error saving the barplots : {e}")
     return 0
 
 def plot_barplots(file_path, metrics):
@@ -285,18 +311,25 @@ def plot_barplots(file_path, metrics):
     plt.tight_layout()
     #plt.show()
 
+    return 0
+
 ###### MAIN ######################################################
 
 if __name__=='__main__':
-
-    bis=False #if true, 2nd version of AMPA NMDA ratio is calculated
+    debug = True
+    bis   = False #if true, 2nd version of AMPA NMDA ratio is calculated
 
     if bis: 
-        files_directory = 'C:/Users/laura.gonzalez/DATA/Ratio_experiment/RAW_DATA_AMPA_NMDA_RATIO-bis'
-        meta_info_directory = 'C:/Users/laura.gonzalez/DATA/Ratio_experiment/Files-bis.csv'
+        #files_directory = 'C:/Users/laura.gonzalez/DATA/Ratio_experiment/RAW_DATA_AMPA_NMDA_RATIO-bis'
+        #meta_info_directory = 'C:/Users/laura.gonzalez/DATA/Ratio_experiment/Files-bis.csv'
+        files_directory = 'C:/Users/sofia/DATA/In_Vitro_experiments/Ratio_experiment/RAW_DATA_AMPA_NMDA_RATIO-bis'
+        meta_info_directory = 'C:/Users/sofia/DATA/In_Vitro_experiments/Ratio_experiment/Files-bis.csv'
+
     else:
-        files_directory = 'C:/Users/laura.gonzalez/DATA/Ratio_experiment/RAW_DATA_AMPA_NMDA_RATIO'  #PC   #files_directory = 'C:/Users/LauraGonzalez/DATA/Ratio_experiment/RAW_DATA_AMPA_NMDA_RATIO-q' #laptop
-        meta_info_directory = 'C:/Users/laura.gonzalez/DATA/Ratio_experiment/Files.csv'
+        #files_directory = 'C:/Users/laura.gonzalez/DATA/Ratio_experiment/RAW_DATA_AMPA_NMDA_RATIO'  #PC   #files_directory = 'C:/Users/LauraGonzalez/DATA/Ratio_experiment/RAW_DATA_AMPA_NMDA_RATIO-q' #laptop
+        #meta_info_directory = 'C:/Users/laura.gonzalez/DATA/Ratio_experiment/Files.csv'
+        files_directory = 'C:/Users/sofia/DATA/In_Vitro_experiments/Ratio_experiment/RAW_DATA_AMPA_NMDA_RATIO'  #PC   #files_directory = 'C:/Users/LauraGonzalez/DATA/Ratio_experiment/RAW_DATA_AMPA_NMDA_RATIO-q' #laptop
+        meta_info_directory = 'C:/Users/sofia/DATA/In_Vitro_experiments/Ratio_experiment/Files.csv'
         
     files = find_nm_files(files_directory)
     info_df = get_meta_info(meta_info_directory)
@@ -309,6 +342,7 @@ if __name__=='__main__':
     analyse_datafiles(datafiles, 
                       data_list, 
                       files_id, 
+                      debug=debug,
                       bis=bis, 
                       PDF=True, 
                       Excel1=True, 
