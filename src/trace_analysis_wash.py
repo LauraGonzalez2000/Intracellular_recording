@@ -6,7 +6,7 @@ from scipy.signal import butter, lfilter
 import pandas as pd
 import os
 
-meta_info_directory = "Files-SST.csv"
+meta_info_directory = "Files.csv"
 base_path = os.path.join(os.path.expanduser('~'), 'DATA', 'In_Vitro_experiments','Washout_experiment') #keep this aborescence if program used in other computers
 meta_info_directory = os.path.join(base_path, meta_info_directory)
 
@@ -21,7 +21,7 @@ class DataFile_washout:
         self.stim = {}
         self.recordings = None
         self.recordings_f = None
-        self.load_data()
+        self.load_data() #ok
         self.get_recordings()
         self.get_diffs()
         self.correct_diffs()
@@ -88,7 +88,8 @@ class DataFile_washout:
         diffs_c = []
         i=0
         for diff in self.diffs:
-            diffs_c.append(diff-noises[i])
+            diff_c = max(0.0, diff-noises[i])  #force positive number
+            diffs_c.append(diff_c)
             i+=1
         self.corr_diffs = diffs_c
         return diffs_c
