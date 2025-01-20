@@ -117,8 +117,8 @@ class PdfPage:
             elif key=='Id (nA)':  #peak membrane test
                 Ids = datafile.get_Ids()
                 Ids_m, Ids_std = datafile.get_batches(Ids)
-                print(Ids_m)
-                print(datafile.infos['Group'])
+                #print(Ids_m)
+                #print(datafile.infos['Group'])
                 self.AXs[key].plot(Ids_m, marker="o", linewidth=0.5, markersize=2, color=colors[datafile.infos['Group']])
                 self.AXs[key].errorbar(range(len(Ids_m)), Ids_m, yerr=Ids_std, linestyle='None', marker='_', color=colors[datafile.infos['Group']], capsize=3, linewidth = 0.5)
                 if len(Ids_m)> 50:
@@ -353,7 +353,7 @@ class PdfPage:
             elif key == 'barplot':
                 # Extract data
                 keys = list(barplot.keys())
-                means = [barplot[key]['mean'] for key in keys]
+                means = [np.mean(barplot[key]['mean']) for key in keys]
                 sem_values = [barplot[key]['sem'] for key in keys]
 
                 # Create the bar plot
@@ -363,10 +363,10 @@ class PdfPage:
 
                 # Add scatter points for individual values
                 for i, key_name in enumerate(keys):
-                    if barplot[key_name]['values'] is not None:
-                        scatter_x = np.full_like(barplot[key_name]['values'], fill_value=i, dtype=float)  # Align with bar index
+                    if barplot[key_name]['mean'] is not None:
+                        scatter_x = np.full_like(barplot[key_name]['mean'], fill_value=i, dtype=float)  # Align with bar index
                         scatter_x += (np.random.rand(len(scatter_x)) - 0.5) * 0.2  # Add small jitter for clarity
-                        scatter_y = barplot[key_name]['values']
+                        scatter_y = barplot[key_name]['mean']
                         self.AXs[key].scatter(scatter_x, scatter_y, color='black', s=10, alpha=0.7)
 
                 # Customize axes
@@ -443,17 +443,21 @@ class PdfPage:
 
                 # Iterate through time periods and drug types for bar plot
                 for i, time in enumerate(time_periods):
-                    mean_values = [final_barplot[time][drug]['mean'] for drug in drug_types]
-                    sem_values = [final_barplot[time][drug]['sem'] for drug in drug_types]
+                    mean_values = [np.mean(final_barplot[time][drug]['mean']) for drug in drug_types]
+                    sem_values = [np.std(final_barplot[time][drug]['mean'])/np.sqrt(len(final_barplot[time][drug]['mean'])) for drug in drug_types]
+                    #sem_values = [np.mean(final_barplot[time][drug]['sem']) for drug in drug_types]
+                    print("mean values \n", mean_values)
+                    print("sem values \n", sem_values)
                     for j, drug in enumerate(drug_types):
                         position = x[j] + i * (width + spacing)
                         self.AXs[key].bar(position, mean_values[j], width, yerr=sem_values[j], color=colors[drug], label=time if j == 0 else "", capsize=5)
                         ticks.append(position)
+
                         # Overlay scatter points for individual values
-                        if final_barplot[time][drug]['values'] is not None:
-                            scatter_x = np.full_like(final_barplot[time][drug]['values'], fill_value=position, dtype=float)
+                        if final_barplot[time][drug]['mean'] is not None:
+                            scatter_x = np.full_like(np.mean(final_barplot[time][drug]['values'], axis=1), fill_value=position, dtype=float)
                             scatter_x += (np.random.rand(len(scatter_x)) - 0.5) * width * 0.5  # Add small jitter
-                            scatter_y = final_barplot[time][drug]['values']
+                            scatter_y = np.mean(final_barplot[time][drug]['values'], axis=1)
                             self.AXs[key].scatter(scatter_x, scatter_y, color='black', s=10, alpha=0.7)
 
                 self.AXs[key].set_ylabel("Normalized NMDAR-eEPSCs (%) (± SEM)")

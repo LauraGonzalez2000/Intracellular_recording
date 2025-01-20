@@ -213,7 +213,7 @@ class DataFile_washout:
 
         if self.infos['Group'] == 'APV' or self.infos['Group']=='KETA' or self.infos['Group']=='MEMANTINE': 
             baseline_diffs_m = np.mean(batches_diffs_m[(round(float(self.infos["Infusion start"]))-4):round(float(self.infos["Infusion start"]))+1])
-            print("baseline_diffs_m ", baseline_diffs_m) 
+            #print("baseline_diffs_m ", baseline_diffs_m) 
             #baseline_diffs_m = np.mean(batches_diffs_m[(int(self.infos["Infusion start"])-5):int(self.infos["Infusion start"])]) 
             #print("took last 5 minutes before infusion. Should always be the case for this protocol when there is infusion")
             #print("mean last 5 min", baseline_diffs_m)
