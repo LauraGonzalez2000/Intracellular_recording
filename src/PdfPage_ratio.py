@@ -1,6 +1,7 @@
 import matplotlib.pylab as plt
 import Curve_fit as cf
 import numpy as np
+import pandas as pd
 
 class PdfPage:
 
@@ -164,9 +165,9 @@ class PdfPage:
                 self.AXs[key].set_xlabel("time (ms)")
                 self.AXs[key].annotate("current (A)", (-0.12, 0.4), xycoords='axes fraction', rotation=90)
                 time_stim = time[55000:80000]
-                resp_stim = datafile.avg_response[55000:80000]
-                stim1, _, stim2, _ = datafile.get_boundaries()
-                artefact_cond = ((time_stim>stim1) & (time_stim<stim1+1)) | ((time_stim>stim2) & (time_stim<stim2+1))
+                resp_stim = datafile.smooth_avg_response[55000:80000]
+                stim1, stim2 = 600, 700
+                artefact_cond = ((time_stim>stim1-1) & (time_stim<stim1+1)) | ((time_stim>stim2-1) & (time_stim<stim2+1))
                 self.AXs[key].plot(time_stim[~artefact_cond], resp_stim[~artefact_cond])  
 
                 amp_resp1 = datafile.amp_resp1
@@ -186,7 +187,72 @@ class PdfPage:
                        # f"Decay time : {decay_time:.2f} ms \n")
 
                 self.AXs[key].annotate(txt,(0.65, 0.3), va='top', xycoords='axes fraction')
+
+    def fill_PDF_barplots(self, file_path, metrics):
+        # Read the Excel file into a DataFrame
+            
+        IGOR_results_df = pd.read_excel(file_path, header=0)
+        #print(IGOR_results_df)
         
+        # Group labels
+        labels = ['xyla eutha', 'Ketaxyla' , 'keta xyla eutha']
+        group_queries = ["Group=='xyla euthasol'", "Group=='ketaxyla'",  "Group=='keta xyla euthasol'"]
+        colors = ['grey',  'orange',  'purple']
+        
+        # Number of plots based on the number of metrics
+        num_metrics = len(metrics)
+        
+        # Set up the figure and subplots
+        fig, axes = plt.subplots(3, 4, figsize=(14, 16))
+        axes = axes.flatten()
+        
+        #plt.subplots(1, num_metrics, figsize=(10 * num_metrics, 6), sharey=False)
+        
+        # Ensure axes is always a list (in case there's only one metric)
+        if num_metrics == 1:
+            axes = [axes]
+        
+        # Loop through each metric and plot
+        for idx, metric in enumerate(metrics):
+            means = []
+            sems = []
+            individual_data = []
+            
+            # Collect data for each group
+            for query in group_queries:
+                df_temp = IGOR_results_df.query(query)[metric]
+                means.append(df_temp.mean())
+                sems.append(df_temp.sem())
+                individual_data.append(df_temp)
+            
+            # Bar plot with error bars
+            bar_positions = np.arange(len(labels))
+            axes[idx].bar(bar_positions, means, yerr=sems, color=colors, width=0.6, capsize=5, alpha=0.6, label='Mean ± SEM')
+            
+            # Plot individual data points
+            for i, df in enumerate(individual_data):
+                axes[idx].scatter(np.full(df.shape, bar_positions[i]), df, color='black', zorder=5)
+            
+            axes[idx].spines['top'].set_visible(False)
+            axes[idx].spines['right'].set_visible(False)
+            
+            # Add title and labels to each subplot
+            axes[idx].set_title(f'{metric}')
+            axes[idx].set_xticks(bar_positions)
+            axes[idx].set_xticklabels(labels)
+            #axes[idx].set_ylabel('Amplitude (pA)')
+
+        # Delete any remaining unused subplots (if any)
+        for idx in range(num_metrics, len(axes)):
+            fig.delaxes(axes[idx])
+        
+        # Adjust layout to prevent overlap
+        plt.tight_layout()
+        #plt.show()
+        return 0
+
+
+
 if __name__=='__main__':
     from trace_analysis_ratio import DataFile
     datafile = DataFile('D:/Internship_Rebola_ICM/DATA_TO_ANALYSE/nm28May2024c1/nm28May2024c1_001.pxp')

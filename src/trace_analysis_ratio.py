@@ -2,6 +2,7 @@ import numpy as np
 import pandas as pd
 import Curve_fit as cf
 from igor2.packed import load as loadpxp
+from scipy.ndimage import gaussian_filter1d
 
 class DataFile:
     #Constructor
@@ -16,21 +17,11 @@ class DataFile:
         self.load_data()
         self.get_recordings()
         self.get_average_recordings_aligned()
+        self.smooth_gauss_avg()
         self.fill_infos(info_df)
         self.fill_stim()
         self.get_time()
         
-
-    def calc_values(self, bis=False):
-        self.get_mem_values(self.avg_response, self.time)
-        if self.infos['Type']=='AMPA':
-            self.analyse_neg_peak()
-        elif self.infos['Type']=='NMDA':
-            self.analyse_pos_peak()
-        elif self.infos['Type']=='AMPA,NMDA':
-            self.analyse_pos_peak(bis)   
-        return 0
-
 
     #Methods to extract data
     def load_data(self):
@@ -45,10 +36,50 @@ class DataFile:
 
         return self.pxp
 
+    def get_recordings(self):
+        try:
+            DATA = []
+            i = 0
+            while True:
+                key = b'RecordA%i' % i
+                if key in self.pxp[1]['root']:
+                    DATA.append(self.pxp[1]['root'][key].wave['wave']['wData'])
+                    i += 1
+                else:
+                    break
+            self.response = np.array(DATA)
+            print('OK Recordings were loaded')
+            return self.response
+        except Exception as e:
+            print(f'Recordings were not loaded: {e}')
+            return -1
+
+    def get_average_recordings_aligned(self):
+        try:
+            avg_data = np.mean(self.response, axis=0)
+            avg_baseline = np.mean(avg_data[0:50])
+            average_data_aligned = avg_data - avg_baseline
+            self.avg_response = average_data_aligned
+            print("OK average_recordings_aligned found")
+        except: 
+            print("Error method get_average_recordings_aligned(self)")
+            return -1
+        return average_data_aligned
+    
+    def smooth_gauss_avg(self, sigma=4):
+        try: 
+            smooth_avg = gaussian_filter1d(self.avg_response, sigma)
+            self.smooth_avg_response = smooth_avg
+            print("OK smoothing of average_recordings_aligned")
+        except Exception as e:
+            print(f'Error with smoothing {e}')
+        return smooth_avg
+    
+
+
     def fill_infos(self, info_df):
         try:
            
-
             meta_info_df = info_df.loc[info_df['Files'] == self.filename]
 
             if len(meta_info_df) != 1:
@@ -84,45 +115,6 @@ class DataFile:
                 print("OK stimulation traces found")
             except Exception as e:
                 print(f"stimulation parameters not found : {e}")
-        
-    #Trace analysis
-    def get_recordings(self):
-        try:
-            DATA = []
-            i = 0
-            while True:
-                key = b'RecordA%i' % i
-                if key in self.pxp[1]['root']:
-                    DATA.append(self.pxp[1]['root'][key].wave['wave']['wData'])
-                    i += 1
-                else:
-                    break
-            self.response = np.array(DATA)
-            print('OK Recordings were loaded')
-            return self.response
-        except Exception as e:
-            print(f'Recordings were not loaded: {e}')
-            return -1
-
-    def get_average_recordings_aligned(self):
-        try:
-            avg_data = np.mean(self.response, axis=0)
-            avg_baseline = np.mean(avg_data[0:50])
-            average_data_aligned = avg_data - avg_baseline
-            self.avg_response = average_data_aligned
-            print("OK average_recordings_aligned found")
-        except: 
-            print("Error method get_average_recordings_aligned(self)")
-            return -1
-        return average_data_aligned
-
-    def get_baselines(self):
-        averages_baselines = []
-        for recording in self.response: 
-            recording_baseline = recording[0:50]
-            average_baseline = np.mean(recording_baseline)
-            averages_baselines.append(average_baseline)
-        return averages_baselines
 
     def get_time(self, timestep_ = 0.01, datapoints_ = 100000): 
         try:
@@ -139,6 +131,17 @@ class DataFile:
             print("Error getting time scale, by default 0-2000 ms with 0.01 timestep")
             self.time=time_
             return time_
+  
+
+    #Methods to analyse data
+ 
+    def get_baselines(self):
+        averages_baselines = []
+        for recording in self.response: 
+            recording_baseline = recording[0:50]
+            average_baseline = np.mean(recording_baseline)
+            averages_baselines.append(average_baseline)
+        return averages_baselines
 
     def get_boundaries(self): #to FIX
         return 600, 699, 700, 799
@@ -203,33 +206,20 @@ class DataFile:
         
         #print(Id_list)
         return Id_list, Ra_list, Rm_list, Cm_list
-        '''
-    def get_resp_nature(self):
-
-        min = np.min(self.avg_response[60100:69900])
-        max = np.max(self.avg_response[60100:69900])
-        #print("min :", min)
-        #print("max :", max)
-        diff = max+min
-        #print("diff :", diff)
-
-        if diff == 0 : #arrange
-            print("Error : no peak")
-            
-        elif diff < 0 :  #negative peak
-            print("negative peak ")
-            self.type = True
-            
-        elif diff > 0 :  #positive peak
-            print("positive peak ")
-            self.type = False
-        
-        #print("Negative peak : ", self.type)
-        return self.type
-        '''
+             
+    def calc_values(self, bis=False):
+        self.get_mem_values(self.avg_response, self.time)
+        #print("calc_values ", self.infos['Type'])
+        if self.infos['Type']=='AMPA':
+            self.analyse_neg_peak()
+        elif self.infos['Type']=='NMDA':
+            self.analyse_pos_peak()
+        elif self.infos['Type']=='AMPA,NMDA':
+            self.analyse_pos_peak(bis)   
+        return 0
 
     def analyse_neg_peak(self):
-        print("neg called")
+        #print("neg called")
         peak = "negative"
         
         start, stop, start2, stop2 = self.get_boundaries()
@@ -245,12 +235,12 @@ class DataFile:
 
         #100500
         #print("values where to look for min ", self.avg_response[start_:stop_])
-        amp_resp1 = np.min(self.avg_response[start_:stop_])  ## stimulation at 100 000th datapoint aka 1 000 ms
+        amp_resp1 = np.min(self.smooth_avg_response[start_:stop_])  ## stimulation at 100 000th datapoint aka 1 000 ms
         #print("min found : ", amp_resp1)
-        time_peak_resp1 = np.argmin(self.avg_response[start_:stop_])
+        time_peak_resp1 = np.argmin(self.smooth_avg_response[start_:stop_])
         #print(time_peak_resp1)
         #105500
-        amp_resp2 = np.min(self.avg_response[start2_:stop2_])  ## stimulation at 105 000th datapoint aka 1 050 ms
+        amp_resp2 = np.min(self.smooth_avg_response[start2_:stop2_])  ## stimulation at 105 000th datapoint aka 1 050 ms
 
         '''
         amp_resp1 = np.min(average_data_aligned[100100:100500])  ## stimulation at 100 000th datapoint aka 1 000 ms
@@ -266,7 +256,7 @@ class DataFile:
         bound1 = 0.1 * amp_resp1
         bound2 = 0.9 * amp_resp1
         
-        range = self.avg_response[start_:stop_]
+        range = self.smooth_avg_response[start_:stop_]
         
         i = 600.4
         j = 600.4
@@ -289,10 +279,11 @@ class DataFile:
         ##decay time 50%
         
         bound = 0.5 * amp_resp1
-        range = self.avg_response[start_ + time_peak_resp1 :stop_]
+        range = self.smooth_avg_response[start_ + time_peak_resp1 : stop_]
         
         k = 601.70 
         time = 0
+
         for value in range : 
             if value > bound:
                 time = k
@@ -308,17 +299,19 @@ class DataFile:
         print("Rise_time 10-90% : ", rise_time, "ms.")
         print("Decay time 50% : ", decay_time, " ms.")
         '''
+        
         self.amp_resp1 = amp_resp1
         self.amp_resp2 = amp_resp2
         self.PPR = PPR
         self.rise_time = rise_time
         self.decay_time = decay_time
 
+
         return peak, amp_resp1, amp_resp2, PPR, rise_time, decay_time
 
     def analyse_pos_peak(self, bis=False):
         
-        print("pos called")
+        #print("pos called")
         peak = "positive"
         #data = get_data(path)
         #average_data = get_average_recordings(get_recordings(data))
@@ -335,9 +328,9 @@ class DataFile:
         #print("start_ : ", start_, "stop_ : ", stop_)
         #print("len ",len(self.avg_response))
         #print("values where to look for maximum ",self.avg_response[start_:stop_])
-        amp_resp1 = np.max(self.avg_response[start_:stop_])  ## stimulation at 100 000th datapoint aka 1 000 ms   #changed to max
+        amp_resp1 = np.max(self.smooth_avg_response[start_:stop_])  ## stimulation at 100 000th datapoint aka 1 000 ms   #changed to max
         #print("max found : ", amp_resp1)
-        index_peak_resp1 = np.argmax(self.avg_response[start_:stop_])  
+        index_peak_resp1 = np.argmax(self.smooth_avg_response[start_:stop_])  
         time_peak_resp1 = (start_ + index_peak_resp1)/100
         
         #print(index_peak_resp1)
@@ -345,9 +338,9 @@ class DataFile:
         #print("time peak response 1: ", time_peak_resp1)
         
         if bis==False:
-            amp_resp2 = np.max(self.avg_response[start2_:stop2_])  ## stimulation at 105 000th datapoint aka 1 050 ms   #changed to max
+            amp_resp2 = np.max(self.smooth_avg_response[start2_:stop2_])  ## stimulation at 105 000th datapoint aka 1 050 ms   #changed to max
         elif bis==True:
-            amp_resp2 = np.mean(self.avg_response[start_+5990:start_+6090])  ## stimulation 60 ms after
+            amp_resp2 = np.mean(self.smooth_avg_response[start_+5990:start_+6090])  ## stimulation 60 ms after
 
         PPR = amp_resp2/amp_resp1
         #####################################################################
@@ -357,7 +350,7 @@ class DataFile:
         bound1 = 0.1 * amp_resp1
         bound2 = 0.9 * amp_resp1
         
-        range = self.avg_response[start_:stop_]  #generalize boundaries
+        range = self.smooth_avg_response[start_:stop_]  #generalize boundaries
         
         l = 600.4  #generalize
         m = 600.4  #generalize
@@ -385,7 +378,7 @@ class DataFile:
         ##decay time 50%
         
         bound = 0.5 * amp_resp1
-        range = self.avg_response[int(time_peak_resp1*100) :stop_] #generalize boundaries
+        range = self.smooth_avg_response[int(time_peak_resp1*100) :stop_] #generalize boundaries
         
         #print(start_)
         #print(start_ + index_peak_resp1)
@@ -425,9 +418,7 @@ class DataFile:
         self.PPR = PPR
         self.rise_time = rise_time
         self.decay_time = decay_time
-        
-        
-        
+
         return peak, amp_resp1, amp_resp2, PPR, rise_time, decay_time
        
 
