@@ -279,7 +279,7 @@ def create_individual_pdf(datafiles, wash= 'all', debug=False):
         try:
             pdf = PdfPage(PDF_sheet = 'individual', debug=debug )
             pdf.fill_PDF(datafile, wash= wash, debug=debug)
-            plt.savefig(f'C:/Users/sofia/Output_expe/washout/Washout_PDFs/{datafile.filename}.pdf')
+            plt.savefig(f'C:/Users/sofia/Output_expe/In_Vitro/washout/Washout_PDFs/{datafile.filename}.pdf')
             print("OK File saved successfully \n")
         except Exception as e:
             print(f"Error analysing this file : {e}")      
@@ -295,7 +295,7 @@ def create_group_pdf(datafiles_group, label, filename, debug=False):
             print("dict :\n" , dict)
             print("barplot :\n", barplot2)
         pdf.fill_PDF_merge(num_files = len(datafiles_group), group = label, my_list = dict, barplot = barplot2)
-        plt.savefig(f'C:/Users/sofia/Output_expe/washout/Washout_PDFs/{filename}.pdf') #PC
+        plt.savefig(f'C:/Users/sofia/Output_expe/In_Vitro/washout/Washout_PDFs/{filename}.pdf') #PC
         print(f"{label} PDF saved \n")
 
     except Exception as e:
@@ -305,7 +305,7 @@ def create_group_pdf(datafiles_group, label, filename, debug=False):
 def create_final_results_pdf(final_dict, final_barplot, final_num_files, concentration, colors, GROUPS, final_barplot2, debug=False):
     pdf = PdfPage(PDF_sheet = 'final', debug=debug )
     pdf.fill_final_results(final_dict, final_barplot, final_num_files, concentration, colors, GROUPS, final_barplot2)
-    plt.savefig(f'C:/Users/sofia/Output_expe/washout/Washout_PDFs/final_results.pdf') #PC #plt.savefig(f'C:/Users/LauraGonzalez/Output_expe/Washout_PDFs/final_results.pdf') #in laptop
+    plt.savefig(f'C:/Users/sofia/Output_expe/In_Vitro/washout/Washout_PDFs/final_results.pdf') #PC #plt.savefig(f'C:/Users/LauraGonzalez/Output_expe/Washout_PDFs/final_results.pdf') #in laptop
     print('final results figure saved')
     return 0
 
