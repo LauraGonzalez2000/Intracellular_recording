@@ -103,46 +103,83 @@ class PdfPage:
             ax.set_title(title, loc='left', pad=2, fontsize=10)
         return ax
 
-    def fill_PDF(self, datafile, wash= 'all', debug=False): 
-
-        colors = {'KETA': 'purple', 'APV': 'orange', 'control': 'grey', 'MEMANTINE': 'gold'}
+    def fill_PDF(self, datafile, GROUPS, wash= 'all', debug=False): 
 
         for key in self.AXs:
             
-           
-            if key=='Notes': ##includes metadata         
-                txt = f"ID file data: {datafile.filename}\nNumber of sweeps: {len(datafile.recordings)}\nEuthanize method: {datafile.infos['Euthanize method']}\nHolding:{datafile.infos['Holding (mV)']}\nInfusion:{datafile.infos['Infusion substance']}\nInfusion concentration:{datafile.infos['Infusion concentration']}\nInfusion start:{datafile.infos['Infusion start']}\nInfusion end:{datafile.infos['Infusion end']}\n"
+            if key=='Notes': ##includes metadata   
+                if debug: 
+                    print("Start ", key)   
+                txt = ( f"ID file data: {datafile.filename}\n"
+                        f"Number of sweeps: {len(datafile.recordings)}\n"
+                        f"Euthanize method: {datafile.infos['Euthanize method']}\n"
+                        f"Holding: {datafile.infos['Holding (mV)']}\n"
+                        f"Infusion: {datafile.infos['Infusion substance']}\n"
+                        f"Infusion concentration: {datafile.infos['Infusion concentration']}\n"
+                        f"Infusion start: {datafile.infos['Infusion start']}\n"
+                        f"Infusion end: {datafile.infos['Infusion end']}\n") 
                 self.AXs[key].annotate(txt,(0, 1), va='top', xycoords='axes fraction')
-              
+                if debug: 
+                    print("End ", key)   
+
             elif key=='Id (nA)':  #peak membrane test
+                if debug: 
+                    print("Start ", key)
                 Ids = datafile.get_Ids()
                 Ids_m, Ids_std = datafile.get_batches(Ids)
-                #print(Ids_m)
-                #print(datafile.infos['Group'])
-                self.AXs[key].plot(Ids_m, marker="o", linewidth=0.5, markersize=2, color=colors[datafile.infos['Group']])
-                self.AXs[key].errorbar(range(len(Ids_m)), Ids_m, yerr=Ids_std, linestyle='None', marker='_', color=colors[datafile.infos['Group']], capsize=3, linewidth = 0.5)
+                x_vals = range(len(Ids_m))
+                colors_for_points = ['firebrick' if y < 0.29 else GROUPS[datafile.infos['Group']]['color'] for y in Ids_m] 
+                
+                # Plot the main line connecting all points
+                self.AXs[key].plot(x_vals, Ids_m, color=GROUPS[datafile.infos['Group']]['color'], linewidth=0.5)
+                # Overlay individual points with their respective colors
+                for xval, Ids_m_value, Ids_std_value, color in zip(x_vals, Ids_m, Ids_std, colors_for_points):
+                    self.AXs[key].plot(xval, Ids_m_value, 
+                                       marker="o", markersize=2, color=color)
+                    self.AXs[key].errorbar(xval, Ids_m_value, yerr=Ids_std_value, 
+                                           linestyle='None', marker='None', color=color, 
+                                           capsize=3, linewidth = 0.5, capthick=0.5)   
                 if len(Ids_m)> 50:
                     self.AXs[key].set_xlim(-1, len(Ids_m))
                     self.AXs[key].set_xticks(np.arange(0, len(Ids_m)+1, 5))
                 else : 
                     self.AXs[key].set_xlim(-1, 50 )
                     self.AXs[key].set_xticks(np.arange(0, 51, 5))
-
                 self.AXs[key].set_ylabel("Acces (nA) \n(± Std)")
                 self.AXs[key].set_xlabel("time (min)")
-                self.AXs[key].axhline(0.29, color="firebrick", linestyle="-", linewidth=0.8)
-                
+
+                if any(id < 0.29 for id in Ids_m): 
+                    self.AXs[key].axhline(0.29, color="firebrick", linestyle="-", linewidth=0.8)
+
+                #self.AXs[key].axhline(0.29, color="firebrick", linestyle="-", linewidth=0.8) 
                 try:
                     self.AXs[key].axvspan(float(datafile.infos["Infusion start"]), float(datafile.infos["Infusion end"]), color='lightgrey')
                 except:
                     print("metadata not added correctly or no infusion")
+                if debug: 
+                    print("End ", key)
 
             elif key=='Leak (nA)':    #baseline 
+                if debug:
+                    print("Start ", key) 
+     
                 baselines = datafile.get_baselines()
                 baselines_m, baselines_std = datafile.get_batches(baselines)
-                self.AXs[key].plot(baselines_m, marker="o", linewidth=0.5, markersize=2, color= colors[datafile.infos['Group']])
-                self.AXs[key].errorbar(range(len(baselines_m)), baselines_m, yerr=baselines_std, linestyle='None', marker='_', color=colors[datafile.infos['Group']], capsize=3, linewidth = 0.5)
+                
+                x_vals = range(len(baselines_m))
+                colors_for_points = ['firebrick' if y < -0.7 else GROUPS[datafile.infos['Group']]['color'] for y in baselines_m]
 
+                # Plot the main line connecting all points
+                self.AXs[key].plot(x_vals, baselines_m, 
+                                   color=GROUPS[datafile.infos['Group']]['color'], linewidth=0.5)
+                # Overlay individual points with their respective colors
+                for xval, baselines_m_value, baselines_std_value, color in zip(x_vals, baselines_m, baselines_std, colors_for_points):
+                    self.AXs[key].plot(xval, baselines_m_value, 
+                                       marker="o", markersize=2, color=color)
+                    self.AXs[key].errorbar(xval, baselines_m_value, yerr=baselines_std_value, 
+                                           linestyle='None', marker='None', color=color, 
+                                           capsize=3, linewidth = 0.5, capthick=0.5)
+                   
                 if len(baselines_m)> 50:
                     self.AXs[key].set_xlim(-1, len(baselines_m))
                     self.AXs[key].set_xticks(np.arange(0, len(baselines_m)+1, 5))
@@ -160,12 +197,20 @@ class PdfPage:
                     self.AXs[key].axvspan(float(datafile.infos["Infusion start"]), float(datafile.infos["Infusion end"]), color='lightgrey')
                 except Exception as e:
                     print(f"metadata not added correctly - or no infusion {e}")
+                if debug: 
+                    print("End ", key)
             
-            elif key=='Difference_peak_baseline': #plot with noise   
+            elif key=='Difference_peak_baseline': #plot with noise    
+                if debug: 
+                    print("Start ", key)
                 batches_m, batches_std = datafile.get_batches(datafile.diffs) #with noise
                 #print("values for individual pdf", len(batches_m)) 
-                self.AXs[key].plot(batches_m, marker="o", linewidth=0.5, markersize=2, color= colors[datafile.infos['Group']], label='Response')
-                self.AXs[key].errorbar(range(len(batches_m)), batches_m, yerr=batches_std, linestyle='None', marker='_', color=colors[datafile.infos['Group']], capsize=3, linewidth = 0.5)
+                self.AXs[key].plot(batches_m, 
+                                   marker="o", linewidth=0.5, markersize=2, 
+                                   color= GROUPS[datafile.infos['Group']]['color'], label='Response')
+                self.AXs[key].errorbar(range(len(batches_m)), batches_m, yerr=batches_std, 
+                                       linestyle='None', marker='None', color=GROUPS[datafile.infos['Group']]['color'], 
+                                       capsize=3, linewidth = 0.5, capthick=0.5)
                 
                 if len(batches_m)> 50:
                     self.AXs[key].set_xlim(-1, len(batches_m))
@@ -173,7 +218,6 @@ class PdfPage:
                 else : 
                     self.AXs[key].set_xlim(-1, 50 )
                     self.AXs[key].set_xticks(np.arange(0, 51, 5))
-                
                 
                 self.AXs[key].set_ylabel("Difference \n peak-baseline (nA) (± Std)")
                 self.AXs[key].set_xlabel("time (min)")
@@ -183,22 +227,31 @@ class PdfPage:
                 noises = datafile.get_noises() 
                 noises_m, noises_std = datafile.get_batches(noises) 
                 self.AXs[key].plot(noises_m, marker="o", linewidth=0.5, markersize=2, label='noise', color='black')
-                self.AXs[key].errorbar(range(len(noises_m)), noises_m, yerr=noises_std, linestyle='None', marker='_', color='black', capsize=3, linewidth = 0.5)
+                self.AXs[key].errorbar(range(len(noises_m)), noises_m, yerr=noises_std, linestyle='None', marker='None', color='black', capsize=3, linewidth = 0.5, capthick=0.5)
                 self.AXs[key].legend()
                 try:
                     self.AXs[key].axvspan(float(datafile.infos["Infusion start"]), float(datafile.infos["Infusion end"]), color='lightgrey') 
                 except:
                     print("no infusion")
+                if debug: 
+                    print("End ", key)
 
             elif key=='RespAnalyzed':
-                #batches_diffs_m, batches_diffs_std = datafile.batches_correct_diffs() #noise is substracted
-                
-                batches_diffs_m, batches_diffs_std = datafile.batches_corr_diffs, np.std(datafile.batches_corr_diffs)
+                if debug: 
+                    print("Start ", key)
+                batches_diffs_m, batches_diffs_std = datafile.get_batches(datafile.corr_diffs)
+                if debug:
+                    print("batches_diffs_m ", batches_diffs_m)
+                    print("batches_diffs_std ", batches_diffs_std)
                 batches_diffs_m_norm, batches_diffs_std_norm =  datafile.normalize(batches_diffs_m, batches_diffs_std)
-                #print("test if 100 : ",np.mean(batches_diffs_m_norm[0:10]))
-                #print("test if 100 : ",np.mean(batches_diffs_m_norm[5:10]))
-                self.AXs[key].plot(batches_diffs_m_norm, marker="o", linewidth=0.5, markersize=2, color= colors[datafile.infos['Group']])
-                self.AXs[key].errorbar(range(len(batches_diffs_m_norm)), batches_diffs_m_norm, yerr=np.abs(batches_diffs_std_norm), linestyle='None', marker='_', color=colors[datafile.infos['Group']], capsize=3, linewidth = 0.5)
+                if debug:
+                    print("batches_diffs_m_norm ", batches_diffs_m_norm)
+                    print("batches_diffs_std_norm ", batches_diffs_std_norm)
+
+                self.AXs[key].plot(batches_diffs_m_norm, marker="o", linewidth=0.5, markersize=2, color= GROUPS[datafile.infos['Group']]['color'])
+                self.AXs[key].errorbar(range(len(batches_diffs_m_norm)), batches_diffs_m_norm, yerr=np.abs(batches_diffs_std_norm), 
+                                       linestyle='None', marker='None', color=GROUPS[datafile.infos['Group']]['color'], 
+                                       capsize=3, linewidth = 0.5, capthick=0.5)
                 if len(batches_diffs_m_norm)> 50:
                     self.AXs[key].set_xlim(-1, len(batches_diffs_m_norm))
                     self.AXs[key].set_xticks(np.arange(0, len(batches_diffs_m_norm)+1, 5))
@@ -213,19 +266,22 @@ class PdfPage:
                 except:
                     print("no infusion")
                 self.AXs[key].axhline(100, color="grey", linestyle="--")
-                self.AXs[key].axhline(0, color="grey", linestyle="--")
+                self.AXs[key].axhline(0, color="grey", linestyle="--") 
+                if debug: 
+                    print("End ", key)
 
-            elif key=='barplot':
-                barplot = datafile.get_barplot(wash='all')
+            elif key=='barplot':  
+                if debug: 
+                    print("Start ", key)
+                barplot = datafile.get_barplot(wash)
                 keys = list(barplot.keys())
                 means = [barplot[key]['mean'] for key in keys]
                 sem_values = [barplot[key]['sem'] for key in keys]
-
                 # Create the bar plot
-                self.AXs[key].bar(
-                    keys, means, color=colors[datafile.infos['Group']], yerr=sem_values, capsize=5, alpha=0.8
-                )
-
+                self.AXs[key].bar(keys, means, yerr=sem_values,
+                                  color=GROUPS[datafile.infos['Group']]['color'], 
+                                  capsize=10, alpha=0.8,
+                                  linewidth = 0.7) 
                 # Add scatter points for individual values
                 for i, key_name in enumerate(keys):
                     if barplot[key_name]['values'] is not None:
@@ -233,17 +289,14 @@ class PdfPage:
                         scatter_x += (np.random.rand(len(scatter_x)) - 0.5) * 0.2  # Add small jitter for clarity
                         scatter_y = barplot[key_name]['values']
                         self.AXs[key].scatter(scatter_x, scatter_y, color='black', s=10, alpha=0.7)
-
                 # Customize axes
                 self.AXs[key].set_xticks(range(len(keys)))  # Align xticks with bar positions
-                self.AXs[key].set_xticklabels(keys, rotation=45, ha='right', fontsize=10)
+                self.AXs[key].set_xticklabels(keys, rotation=0, ha='center', fontsize=10)
                 self.AXs[key].set_ylabel("Normalized \nNMDAR-eEPSCs (%) (± SEM)")
+                if debug: 
+                    print("End ", key)
 
-    def fill_PDF_merge(self, num_files, group, my_list, barplot):
-
-        
-        colors = {'ketamine': 'purple', 'D-AP5': 'orange', 'control': 'grey', 'memantine': 'gold'}
-        #colors = {'ketamine': 'purple', 'control': 'grey', 'memantine': 'gold'}
+    def fill_PDF_merge(self, num_files, group, my_list, barplot, GROUPS, debug):
 
         for key in self.AXs:
             if key =='Notes':
@@ -251,64 +304,99 @@ class PdfPage:
                 self.AXs[key].annotate(txt,(0, 1), va='top', xycoords='axes fraction')
             
             elif key=='Id (nA)':
-                self.AXs[key].plot(my_list['Ids']['mean'][0], marker="o", linewidth=0.5, markersize=2, color=colors[group])
-    
-                self.AXs[key].errorbar(range(len(my_list['Ids']['mean'][0])), my_list['Ids']['mean'][0], yerr=my_list['Ids']['std'][0], linestyle='None', marker='_', color=colors[group], capsize=3, linewidth = 0.5)
                 
-                if len(my_list['Ids']['mean'])> 50:
-                    self.AXs[key].set_xlim(-1, len(my_list['Ids']['mean'][0]))
-                    self.AXs[key].set_xticks(np.arange(0, len(my_list['Ids']['mean'][0])+1, 5))
-                else : 
-                    self.AXs[key].set_xlim(-1, 50 )
+                x_vals = range(len(my_list['Ids']['mean'][0]))
+                y_vals = my_list['Ids']['mean'][0]
+                y_vals_std = my_list['Ids']['std'][0]
+                colors_for_points = ['firebrick' if y < 0.29 else GROUPS[group]['color'] for y in y_vals]
+                
+                if debug:
+                    print('Id (nA)')
+                    print("Means : ", y_vals)
+                    print("Stds : ", y_vals_std)
+
+                self.AXs[key].plot(y_vals, marker="o", linewidth=0.5, markersize=2, color=GROUPS[group]['color'])
+                # Plot each point individually with the respective color
+                for x, y, y_std, color in zip(x_vals, y_vals, y_vals_std,colors_for_points):
+                    self.AXs[key].plot(x, y, marker="o", markersize=2, color=color, linewidth=0.5)
+                    self.AXs[key].errorbar(x, y, yerr=y_std, 
+                                           linestyle='None', marker='None', color=color, 
+                                           capsize=3, linewidth=0.5, capthick=0.5)
+
+                if len(y_vals) > 50:
+                    self.AXs[key].set_xlim(-1, len(y_vals))
+                    self.AXs[key].set_xticks(np.arange(0, len(y_vals) + 1, 5))
+                else:
+                    self.AXs[key].set_xlim(-1, 50)
                     self.AXs[key].set_xticks(np.arange(0, 51, 5))
 
-                
-                self.AXs[key].set_ylabel("Acces (nA) (± Std)")
+                self.AXs[key].set_ylabel("Acces (nA) \n(± Std)")
                 self.AXs[key].set_xlabel("time (min)")
 
                 if group=='memantine':
-                    self.AXs[key].axvspan(6, 13, color='lightgrey') 
+                    self.AXs[key].axvspan(6, 13, color='lightgrey')  ###FIX
                 elif group=='ketamine' or group=='D-AP5':
-                    self.AXs[key].axvspan(10, 17, color='lightgrey')
+                    self.AXs[key].axvspan(10, 17, color='lightgrey')  ###FIX
                 self.AXs[key].axvline(50, color="grey", linestyle="-")
 
-                self.AXs[key].axhline(0.29, color="firebrick", linestyle="-", linewidth=0.8)
-
+                if any(baseline < 0.29 for baseline in y_vals): 
+                    self.AXs[key].axhline(0.29, color="firebrick", linestyle="-", linewidth=0.8)
+            
+                
             elif key=='Leak (nA)':
-                self.AXs[key].plot(my_list['Leaks']['mean'][0], marker="o", linewidth=0.5, markersize=2, color=colors[group])
-                self.AXs[key].errorbar(range(len(my_list['Leaks']['mean'][0])), my_list['Leaks']['mean'][0], yerr=my_list['Leaks']['std'][0], linestyle='None', marker='_', color=colors[group], capsize=3, linewidth = 0.5)
 
-                if len(my_list['Leaks']['mean'][0])> 50:
-                    self.AXs[key].set_xlim(-1, len(my_list['Leaks']['mean'][0]))
-                    self.AXs[key].set_xticks(np.arange(0, len(my_list['Leaks']['mean'][0])+1, 5))
+                x_vals = range(len(my_list['Leaks']['mean'][0]))
+                y_vals = my_list['Leaks']['mean'][0]
+                std_vals = my_list['Leaks']['std'][0]
+                colors_for_points = ['firebrick' if y < -0.7 else GROUPS[group]['color'] for y in y_vals]
+
+                if debug:
+                    print('Leak (nA)')
+                    print("Means : ", y_vals)
+                    print("Stds : ", std_vals)
+
+                self.AXs[key].plot(y_vals, marker="o", linewidth=0.5, markersize=2, color=GROUPS[group]['color'])
+                for x, y, y_std, color in zip(x_vals, y_vals, std_vals, colors_for_points):
+                    self.AXs[key].plot(x, y, marker="o", markersize=2, color=color, linewidth=0.5)
+                    self.AXs[key].errorbar(x, y, yerr=y_std, 
+                                           linestyle='None', marker='None', color=color, 
+                                           capsize=3, linewidth=0.5, capthick=0.5)
+
+                if len(y_vals)> 50:
+                    self.AXs[key].set_xlim(-1, len(y_vals))
+                    self.AXs[key].set_xticks(np.arange(0, len(y_vals)+1, 5))
                 else : 
                     self.AXs[key].set_xlim(-1, 50)
                     self.AXs[key].set_xticks(np.arange(0, 51, 5))
-                self.AXs[key].set_ylabel("Leak (nA) (± Std)")
+                self.AXs[key].set_ylabel("Leak (nA) \n(± Std)")
                 self.AXs[key].set_xlabel("time (min)")
-
                 if group=='memantine':
-                    self.AXs[key].axvspan(6, 13, color='lightgrey') 
+                    self.AXs[key].axvspan(6, 13, color='lightgrey') ###FIX
                 elif group=='ketamine' or group=='D-AP5':
-                    self.AXs[key].axvspan(10, 17, color='lightgrey')
-
-                #self.AXs[key].axvspan(10, 17, color='lightgrey')
+                    self.AXs[key].axvspan(10, 17, color='lightgrey') ###FIX
                 self.AXs[key].axvline(50, color="grey", linestyle="-")
                 if any(baseline < -0.7 for baseline in my_list['Leaks']['mean'][0]): 
                     self.AXs[key].axhline(-0.70, color="firebrick", linestyle="-", linewidth=0.8)
             
             elif key=='Difference_peak_baseline':
-                self.AXs[key].plot(my_list['Diffs']['mean'][0], marker="o", linewidth=0.5, markersize=2, color=colors[group])
-                self.AXs[key].errorbar(range(len(my_list['Diffs']['mean'][0])), my_list['Diffs']['mean'][0], yerr=my_list['Diffs']['std'][0], linestyle='None', marker='_', color=colors[group], capsize=3, linewidth = 0.5)
-                #print("len for merge plot ", len(my_list['Diffs']['mean']))
-                if len(my_list['Diffs']['mean'][0])> 50:
-                    self.AXs[key].set_xlim(-1, len(my_list['Diffs']['mean'][0]))
-                    self.AXs[key].set_xticks(np.arange(0, len(my_list['Diffs']['mean'][0])+1, 5))
+                
+                x_vals = range(len(my_list['Diffs']['mean'][0]))
+                y_vals = my_list['Diffs']['mean'][0]
+                std_vals = my_list['Diffs']['std'][0]
+
+                self.AXs[key].plot(y_vals, marker="o", linewidth=0.5, markersize=2, color=GROUPS[group]['color'])
+                self.AXs[key].errorbar(x_vals, y_vals, yerr=std_vals, 
+                                       linestyle='None', marker='None', color=GROUPS[group]['color'], 
+                                       capsize=3, linewidth = 0.5, capthick=0.5)
+                
+                if len(y_vals)> 50:
+                    self.AXs[key].set_xlim(-1, len(y_vals))
+                    self.AXs[key].set_xticks(np.arange(0, len(y_vals)+1, 5))
                 else : 
                     self.AXs[key].set_xlim(-1, 50)
                     self.AXs[key].set_xticks(np.arange(0, 51, 5))
                 
-                self.AXs[key].set_ylabel("Difference Peak-baseline (nA) (± Std)")
+                self.AXs[key].set_ylabel("Difference \nPeak-baseline (nA) (± Std)")
                 self.AXs[key].set_xlabel("time (min)")
                 self.AXs[key].axhline(0, color="grey", linestyle="--")
 
@@ -317,7 +405,7 @@ class PdfPage:
                 elif group=='ketamine' or group=='D-AP5':
                     self.AXs[key].axvspan(10, 17, color='lightgrey')
                 self.AXs[key].axvline(50, color="grey", linestyle="-")
-                #self.AXs[key].axvspan(10, 17, color='lightgrey')
+                
 
             elif key=='RespAnalyzed':  # Normalization by baseline mean (Baseline at 100%)
                 if group=='memantine':
@@ -326,9 +414,12 @@ class PdfPage:
                     baseline_diffs_m = np.mean(my_list['Diffs']['mean'][0][6:11])
                 batches_diffs_m_norm = (my_list['Diffs']['mean'][0] / baseline_diffs_m) * 100  
                 batches_diffs_std_norm = (my_list['Diffs']['std'][0] / baseline_diffs_m) * 100  
-                #print("values for merge", len(batches_diffs_m_norm ))
-                self.AXs[key].plot(batches_diffs_m_norm, marker="o", linewidth=0.5, markersize=2, color=colors[group])
-                self.AXs[key].errorbar(range(len(batches_diffs_m_norm)), batches_diffs_m_norm, yerr=batches_diffs_std_norm, linestyle='None', marker='_', color=colors[group], capsize=3, linewidth = 0.5)
+                
+
+                self.AXs[key].plot(batches_diffs_m_norm, marker="o", linewidth=0.5, markersize=2, color=GROUPS[group]['color'])
+                self.AXs[key].errorbar(range(len(batches_diffs_m_norm)), batches_diffs_m_norm, yerr=batches_diffs_std_norm, 
+                                       linestyle='None', marker='None', color=GROUPS[group]['color'], 
+                                       capsize=3, linewidth = 0.5, capthick=0.5)
                 if len(batches_diffs_m_norm)> 50:
                     self.AXs[key].set_xlim(-1, len(batches_diffs_m_norm))
                     self.AXs[key].set_xticks(np.arange(0, len(batches_diffs_m_norm)+1, 5))
@@ -336,8 +427,7 @@ class PdfPage:
                     self.AXs[key].set_xlim(-1, 50)
                     self.AXs[key].set_xticks(np.arange(0, 51, 5))
 
-                #self.AXs[key].set_ylim( -10, 170)
-                self.AXs[key].set_ylabel("Normalized NMDAR-eEPSCs (%) (± Std)")
+                self.AXs[key].set_ylabel("Normalized \nNMDAR-eEPSCs (%) (± Std)")
                 self.AXs[key].set_xlabel("time (min)")
                 self.AXs[key].axhline(100, color="grey", linestyle="--")
                 self.AXs[key].axhline(0, color="grey", linestyle="--")
@@ -348,18 +438,17 @@ class PdfPage:
                 elif group=='ketamine' or group=='D-AP5':
                     self.AXs[key].axvspan(10, 17, color='lightgrey')
 
-                #self.AXs[key].axvspan(10, 17, color='lightgrey')
-
+               
             elif key == 'barplot':
                 # Extract data
                 keys = list(barplot.keys())
-                means = [np.mean(barplot[key]['mean']) for key in keys]
+                means = [np.nanmean(barplot[key]['mean']) for key in keys]
                 sem_values = [barplot[key]['sem'] for key in keys]
-
+                
                 # Create the bar plot
-                self.AXs[key].bar(
-                    keys, means, color=colors[group], yerr=sem_values, capsize=5, alpha=0.8
-                )
+                self.AXs[key].bar(keys, means, yerr=sem_values,
+                                  color=GROUPS[group]['color'],  capsize=10, 
+                                  alpha=0.8, linewidth = 0.7)
 
                 # Add scatter points for individual values
                 for i, key_name in enumerate(keys):
@@ -371,10 +460,10 @@ class PdfPage:
 
                 # Customize axes
                 self.AXs[key].set_xticks(range(len(keys)))  # Align xticks with bar positions
-                self.AXs[key].set_xticklabels(keys, rotation=45, ha='right', fontsize=10)
-                self.AXs[key].set_ylabel("Normalized NMDAR-eEPSCs (%) (± SEM)")
+                self.AXs[key].set_xticklabels(keys, rotation=0, ha='center', fontsize=10)
+                self.AXs[key].set_ylabel("Normalized \nNMDAR-eEPSCs (%) (± SEM)")
             
-    def fill_final_results(self, final_dict, final_barplot, final_num_files, concentration, colors, GROUPS, final_barplot2):
+    def fill_final_results(self, final_dict, final_barplot, GROUPS, final_barplot2):
         
         for key in self.AXs:
             
@@ -385,9 +474,11 @@ class PdfPage:
                     batches_diffs_m_norm   = (final_dict[group]['mean'] / baseline_diffs_m) * 100  
                     batches_diffs_std_norm = (final_dict[group]['std']  / baseline_diffs_m) * 100  
                     batches_diffs_sem_norm = (final_dict[group]['sem']  / baseline_diffs_m) * 100 
-                    print("values for graph ", batches_diffs_m_norm)
-                    self.AXs[key].plot(batches_diffs_m_norm, marker="o", linewidth=0.5, markersize=2, label = f"{group} , {concentration[group]} , n= {final_num_files[group]}", color = colors[group])
-                    self.AXs[key].errorbar(range(len(batches_diffs_m_norm)), batches_diffs_m_norm, yerr=batches_diffs_sem_norm, linestyle='None', marker='_', capsize=3, linewidth = 0.5, color = colors[group])
+                    #print("values for graph ", batches_diffs_m_norm)
+                    self.AXs[key].plot(batches_diffs_m_norm, marker="o", linewidth=0.5, markersize=2, label = f"{group} , {GROUPS[group]['concentration']} , n= {GROUPS[group]['num_files']}", color = GROUPS[group]['color'])
+                    self.AXs[key].errorbar(range(len(batches_diffs_m_norm)), batches_diffs_m_norm, yerr=batches_diffs_sem_norm, 
+                                           linestyle='None', marker='None', color = GROUPS[group]['color'],
+                                           capsize=3, linewidth = 0.5, capthick=0.5)
 
                 #self.AXs[key].set_xlim(-1, 63 )
                 self.AXs[key].set_xlim(-1, 50 )
@@ -400,38 +491,7 @@ class PdfPage:
                 self.AXs[key].axvspan(10, 17, color='lightgrey')
                 #self.AXs[key].axvline(50, color="grey", linestyle="-")
                 #self.AXs[key].legend()
-                '''
-            elif key=='barplot':
-
-                # Extract the data for plotting
-                timings = list(final_barplot.keys())
-                drugs = list(final_barplot[timings[0]].keys())
-                num_times = len(timings)
-                num_drugs = len(drugs)
-                #drugs = ["control", "ketamine", "D-AP5"]
-                #timings = ["End baseline", "End infusion", "End wash"]
-
-                # Rearrange data: Group by timings, with drugs within each group
-                timing_means = [[final_barplot[timing][drug]['mean'] for drug in drugs] for timing in timings]
-                timing_sems = [[final_barplot[timing][drug]['sem'] for drug in drugs] for timing in timings]
-
-                # Bar positions
-                x = np.arange(len(drugs))
-                width = 0.25
-
-                # Plot bars for each timing
                 
-                for i, (timing_mean, timing_sem) in enumerate(zip(timing_means, timing_sems)):
-                    self.AXs[key].bar(x + i * width, timing_mean, width, yerr=timing_sem, color=[colors[drug] for drug in drugs], capsize=5)
-
-                # Formatting the plot
-                #self.AXs[key].set_xlabel('Drugs', fontsize=12)
-                self.AXs[key].set_ylabel('Normalized NMDAR-eEPSCs (%) (± SEM)', fontsize=12)
-                self.AXs[key].set_xticks(x + width)
-                self.AXs[key].set_xticklabels(drugs)
-                #self.AXs[key].legend(title="Timings")
-                '''
-            
             elif key=='barplot': 
 
                 time_periods = list(final_barplot.keys())
@@ -446,11 +506,11 @@ class PdfPage:
                     mean_values = [np.mean(final_barplot[time][drug]['mean']) for drug in drug_types]
                     sem_values = [np.std(final_barplot[time][drug]['mean'])/np.sqrt(len(final_barplot[time][drug]['mean'])) for drug in drug_types]
                     #sem_values = [np.mean(final_barplot[time][drug]['sem']) for drug in drug_types]
-                    print("mean values \n", mean_values)
-                    print("sem values \n", sem_values)
                     for j, drug in enumerate(drug_types):
                         position = x[j] + i * (width + spacing)
-                        self.AXs[key].bar(position, mean_values[j], width, yerr=sem_values[j], color=colors[drug], label=time if j == 0 else "", capsize=5)
+                        self.AXs[key].bar(position, mean_values[j], yerr=sem_values[j],
+                                          width=width, color=GROUPS[drug]['color'], label=time if j == 0 else "", 
+                                          capsize=10, linewidth=0.7)
                         ticks.append(position)
 
                         # Overlay scatter points for individual values
@@ -477,11 +537,6 @@ class PdfPage:
                 sec = self.AXs[key].secondary_xaxis(location=0)
                 sec.set_xticks(group_ticks, labels=labels_groupticks) # Center xticks under groups
                 sec.tick_params('x', length=0)
-                
-                #legend
-                #legend_elements = [Line2D([0], [0], color=color, lw=4, label=drug) for drug, color in colors.items()]
-                #self.AXs[key].legend(handles=legend_elements, title="Drug Groups")
-
             
             elif key=='barplot2':
                 barplot = final_barplot2
@@ -491,9 +546,9 @@ class PdfPage:
                 sem_values = [barplot[key]['sem'] for key in keys]
 
                 # Create the bar plot
-                self.AXs[key].bar(
-                    keys, means, color=colors['memantine'], yerr=sem_values, capsize=5, alpha=0.8
-                )
+                self.AXs[key].bar(keys, means, yerr=sem_values,
+                                  color=GROUPS['memantine']['color'],  
+                                  capsize=10, alpha=0.8, linewidth=0.7)
 
                 # Add scatter points for individual values
                 for i, key_name in enumerate(keys):

@@ -21,7 +21,7 @@ class DataFile_washout:
         self.stim = {}
         self.recordings = None
         self.recordings_f = None
-        self.load_data() #ok
+        self.load_data() 
         self.get_recordings()
         self.get_diffs()
         self.correct_diffs()
@@ -152,7 +152,6 @@ class DataFile_washout:
         print("- Stimulation traces not found")
         
     #process info
-    
     def find_noise(self, rec, bsl_start=52000, bsl_end=58000):
         baseline = rec[bsl_start:bsl_end]
         mean_baseline = np.mean(baseline)
@@ -210,19 +209,10 @@ class DataFile_washout:
 
     def find_baseline_diffs_m(self):
         batches_diffs_m, _ = self.get_batches(self.corr_diffs) #noise is substracted
-
-        if self.infos['Group'] == 'APV' or self.infos['Group']=='KETA' or self.infos['Group']=='MEMANTINE': 
+        if self.infos['Group'] == 'D-AP5' or self.infos['Group']=='ketamine' or self.infos['Group']=='memantine': 
             baseline_diffs_m = np.mean(batches_diffs_m[(round(float(self.infos["Infusion start"]))-4):round(float(self.infos["Infusion start"]))+1])
-            #print("baseline_diffs_m ", baseline_diffs_m) 
-            #baseline_diffs_m = np.mean(batches_diffs_m[(int(self.infos["Infusion start"])-5):int(self.infos["Infusion start"])]) 
-            #print("took last 5 minutes before infusion. Should always be the case for this protocol when there is infusion")
-            #print("mean last 5 min", baseline_diffs_m)
-            #print("mean last 10 min", np.mean(batches_diffs_m[(int(self.infos["Infusion start"])-10):int(self.infos["Infusion start"])]) )
         elif self.infos['Group'] == 'control':
             baseline_diffs_m = np.mean(batches_diffs_m[6:11])    
-            #print("took 5 min between min 5 and min 10. This should apply when there is no infusion")
-            #print("mean last 5 min", baseline_diffs_m)
-            #print("mean last 10 min", np.mean(batches_diffs_m[0:10]))
         return baseline_diffs_m
     
 

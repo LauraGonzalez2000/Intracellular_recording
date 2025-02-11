@@ -8,7 +8,7 @@ import pprint
 
 #keep this aborescence if program used in other computers
 base_path = os.path.join(os.path.expanduser('~'), 'DATA','In_Vitro_experiments', 'Washout_experiment') 
-directory = "RAW-DATA-WASHOUT-PYR"
+directory = "RAW-DATA-WASHOUT-PYR-q"
 files_directory = os.path.join(base_path, directory)
 
 #methods
@@ -100,7 +100,53 @@ def pad(my_list):
                 continue
     return 0
 
+def get_barplot_merged(my_list, label):
+    
+    #to normalize:
+    if label=='memantine':
+        sliced_array = [arr[2:7] for arr in my_list['Diffs']['values']]
+    else : 
+        sliced_array = [arr[6:11] for arr in my_list['Diffs']['values']]
+    baseline_diffs_m = np.mean(sliced_array, axis=1)
+    
+    #end baseline
+    if label=='memantine':
+        sliced_array_bsl = [arr[2:7] for arr in my_list['Diffs']['values']]
+    else : 
+        sliced_array_bsl = [arr[6:11] for arr in my_list['Diffs']['values']]
+    mean_sliced_array = np.mean(sliced_array_bsl, axis=1)
+    sliced_array_norm_bsl = [(mean_sliced_array[i]/ baseline_diffs_m[i]) * 100 for i in range(len(sliced_array))]
+    
+    #end infusion:
+    sliced_array_inf = [arr[15:19] for arr in my_list['Diffs']['values']]
+    mean_sliced_array = np.mean(sliced_array_inf, axis=1)
+    sliced_array_norm_inf = [(mean_sliced_array[i]/ baseline_diffs_m[i]) * 100 for i in range(len(sliced_array))] 
+    
+    #end wash
+    sliced_array_wash = [arr[45:50] for arr in my_list['Diffs']['values']]
+    mean_sliced_array = np.mean(sliced_array_wash, axis=1)
+    sliced_array_norm_wash = [(mean_sliced_array[i]/ baseline_diffs_m[i]) * 100 for i in range(len(sliced_array))] 
+    
+    #end wash _
+    sliced_array_wash_ = [arr[-5:-1] for arr in my_list['Diffs']['values']]
+    mean_sliced_array = np.mean(sliced_array_wash_, axis=1)
+    sliced_array_norm_wash_ = [(mean_sliced_array[i]/ baseline_diffs_m[i]) * 100 for i in range(len(sliced_array))] 
+
+    #set barplot
+    if label=='memantine':
+        barplot = {'End baseline' : {'values': sliced_array_bsl,   'mean' : sliced_array_norm_bsl,  'sem': np.nanstd(sliced_array_norm_bsl)/np.sqrt(len(sliced_array_norm_bsl)),     'std': np.nanstd(sliced_array_norm_bsl)},
+                   'End infusion' : {'values': sliced_array_inf,   'mean' : sliced_array_norm_inf,  'sem': np.nanstd(sliced_array_norm_inf)/np.sqrt(len(sliced_array_norm_inf)),     'std': np.nanstd(sliced_array_norm_inf)},
+                   'End wash'     : {'values': sliced_array_wash,  'mean' : sliced_array_norm_wash, 'sem': np.nanstd(sliced_array_norm_wash)/np.sqrt(len(sliced_array_norm_wash)),   'std': np.nanstd(sliced_array_norm_wash)},
+                   'End wash_'    : {'values': sliced_array_wash_, 'mean' : sliced_array_norm_wash_,'sem': np.nanstd(sliced_array_norm_wash_)/np.sqrt(len(sliced_array_norm_wash_)), 'std': np.nanstd(sliced_array_norm_wash_)}}
+    else:
+        barplot = {'End baseline' : {'values': sliced_array_bsl,   'mean' : sliced_array_norm_bsl, 'sem': np.nanstd(sliced_array_norm_bsl)/np.sqrt(len(sliced_array_norm_bsl)),   'std': np.nanstd(sliced_array_norm_bsl)},
+                   'End infusion' : {'values': sliced_array_inf,   'mean' : sliced_array_norm_inf, 'sem': np.nanstd(sliced_array_norm_inf)/np.sqrt(len(sliced_array_norm_inf)),   'std': np.nanstd(sliced_array_norm_inf)},
+                   'End wash'     : {'values': sliced_array_wash,  'mean' : sliced_array_norm_wash,'sem': np.nanstd(sliced_array_norm_wash)/np.sqrt(len(sliced_array_norm_wash)), 'std': np.nanstd(sliced_array_norm_wash)}}
+
+    return barplot
+
 def get_barplot(my_list, label):
+
     if label=='memantine':
         list_end_bsl  = my_list['Diffs']['mean_norm'][0][2:7]  #generalize
     else: 
@@ -111,29 +157,26 @@ def get_barplot(my_list, label):
     list_end_wash_ = my_list['Diffs']['mean_norm'][0][-5:-1]
 
     if label=='memantine':
-        barplot = {'End baseline' : {'values': list_end_bsl,   'mean' : np.nanmean(list_end_bsl),  'sem': np.nanstd(list_end_bsl)/np.sqrt(len(list_end_bsl)),     'std': np.nanstd(list_end_bsl)},
-                   'End infusion' : {'values': list_end_inf,   'mean' : np.nanmean(list_end_inf),  'sem': np.nanstd(list_end_inf)/np.sqrt(len(list_end_inf)),     'std': np.nanstd(list_end_inf)},
-                   'End wash'     : {'values': list_end_wash,  'mean' : np.nanmean(list_end_wash), 'sem': np.nanstd(list_end_wash)/np.sqrt(len(list_end_wash)),   'std': np.nanstd(list_end_wash)},
-                   'End wash_'    : {'values': list_end_wash_, 'mean' : np.nanmean(list_end_wash_),'sem': np.nanstd(list_end_wash)/np.sqrt(len(list_end_wash_)), 'std': np.nanstd(list_end_wash_)}}
+        barplot = {'End baseline' : {'values': list_end_bsl,   'mean' : np.nanmean(list_end_bsl),  'sem': np.nanstd(list_end_bsl)/np.sqrt(len(list_end_bsl)),     'std': np.nanstd(list_end_bsl)},#   'sem_means': np.nanstd(np.nanmean(list_end_bsl))  /np.sqrt(len(np.nanmean(list_end_bsl))) },
+                   'End infusion' : {'values': list_end_inf,   'mean' : np.nanmean(list_end_inf),  'sem': np.nanstd(list_end_inf)/np.sqrt(len(list_end_inf)),     'std': np.nanstd(list_end_inf)},#   'sem_means': np.nanstd(np.nanmean(list_end_inf))  /np.sqrt(len(np.nanmean(list_end_inf))) },
+                   'End wash'     : {'values': list_end_wash,  'mean' : np.nanmean(list_end_wash), 'sem': np.nanstd(list_end_wash)/np.sqrt(len(list_end_wash)),   'std': np.nanstd(list_end_wash)},#  'sem_means': np.nanstd(np.nanmean(list_end_wash)) /np.sqrt(len(np.nanmean(list_end_wash)))},
+                   'End wash_'    : {'values': list_end_wash_, 'mean' : np.nanmean(list_end_wash_),'sem': np.nanstd(list_end_wash_)/np.sqrt(len(list_end_wash_)), 'std': np.nanstd(list_end_wash_)}}#, 'sem_means': np.nanstd(np.nanmean(list_end_wash_))/np.sqrt(len(np.nanmean(list_end_wash_)))}}
     else:
-        barplot = {'End baseline' : {'values': list_end_bsl,   'mean' : np.nanmean(list_end_bsl), 'sem': np.nanstd(list_end_bsl)/np.sqrt(len(list_end_bsl)),   'std': np.nanstd(list_end_bsl)},
-                   'End infusion' : {'values': list_end_inf,   'mean' : np.nanmean(list_end_inf), 'sem': np.nanstd(list_end_inf)/np.sqrt(len(list_end_inf)),   'std': np.nanstd(list_end_inf)},
-                   'End wash'     : {'values': list_end_wash,  'mean' : np.nanmean(list_end_wash),'sem': np.nanstd(list_end_wash)/np.sqrt(len(list_end_wash)), 'std': np.nanstd(list_end_wash)}}
+        barplot = {'End baseline' : {'values': list_end_bsl,   'mean' : np.nanmean(list_end_bsl), 'sem': np.nanstd(list_end_bsl)/np.sqrt(len(list_end_bsl)),   'std': np.nanstd(list_end_bsl)},#  'sem_means': np.nanstd(np.nanmean(list_end_bsl))  /np.sqrt(len(np.nanmean(list_end_bsl))) },
+                   'End infusion' : {'values': list_end_inf,   'mean' : np.nanmean(list_end_inf), 'sem': np.nanstd(list_end_inf)/np.sqrt(len(list_end_inf)),   'std': np.nanstd(list_end_inf)},#  'sem_means': np.nanstd(np.nanmean(list_end_inf))  /np.sqrt(len(np.nanmean(list_end_inf))) },
+                   'End wash'     : {'values': list_end_wash,  'mean' : np.nanmean(list_end_wash),'sem': np.nanstd(list_end_wash)/np.sqrt(len(list_end_wash)), 'std': np.nanstd(list_end_wash)}}#, 'sem_means': np.nanstd(np.nanmean(list_end_wash)) /np.sqrt(len(np.nanmean(list_end_wash))) }}
 
-    print("barplot1: \n", barplot)
     return barplot
 
-def get_barplot2(my_list, label) : 
+def get_final_barplot(my_list, label) : 
 
     list_values_norm = []
 
-    for i in range(len(my_list['Diffs']['values'])):
-        
+    for i in range(len(my_list['Diffs']['values'])): 
         if label=='memantine':
             baseline_diffs_m = np.nanmean(my_list['Diffs']['values'][i][2:7])
         else: 
             baseline_diffs_m = np.nanmean(my_list['Diffs']['values'][i][6:11])
-
         norm = (my_list['Diffs']['values'][i]/ baseline_diffs_m) * 100  
         list_values_norm.append(norm)
     
@@ -168,10 +211,12 @@ def get_barplot2(my_list, label) :
                    'End infusion' : {'values': list_end_inf,   'mean' : np.nanmean(list_end_inf, axis=1), 'sem': np.nanstd(list_end_inf)/np.sqrt(len(list_end_inf)),   'std': np.nanstd(list_end_inf)},
                    'End wash'     : {'values': list_end_wash,  'mean' : np.nanmean(list_end_wash, axis=1),'sem': np.nanstd(list_end_wash)/np.sqrt(len(list_end_wash)), 'std': np.nanstd(list_end_wash)}}
 
-    print("barplot2 \n", barplot2)
     return barplot2
 
-def get_final_info(datafiles_keta, datafiles_APV, datafiles_control, datafiles_memantine):
+def get_final_info(datafiles):
+    
+    #initialize objects
+
     final_dict = {"control"  : {'mean':None, 'sem': None, 'std': None}, 
                   "ketamine" : {'mean':None, 'sem': None, 'std': None}, 
                   "D-AP5"    : {'mean':None, 'sem': None, 'std': None}, 
@@ -180,7 +225,7 @@ def get_final_info(datafiles_keta, datafiles_APV, datafiles_control, datafiles_m
     final_barplot = {"End baseline" : {"control"  : {'values' : None, 'mean': None, 'sem': None, 'std': None}, 
                                        "ketamine" : {'values' : None, 'mean': None, 'sem': None, 'std': None},
                                        "D-AP5"    : {'values' : None, 'mean': None, 'sem': None, 'std': None},
-                                       "memantine": {'values' : None, 'mean': None, 'sem': None, 'std': None} },
+                                       "memantine": {'values' : None, 'mean': None, 'sem': None, 'std': None}},
                      "End infusion" : {"control"  : {'values' : None, 'mean': None, 'sem': None, 'std': None}, 
                                        "ketamine" : {'values' : None, 'mean': None, 'sem': None, 'std': None},
                                        "D-AP5"    : {'values' : None, 'mean': None, 'sem': None, 'std': None}, 
@@ -193,23 +238,11 @@ def get_final_info(datafiles_keta, datafiles_APV, datafiles_control, datafiles_m
     final_barplot2 = {"End wash"      : {'values' : None, 'mean': None, 'sem': None, 'std': None},
                       "End wash long" : {'values' : None, 'mean': None, 'sem': None, 'std': None}}
 
-    final_num_files = {"control"  : None, 
-                       "ketamine" : None, 
-                       "D-AP5"    : None,
-                       "memantine": None}
-    for label in GROUPS: 
-        
-        if label == 'control': 
-            datafiles_group = datafiles_control
-        elif label == 'ketamine': 
-            datafiles_group = datafiles_keta
-        elif label == 'memantine': 
-            datafiles_group = datafiles_memantine
-        elif label == 'D-AP5': 
-            datafiles_group = datafiles_APV
 
+    for label in GROUPS: 
+        datafiles_group = datafiles[label]
         my_list = get_dict(datafiles_group, label)
-        barplot = get_barplot2(my_list, label)
+        barplot = get_final_barplot(my_list, label)
         
         final_dict[label]['mean'] = np.array(my_list['Diffs']['mean'])
         final_dict[label]['std']  = np.array(my_list['Diffs']['std'])
@@ -223,7 +256,6 @@ def get_final_info(datafiles_keta, datafiles_APV, datafiles_control, datafiles_m
         final_barplot['End infusion'][label]['mean']   = np.mean(barplot['End infusion']['values'], axis=1)
         final_barplot['End wash'][label]['mean']       = np.mean(barplot['End wash']['values'], axis=1)
 
-        
         final_barplot['End baseline'][label]['sem']    = np.std(barplot["End baseline"]['values'], axis=1)/np.sqrt(len(barplot["End baseline"]['values']))
         final_barplot['End infusion'][label]['sem']    = np.std(barplot['End infusion']['values'], axis=1)/np.sqrt(len(barplot['End infusion']['values']))
         final_barplot['End wash'][label]['sem']        = np.std(barplot['End wash']['values'], axis=1)/np.sqrt(len(barplot['End wash']['values']))
@@ -233,7 +265,6 @@ def get_final_info(datafiles_keta, datafiles_APV, datafiles_control, datafiles_m
         final_barplot['End wash'][label]['std']        = np.std(barplot['End wash']['values'], axis=1)
       
         if label=='memantine': 
-            
             final_barplot2['End wash']['values']      = barplot['End wash']['values']
             final_barplot2['End wash long']['values'] = barplot['End wash_']['values']
             final_barplot2['End wash']['mean']        = np.mean(barplot['End wash']['values'], axis=0)
@@ -243,136 +274,161 @@ def get_final_info(datafiles_keta, datafiles_APV, datafiles_control, datafiles_m
             final_barplot2['End wash']['std']         = np.std(barplot['End wash']['values'], axis=0)
             final_barplot2['End wash long']['std']    = np.std(barplot['End wash_']['values'], axis=0)
      
-        final_num_files[label] = len(datafiles_group)
+        GROUPS[label]['num_files'] = len(datafiles_group)
  
-    inf_start = {'ketamine' : 10, 
-                 'memantine': 6, 
-                 'control': 10,
-                 'D-AP5': 10}
-    num_pad_before = inf_start["ketamine"]-inf_start["memantine"]  #10 -6 = 4
+    
+    num_pad_before = GROUPS['ketamine']['inf_start']-GROUPS['memantine']['inf_start']  #10 -6 = 4
     num_pad_after = len(final_dict["memantine"]["mean"]) - len(final_dict["ketamine"]["mean"])  #63-50 = 13
-   
     prepended_values = np.full((num_pad_before), np.nan, dtype=np.float16)
     posterior_values = np.full((num_pad_after), np.nan, dtype=np.float16)
-    
     final_dict["memantine"]["mean"] = np.concatenate((prepended_values, final_dict["memantine"]["mean"][0].astype(np.float16)))
     final_dict["ketamine"]["mean"] = np.concatenate((final_dict["ketamine"]["mean"][0].astype(np.float16), posterior_values))
     final_dict["D-AP5"]["mean"] = np.concatenate((final_dict["D-AP5"]["mean"][0].astype(np.float16), posterior_values))
     final_dict["control"]["mean"] = np.concatenate((final_dict["control"]["mean"][0].astype(np.float16), posterior_values))
-
     final_dict["memantine"]["std"] = np.concatenate((prepended_values, final_dict["memantine"]["std"][0]))
     final_dict["ketamine"]["std"] = np.concatenate((final_dict["ketamine"]["std"][0].astype(np.float16), posterior_values))
     final_dict["D-AP5"]["std"] = np.concatenate((final_dict["D-AP5"]["std"][0].astype(np.float16), posterior_values))
     final_dict["control"]["std"] = np.concatenate((final_dict["control"]["std"][0].astype(np.float16), posterior_values))
-
     final_dict["memantine"]["sem"] = np.concatenate((prepended_values, final_dict["memantine"]["sem"][0].astype(np.float16)))
     final_dict["ketamine"]["sem"] = np.concatenate((final_dict["ketamine"]["sem"][0].astype(np.float16), posterior_values))
     final_dict["D-AP5"]["sem"] = np.concatenate((final_dict["D-AP5"]["sem"][0].astype(np.float16), posterior_values))
     final_dict["control"]["sem"] = np.concatenate((final_dict["control"]["sem"][0].astype(np.float16), posterior_values))
     
-    #print("final dict after padding for final : \n", final_dict)
-   
-    return final_dict, final_barplot, final_barplot2, final_num_files
+    return final_dict, final_barplot, final_barplot2
 
-def create_individual_pdf(datafiles, wash= 'all', debug=False):
-    for datafile in datafiles:
-        try:
-            pdf = PdfPage(PDF_sheet = 'individual', debug=debug )
-            pdf.fill_PDF(datafile, wash= wash, debug=debug)
-            plt.savefig(f'C:/Users/sofia/Output_expe/In_Vitro/washout/Washout_PDFs/{datafile.filename}.pdf')
-            print("OK File saved successfully \n")
-        except Exception as e:
-            print(f"Error analysing this file : {e}")      
-    return 0
-
-def create_group_pdf(datafiles_group, label, filename, debug=False):
+#OK
+def create_individual_pdf(datafile, GROUPS, wash= 'all',  debug=False):
     try:
-        dict = get_dict(datafiles_group, label, debug=False)
-        barplot = get_barplot(dict, label)
-        barplot2 = get_barplot2(dict, label)
-        pdf = PdfPage(PDF_sheet = 'group analysis', debug=False )
-        if debug:
-            print("dict :\n" , dict)
-            print("barplot :\n", barplot2)
-        pdf.fill_PDF_merge(num_files = len(datafiles_group), group = label, my_list = dict, barplot = barplot2)
-        plt.savefig(f'C:/Users/sofia/Output_expe/In_Vitro/washout/Washout_PDFs/{filename}.pdf') #PC
-        print(f"{label} PDF saved \n")
-
+        pdf = PdfPage(PDF_sheet = 'individual', debug=debug )
+        pdf.fill_PDF(datafile, GROUPS, wash= wash,  debug=debug)
+        plt.savefig(f'C:/Users/sofia/Output_expe/In_Vitro/washout/Washout_PDFs/{datafile.filename}.pdf')
+        print("OK PDF file saved successfully. \n")
     except Exception as e:
-        print(f"Error doing group analysis for {label}: {e}")
+        print(f"Error saving individual PDF file : {e}")      
     return 0
 
-def create_final_results_pdf(final_dict, final_barplot, final_num_files, concentration, colors, GROUPS, final_barplot2, debug=False):
-    pdf = PdfPage(PDF_sheet = 'final', debug=debug )
-    pdf.fill_final_results(final_dict, final_barplot, final_num_files, concentration, colors, GROUPS, final_barplot2)
-    plt.savefig(f'C:/Users/sofia/Output_expe/In_Vitro/washout/Washout_PDFs/final_results.pdf') #PC #plt.savefig(f'C:/Users/LauraGonzalez/Output_expe/Washout_PDFs/final_results.pdf') #in laptop
-    print('final results figure saved')
+#OK
+def create_group_pdf(label, dict, barplot, len_group, GROUPS, debug=False):
+    if debug:
+        print("label :\n" , label)
+        print("dict :\n" , dict)
+        print("barplot :\n", barplot)
+        print("len group :\n", len_group)
+
+    try:
+        pdf = PdfPage(PDF_sheet = 'group analysis', debug=debug)
+        pdf.fill_PDF_merge(num_files = len_group, group = label, my_list = dict, barplot = barplot, GROUPS=GROUPS, debug=debug)
+        plt.savefig(f'C:/Users/sofia/Output_expe/In_Vitro/washout/Washout_PDFs/{label}_merged.pdf') 
+        print(f"OK PDF file saved successfully for group {label}. \n")
+    except Exception as e:
+        print(f"Error saving group PDF file for group {label} : {e}")
     return 0
 
-
-if __name__=='__main__':
-
-    concentration = {'ketamine' : '100uM', 
-                     'control'  : '-',  
-                     'D-AP5'    : '50uM',
-                     'memantine': '100uM'}
-    colors = {'ketamine' : 'purple', 
-              'control'  : 'grey', 
-              'D-AP5'    : 'orange',
-              'memantine': 'gold'}
-    GROUPS = ['control', 'ketamine', 'D-AP5', 'memantine'] 
-
-    #Load and sort datafiles: ###################################################################################################
-    debug1 = False
-
-    files = find_nm_files(files_directory)
-    datafiles, datafiles_keta, datafiles_APV, datafiles_control, datafiles_memantine = [], [], [], [], [] #make only 1 dict?
-    
-    infusion_start = []
-
-    for file in files:
-            print("\n", file)     
-            datafile = DataFile_washout(file, debug=debug1)
-            datafiles.append(datafile)
-            
-            if datafile.infos['Group'] == 'control': 
-                datafiles_control.append(datafile)
-            elif datafile.infos['Group'] == 'KETA':
-                datafiles_keta.append(datafile)
-            elif datafile.infos['Group'] == 'APV': 
-                datafiles_APV.append(datafile)
-            elif datafile.infos['Group'] == 'MEMANTINE': 
-                datafiles_memantine.append(datafile)
-
-            infusion_start.append(datafile.infos['Infusion start'])
-
-    #PDF creation for each datafile : #########################################################################################
-
-    
-    create_individual_pdf(datafiles, wash='all', debug=debug1)
-    
-    #PDF creation for the chosen groups: #########################################################################################
-    debug2 = False
-
-    create_group_pdf(datafiles_keta, "ketamine", "ketamine_merge", debug=debug2)
-    create_group_pdf(datafiles_memantine, "memantine", "memantine_merge", debug=debug2)  
-    create_group_pdf(datafiles_APV, "D-AP5", "D-AP5_merge", debug=debug2)
-    create_group_pdf(datafiles_control, "control", "control_merge", debug=debug2)
-
-    #PDF creation to compare groups: ##############################################################################################
-    
-    debug3 = True
-   
-    final_dict, final_barplot, final_barplot2, final_num_files = get_final_info(datafiles_keta, datafiles_APV, datafiles_control, datafiles_memantine)
-
-    if debug3: 
+#OK
+def create_final_results_pdf(final_dict, final_barplot, GROUPS, final_barplot2, debug=False):
+    if debug: 
         print("Debug for final PDF")
         print("final dict : ")
         pprint.pprint(final_dict)
-        print("final barplot ")
+        print("final barplots :")
         pprint.pprint(final_barplot)
+        pprint.pprint(final_barplot2)
+        pprint.pprint(GROUPS)
+    
+    try: 
+        pdf = PdfPage(PDF_sheet = 'final', debug=debug )
+        pdf.fill_final_results(final_dict, final_barplot, GROUPS, final_barplot2)
+        plt.savefig(f'C:/Users/sofia/Output_expe/In_Vitro/washout/Washout_PDFs/final_results.pdf') 
+        print('OK final results PDF file saved successfully')
+    except Exception as e:
+        print(f"Error saving final PDF file : {e}")
+    return 0
 
-    create_final_results_pdf(final_dict, final_barplot, final_num_files, concentration, colors, GROUPS, final_barplot2, debug=debug3)
+###################################################################################################
+###################################################################################################
+#OK
+if __name__=='__main__':
+
+    GROUPS = {'control':   {'concentration': '-', 
+                            'color':'grey',
+                            'inf_start': 10, 
+                            'num_files': None}, 
+              'ketamine':  {'concentration': '100uM', 
+                            'color':'purple',
+                            'inf_start':10,
+                            'num_files': None},
+              'D-AP5':     {'concentration': '50uM', 
+                            'color':'orange',
+                            'inf_start': 10,
+                            'num_files': None},
+              'memantine': {'concentration': '100uM', 
+                            'color':'gold',
+                            'inf_start': 6,
+                            'num_files': None}} 
+
+    datafiles = {'all':[],
+                 'ketamine':[], 
+                 'D-AP5':[], 
+                 'control':[], 
+                 'memantine':[]}
+    
+    #############################################################################################################################
+    #Load and sort datafiles: ###################################################################################################
+    debug0 = False
+
+    files = find_nm_files(files_directory)
+
+    for file in files:
+            print("\n", file)     
+            datafile = DataFile_washout(file, debug=debug0)
+            datafiles['all'].append(datafile)
+            datafiles[datafile.infos['Group']].append(datafile)
+
+    #############################################################################################################################
+    #PDF creation for each datafile : ###########################################################################################
+    
+    debug1=False
+    for datafile in datafiles['all']: 
+        create_individual_pdf(datafile, GROUPS, wash='all',  debug=debug1)
+    
+    ##############################################################################################################################
+    #PDF creation for the chosen groups: #########################################################################################
+    debug2 = False
+
+    create_group_pdf(label="ketamine",  
+                     dict = get_dict(datafiles['ketamine'], "ketamine", debug=debug2),
+                     barplot= get_barplot_merged(get_dict(datafiles['ketamine'], "ketamine", debug=debug2), "ketamine"), 
+                     len_group = len(datafiles['ketamine']), 
+                     GROUPS=GROUPS, 
+                     debug=debug2)
+
+    create_group_pdf(label="memantine", 
+                     dict= get_dict(datafiles['memantine'], "memantine", debug=debug2),
+                     barplot= get_barplot_merged(get_dict(datafiles['memantine'], "memantine", debug=debug2), "memantine"), 
+                     len_group= len(datafiles['memantine']), 
+                     GROUPS=GROUPS, 
+                     debug=debug2)  
+    
+    create_group_pdf(label="D-AP5", 
+                     dict= get_dict(datafiles['D-AP5'], "D-AP5", debug=debug2),
+                     barplot= get_barplot_merged(get_dict(datafiles['D-AP5'], "D-AP5", debug=debug2), "D-AP5"), 
+                     len_group=len(datafiles['D-AP5']), 
+                     GROUPS=GROUPS, 
+                     debug=debug2)  
+    
+    create_group_pdf(label="control", 
+                     dict= get_dict(datafiles['control'], "control", debug=debug2), 
+                     barplot= get_barplot_merged(get_dict(datafiles['control'], "control", debug=debug2), "control"), 
+                     len_group = len(datafiles['control']), 
+                     GROUPS= GROUPS, 
+                     debug=debug2) 
+
+    ###############################################################################################################################
+    #PDF creation to compare groups: ##############################################################################################
+    
+    debug3 = False
+    final_dict, final_barplot, final_barplot2 = get_final_info(datafiles)
+    create_final_results_pdf(final_dict, final_barplot, GROUPS, final_barplot2, debug=debug3)
     
 
     
