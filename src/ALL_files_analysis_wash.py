@@ -8,7 +8,7 @@ import pprint
 
 #keep this aborescence if program used in other computers
 base_path = os.path.join(os.path.expanduser('~'), 'DATA','In_Vitro_experiments', 'Washout_experiment') 
-directory = "RAW-DATA-WASHOUT-PYR-q"
+directory = "RAW-DATA-WASHOUT-PYR-bis"
 files_directory = os.path.join(base_path, directory)
 
 #methods
