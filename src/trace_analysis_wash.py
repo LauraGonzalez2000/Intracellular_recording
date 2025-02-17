@@ -6,6 +6,10 @@ from scipy.signal import butter, lfilter
 import pandas as pd
 import os
 
+from scipy.stats import f_oneway, tukey_hsd, normaltest, kruskal, levene
+import scikit_posthocs as sp
+
+
 meta_info_directory = "Files.csv"
 base_path = os.path.join(os.path.expanduser('~'), 'DATA', 'In_Vitro_experiments','Washout_experiment') #keep this aborescence if program used in other computers
 meta_info_directory = os.path.join(base_path, meta_info_directory)
@@ -242,13 +246,13 @@ class DataFile_washout:
                 subset1 = norm_batches_corr_diffs[2:7]
                 subset2 = norm_batches_corr_diffs[11:15]
                 subset3 = norm_batches_corr_diffs[round(len(self.recordings)/6)-5       : round(len(self.recordings)/6)]
-                print("subsets 5-10_10-17_end-5-end")
+                #print("subsets 5-10_10-17_end-5-end")
 
             else: 
                 subset1 = norm_batches_corr_diffs[6:11]
                 subset2 = norm_batches_corr_diffs[15:19]
                 subset3 = norm_batches_corr_diffs[45:50]
-                print("subsets 5-10_10-17_45-50")
+                #print("subsets 5-10_10-17_45-50")
         return subset1, subset2, subset3
 
     def get_barplot(self, wash='all'):
@@ -338,3 +342,66 @@ class DataFile_washout:
             print(len(self.batches_corr_diffs))
 
         return 0
+    
+    def calc_stats(self):
+        values_barplot = self.get_barplot()
+
+        parametric = self.test_parametric_conditions(values_barplot)
+        # One way ANOVA test
+        # null hypothesis : all groups are statistically similar
+        if parametric:
+            print("Parametric test")
+            F_stat, p_val = f_oneway(values_barplot['End baseline']['values'], 
+                                     values_barplot['End infusion']['values'], 
+                                     values_barplot['End wash']['values'] )
+            #print("F ", F_stat) 
+            #print("p value", p_val)   
+            if p_val < 0.05: #we can reject the null hypothesis, therefore there exists differences between groups
+                #In order to differenciate groups, Tukey post hoc test    #could be Dunnett -> compare with control?
+                Tukey_result = tukey_hsd(values_barplot['End baseline']['values'], 
+                                         values_barplot['End infusion']['values'], 
+                                         values_barplot['End wash']['values'] )
+                #print("Tukey stats ", Tukey_result.statistic) 
+                #print("Tukey pvalues", Tukey_result.pvalue)   
+                final_stats = Tukey_result.pvalue
+        # Non parametric test : Kruskal Wallis test
+        # Tests the null hypothesis that the population median of all of the groups are equal.
+        else: 
+            print("Non parametric test")
+            F_stat, p_val = kruskal(values_barplot['End baseline']['values'], 
+                                    values_barplot['End infusion']['values'], 
+                                    values_barplot['End wash']['values'])
+            #print("F ", F_stat) 
+            #print("p value", p_val) 
+            #print("p_val KW : ", p_val)
+            if p_val < 0.05:
+                #we can reject the null hypothesis, therefore there exists differences between groups
+                #In order to differenciate groups, Dunn's post hoc test
+                p_values = sp.posthoc_dunn(values_barplot['End baseline']['values'], 
+                                           values_barplot['End infusion']['values'], 
+                                           values_barplot['End wash']['values'] , 
+                                           p_adjust='holm')
+                final_stats = p_values
+        #print("final stats : ", final_stats)
+        return final_stats
+
+    def test_parametric_conditions(self, values_barplot):
+        parametric=True
+        #test conditions to apply statistical test:
+            
+        #test normality (The three groups are normally distributed): 
+        res1 = normaltest(values_barplot['End baseline']['values'])
+        res2 = normaltest(values_barplot['End infusion']['values'])
+        res3 = normaltest(values_barplot['End wash']['values'])
+        if res1.statistic==np.float64(np.nan) or res2.statistic==np.float64(np.nan) or res3.statistic==np.float64(np.nan):
+            parametric=False
+            
+        #test homoscedasticity (The three groups have a homogeneity of variance; meaning the population variances are equal):
+        #The Levene test tests the null hypothesis that all input samples are from populations with equal variances.
+        statistic, p_value = levene(values_barplot['End baseline']['values'], 
+                                    values_barplot['End infusion']['values'], 
+                                    values_barplot['End wash']['values'])
+        if p_value <0.05:
+            #null hypothesis is rejected, the population variances are not equal!
+            parametric=False
+        return parametric

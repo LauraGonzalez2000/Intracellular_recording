@@ -26,11 +26,11 @@ class PdfPage:
 
         if PDF_sheet == 'individual':
             # build the axes one by one
-            Y0, DY = 0.05, 0.13
+            Y0, DY = 0.05, 0.09
             self.AXs['Notes'] = self.create_panel([X0, Y0, DX, DY], 'Notes')
             self.AXs['Notes'].axis('off')
 
-            Y0 += 0.14
+            Y0 += 0.11
             DY = 0.06
             self.AXs['Id (nA)'] = self.create_panel([X0, Y0, DX, DY])
 
@@ -47,32 +47,32 @@ class PdfPage:
             self.AXs['RespAnalyzed'] = self.create_panel([X0, Y0, DX, DY])
 
             Y0 += 0.22
-            DY = 0.13
+            DY = 0.17
             self.AXs['barplot'] = self.create_panel([X0, Y0, 0.4, DY])
 
         elif PDF_sheet == 'group analysis':
             # build the axes one by one
-            Y0, DY = 0.05, 0.07
+            Y0, DY = 0.05, 0.05
             self.AXs['Notes'] = self.create_panel([X0, Y0, DX, DY], 'Notes')
             self.AXs['Notes'].axis('off')
 
-            Y0 += 0.08
+            Y0 += 0.06
             DY = 0.06
             self.AXs['Id (nA)'] = self.create_panel([X0, Y0, DX, DY])
 
-            Y0 += 0.10
+            Y0 += 0.12
             DY = 0.06
             self.AXs['Leak (nA)'] = self.create_panel([X0, Y0, DX, DY])
 
-            Y0 += 0.10
+            Y0 += 0.12
             DY = 0.18
             self.AXs['Difference_peak_baseline'] = self.create_panel([X0, Y0, DX, DY], 'Response')
 
-            Y0 += 0.22
+            Y0 += 0.24
             DY = 0.18
             self.AXs['RespAnalyzed'] = self.create_panel([X0, Y0, DX, DY])
 
-            Y0 += 0.22
+            Y0 += 0.24
             DY = 0.13
             self.AXs['barplot'] = self.create_panel([X0, Y0, 0.4, DY])
 
@@ -293,10 +293,48 @@ class PdfPage:
                 self.AXs[key].set_xticks(range(len(keys)))  # Align xticks with bar positions
                 self.AXs[key].set_xticklabels(keys, rotation=0, ha='center', fontsize=10)
                 self.AXs[key].set_ylabel("Normalized \nNMDAR-eEPSCs (%) (± SEM)")
+
+                #ADD STATISTICS
+                y_pos_m = 0
+                final_stats = datafile.calc_stats()
+                for j1, time1 in enumerate(keys):
+                    for j2, time2 in enumerate(keys):
+                        if j1 < j2:  # Avoid duplicate comparisons (i.e., comparing the same time to itself)
+                            significance = 'ns'
+                            if final_stats.any() == np.nan:
+                                print("no significance")
+                                break;
+                            else:
+                                p_value = final_stats[j1, j2]
+                                if p_value==np.nan or p_value>0.05:
+                                    significance = 'ns'  # Default is "not significant"
+                                elif p_value < 0.001:
+                                    significance = '***'
+                                elif p_value < 0.01:
+                                    significance = '**'
+                                elif p_value < 0.05:
+                                    significance = '*'
+                                # Get the y positions for both bars being compared
+                                y_pos1 = means[j1] + sem_values[j1]
+                                y_pos2 = means[j2] + sem_values[j2]
+                                y_pos = max(y_pos1, y_pos2) + 15 # Place the significance line above the highest bar
+                                if y_pos==y_pos_m:
+                                    y_pos +=12
+                                y_pos_m=y_pos
+                                # Calculate the position to place the significance line
+                                x1 =  j1 
+                                x2 =  j2 
+                                # Draw a line between the bars
+                                self.AXs[key].plot([x1, x2], [y_pos, y_pos], color='black', lw=0.8)
+                                self.AXs[key].plot([x1, x1], [y_pos-3, y_pos], color='black', lw=0.8)
+                                self.AXs[key].plot([x2, x2], [y_pos-3, y_pos], color='black', lw=0.8)
+                                
+                                # Annotate the significance above the line
+                                self.AXs[key].text((x1 + x2) / 2, y_pos + 0.03, f"{significance}", ha='center', va='bottom', fontsize=8)
                 if debug: 
                     print("End ", key)
 
-    def fill_PDF_merge(self, num_files, group, my_list, barplot, GROUPS, debug):
+    def fill_PDF_merge(self, num_files, group, my_list, barplot, GROUPS, final_stats, debug):
 
         for key in self.AXs:
             if key =='Notes':
@@ -341,8 +379,7 @@ class PdfPage:
 
                 if any(baseline < 0.29 for baseline in y_vals): 
                     self.AXs[key].axhline(0.29, color="firebrick", linestyle="-", linewidth=0.8)
-            
-                
+               
             elif key=='Leak (nA)':
 
                 x_vals = range(len(my_list['Leaks']['mean'][0]))
@@ -406,7 +443,6 @@ class PdfPage:
                     self.AXs[key].axvspan(10, 17, color='lightgrey')
                 self.AXs[key].axvline(50, color="grey", linestyle="-")
                 
-
             elif key=='RespAnalyzed':  # Normalization by baseline mean (Baseline at 100%)
                 if group=='memantine':
                     baseline_diffs_m = np.mean(my_list['Diffs']['mean'][0][2:7]) 
@@ -437,8 +473,7 @@ class PdfPage:
                     self.AXs[key].axvspan(6, 13, color='lightgrey') 
                 elif group=='ketamine' or group=='D-AP5':
                     self.AXs[key].axvspan(10, 17, color='lightgrey')
-
-               
+   
             elif key == 'barplot':
                 # Extract data
                 keys = list(barplot.keys())
@@ -462,8 +497,45 @@ class PdfPage:
                 self.AXs[key].set_xticks(range(len(keys)))  # Align xticks with bar positions
                 self.AXs[key].set_xticklabels(keys, rotation=0, ha='center', fontsize=10)
                 self.AXs[key].set_ylabel("Normalized \nNMDAR-eEPSCs (%) (± SEM)")
-            
-    def fill_final_results(self, final_dict, final_barplot, GROUPS, final_barplot2):
+
+                #ADD STATISTICS
+                y_pos_m = 0
+                for j1, time1 in enumerate(keys):
+                    for j2, time2 in enumerate(keys):
+                        if j1 < j2:  # Avoid duplicate comparisons (i.e., comparing the same time to itself)
+                            significance = 'ns'
+                            if final_stats[group].any() == np.nan:
+                                break;
+                            else:
+                                p_value = final_stats[group][j1, j2]
+                                if p_value==np.nan or p_value>0.05:
+                                    significance = 'ns'  # Default is "not significant"
+                                elif p_value < 0.001:
+                                    significance = '***'
+                                elif p_value < 0.01:
+                                    significance = '**'
+                                elif p_value < 0.05:
+                                    significance = '*'
+                                # Get the y positions for both bars being compared
+                                y_pos1 = means[j1] + sem_values[j1]  #np.mean(means[j1]) + np.std(means[j1]) / np.sqrt(len(means[j1]))
+                                y_pos2 = means[j2] + sem_values[j2]  #np.mean(means[j2]) + np.std(means[j2]) / np.sqrt(len(means[j2]))
+                                y_pos = max(y_pos1, y_pos2) + 30 # Place the significance line above the highest bar
+                                if y_pos==y_pos_m:
+                                    y_pos +=20
+                                y_pos_m=y_pos
+                                # Calculate the position to place the significance line
+                                x1 =  j1 
+                                x2 =  j2 
+                            
+                                # Draw a line between the bars
+                                self.AXs[key].plot([x1, x2], [y_pos, y_pos], color='black', lw=0.8)
+                                self.AXs[key].plot([x1, x1], [y_pos-3, y_pos], color='black', lw=0.8)
+                                self.AXs[key].plot([x2, x2], [y_pos-3, y_pos], color='black', lw=0.8)
+                                
+                                # Annotate the significance above the line
+                                self.AXs[key].text((x1 + x2) / 2, y_pos + 0.05, f"{significance}", ha='center', va='bottom', fontsize=8)
+                    
+    def fill_final_results(self, final_dict, final_barplot, GROUPS, final_barplot2, final_stats):
         
         for key in self.AXs:
             
@@ -537,7 +609,48 @@ class PdfPage:
                 sec = self.AXs[key].secondary_xaxis(location=0)
                 sec.set_xticks(group_ticks, labels=labels_groupticks) # Center xticks under groups
                 sec.tick_params('x', length=0)
-            
+                
+                #ADD STATISTICS
+                for i, drug in enumerate(drug_types):
+                    y_pos_m = 0
+                    for j1, time1 in enumerate(time_periods):
+                        for j2, time2 in enumerate(time_periods):
+                            if j1 < j2:  # Avoid duplicate comparisons (i.e., comparing the same time to itself)
+                                significance = 'ns'
+                                if final_stats[drug].any() == np.nan:
+                                    break;
+                                else:
+                                    p_value = final_stats[drug][j1, j2]
+                                    if p_value==np.nan or p_value>0.05:
+                                        significance = 'ns'  # Default is "not significant"
+                                    elif p_value < 0.001:
+                                        significance = '***'
+                                    elif p_value < 0.01:
+                                        significance = '**'
+                                    elif p_value < 0.05:
+                                        significance = '*'
+                                    # Get the y positions for both bars being compared
+                                    y_pos1 = np.mean(final_barplot[time1][drug]['mean']) + np.std(final_barplot[time1][drug]['mean']) / np.sqrt(len(final_barplot[time1][drug]['mean']))
+                                    y_pos2 = np.mean(final_barplot[time2][drug]['mean']) + np.std(final_barplot[time2][drug]['mean']) / np.sqrt(len(final_barplot[time2][drug]['mean']))
+                                    y_pos = max(y_pos1, y_pos2) + 30 # Place the significance line above the highest bar
+                                    if y_pos==y_pos_m:
+                                        y_pos +=20
+                                    y_pos_m=y_pos
+                            
+                                    # Calculate the position to place the significance line
+                                    x1 = x[i] + j1 * (width + spacing)
+                                    x2 = x[i] + j2 * (width + spacing)
+                            
+                                    # Draw a line between the bars
+                                    self.AXs[key].plot([x1, x2], [y_pos, y_pos], color='black', lw=0.8)
+                                    self.AXs[key].plot([x1, x1], [y_pos-3, y_pos], color='black', lw=0.8)
+                                    self.AXs[key].plot([x2, x2], [y_pos-3, y_pos], color='black', lw=0.8)
+                
+                                    # Annotate the p-value above the line
+                                    self.AXs[key].text((x1 + x2) / 2, y_pos + 0.05, f"{significance}", ha='center', va='bottom', fontsize=8)
+
+
+             
             elif key=='barplot2':
                 barplot = final_barplot2
                 print("final barplot 2 : ",barplot)

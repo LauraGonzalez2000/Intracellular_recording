@@ -1,14 +1,18 @@
+
 import os
 from PdfPage_wash import PdfPage
 from trace_analysis_wash import DataFile_washout
 import matplotlib.pylab as plt
 import numpy as np
+from scipy.stats import f_oneway, tukey_hsd, normaltest, kruskal, levene
+import scikit_posthocs as sp
+#from scipy import stats
 
 import pprint
 
 #keep this aborescence if program used in other computers
 base_path = os.path.join(os.path.expanduser('~'), 'DATA','In_Vitro_experiments', 'Washout_experiment') 
-directory = "RAW-DATA-WASHOUT-PYR-bis"
+directory = "RAW-DATA-WASHOUT-PYR-q"
 files_directory = os.path.join(base_path, directory)
 
 #methods
@@ -296,6 +300,130 @@ def get_final_info(datafiles):
     
     return final_dict, final_barplot, final_barplot2
 
+def calc_stats(final_barplot, final_barplot2, GROUPS):
+
+    #flipping structure seems easier ##########################################
+    values_barplot = {"control"  : {"End baseline" : None, 
+                                    "End infusion" : None,
+                                    "End wash"     : None},
+                     "ketamine"  : {"End baseline" : None, 
+                                    "End infusion" : None,
+                                    "End wash"     : None},
+                     "D-AP5"     : {"End baseline" : None, 
+                                    "End infusion" : None,
+                                    "End wash"     : None},
+                     "memantine" : {"End baseline" : None, 
+                                    "End infusion" : None,
+                                    "End wash"     : None, 
+                                    "End wash_"    : None}}
+    for group in GROUPS:
+        for time in final_barplot.keys():
+            values_barplot[group][time] = final_barplot[time][group]['mean']
+    if group=='memantine':
+        values_barplot['memantine']['End wash_'] = final_barplot2['End wash long']['mean']
+        
+
+    print("values barplot :", values_barplot) 
+    #####################################################################
+    final_stats = {"control"   : np.array([[np.nan, np.nan, np.nan],
+                                           [np.nan, np.nan, np.nan],
+                                           [np.nan, np.nan, np.nan]]),
+                   "ketamine"  : np.array([[np.nan, np.nan, np.nan],
+                                           [np.nan, np.nan, np.nan],
+                                           [np.nan, np.nan, np.nan]]),
+                   "D-AP5"     : np.array([[np.nan, np.nan, np.nan],
+                                           [np.nan, np.nan, np.nan],
+                                           [np.nan, np.nan, np.nan]]),              
+                   "memantine" : np.array([[np.nan, np.nan, np.nan, np.nan],
+                                           [np.nan, np.nan, np.nan, np.nan],
+                                           [np.nan, np.nan, np.nan, np.nan], 
+                                           [np.nan, np.nan, np.nan, np.nan]])}
+    
+    #statistic performed within each group:
+    for group in GROUPS:
+        print(group)
+        parametric = test_parametric_conditions(values_barplot, group)
+        # One way ANOVA test
+        # null hypothesis : all groups are statistically similar
+        if parametric:
+            print("Parametric test")
+            F_stat, p_val = f_oneway(values_barplot[group]['End baseline'], 
+                                     values_barplot[group]['End infusion'], 
+                                     values_barplot[group]['End wash'] )
+            if group=='memantine':
+                F_stat, p_val = f_oneway(values_barplot[group]['End baseline'], 
+                                     values_barplot[group]['End infusion'], 
+                                     values_barplot[group]['End wash'],
+                                     values_barplot[group]['End wash_'] )
+            #print("F ", F_stat) 
+            #print("p value", p_val)   
+            if p_val < 0.05: #we can reject the null hypothesis, therefore there exists differences between groups
+                #In order to differenciate groups, Tukey post hoc test    #could be Dunnett -> compare with control?
+                Tukey_result = tukey_hsd(values_barplot[group]['End baseline'], 
+                                         values_barplot[group]['End infusion'], 
+                                         values_barplot[group]['End wash'] )
+                if group=='memantine':
+                    Tukey_result = tukey_hsd(values_barplot[group]['End baseline'], 
+                                         values_barplot[group]['End infusion'], 
+                                         values_barplot[group]['End wash'], 
+                                         values_barplot[group]['End wash_'] )
+                #print("Tukey stats ", Tukey_result.statistic) 
+                #print("Tukey pvalues", Tukey_result.pvalue)   
+                final_stats[group] = Tukey_result.pvalue
+
+        # Non parametric test : Kruskal Wallis test
+        # Tests the null hypothesis that the population median of all of the groups are equal.
+        else: 
+            print("Non parametric test")
+            F_stat, p_val = kruskal(values_barplot[group]['End baseline'], 
+                                    values_barplot[group]['End infusion'], 
+                                    values_barplot[group]['End wash'])
+            if group=='memantine':
+                F_stat, p_val = kruskal(values_barplot[group]['End baseline'], 
+                                        values_barplot[group]['End infusion'], 
+                                        values_barplot[group]['End wash'],
+                                        values_barplot[group]['End wash_'])
+            #print("F ", F_stat) 
+            #print("p value", p_val) 
+            #print("p_val KW : ", p_val)
+            if p_val < 0.05:
+                #we can reject the null hypothesis, therefore there exists differences between groups
+                #In order to differenciate groups, Dunn's post hoc test
+                p_values = sp.posthoc_dunn(values_barplot[group]['End baseline'], 
+                                           values_barplot[group]['End infusion'], 
+                                           values_barplot[group]['End wash'] , 
+                                           p_adjust='holm')
+                if group=='memantine':
+                    p_values = sp.posthoc_dunn(values_barplot[group]['End baseline'], 
+                                           values_barplot[group]['End infusion'], 
+                                           values_barplot[group]['End wash'] , 
+                                           values_barplot[group]['End wash_'] ,
+                                           p_adjust='holm')
+                final_stats[group] = p_values
+
+    #print("final stats : ", final_stats)
+    return final_stats
+
+def test_parametric_conditions(values_barplot, group):
+    parametric=True
+    #test conditions to apply statistical test:
+        
+    #test normality (The three groups are normally distributed): 
+    res1 = normaltest(values_barplot[group]['End baseline'])
+    res2 = normaltest(values_barplot[group]['End infusion'])
+    res3 = normaltest(values_barplot[group]['End wash'])
+    if res1.statistic==np.float64(np.nan) or res2.statistic==np.float64(np.nan) or res3.statistic==np.float64(np.nan):
+        parametric=False
+        
+    #test homoscedasticity (The three groups have a homogeneity of variance; meaning the population variances are equal):
+    #The Levene test tests the null hypothesis that all input samples are from populations with equal variances.
+    statistic, p_value = levene(values_barplot[group]['End baseline'], 
+                                    values_barplot[group]['End infusion'], 
+                                    values_barplot[group]['End wash'])
+    if p_value <0.05:
+        #null hypothesis is rejected, the population variances are not equal!
+        parametric=False
+    return parametric
 #OK
 def create_individual_pdf(datafile, GROUPS, wash= 'all',  debug=False):
     try:
@@ -308,7 +436,7 @@ def create_individual_pdf(datafile, GROUPS, wash= 'all',  debug=False):
     return 0
 
 #OK
-def create_group_pdf(label, dict, barplot, len_group, GROUPS, debug=False):
+def create_group_pdf(label, dict, barplot, len_group, GROUPS, final_stats, debug=False):
     if debug:
         print("label :\n" , label)
         print("dict :\n" , dict)
@@ -317,7 +445,7 @@ def create_group_pdf(label, dict, barplot, len_group, GROUPS, debug=False):
 
     try:
         pdf = PdfPage(PDF_sheet = 'group analysis', debug=debug)
-        pdf.fill_PDF_merge(num_files = len_group, group = label, my_list = dict, barplot = barplot, GROUPS=GROUPS, debug=debug)
+        pdf.fill_PDF_merge(num_files = len_group, group = label, my_list = dict, barplot = barplot, GROUPS=GROUPS, final_stats=final_stats, debug=debug)
         plt.savefig(f'C:/Users/sofia/Output_expe/In_Vitro/washout/Washout_PDFs/{label}_merged.pdf') 
         print(f"OK PDF file saved successfully for group {label}. \n")
     except Exception as e:
@@ -325,7 +453,7 @@ def create_group_pdf(label, dict, barplot, len_group, GROUPS, debug=False):
     return 0
 
 #OK
-def create_final_results_pdf(final_dict, final_barplot, GROUPS, final_barplot2, debug=False):
+def create_final_results_pdf(final_dict, final_barplot, GROUPS, final_barplot2, final_stats, debug=False):
     if debug: 
         print("Debug for final PDF")
         print("final dict : ")
@@ -334,10 +462,11 @@ def create_final_results_pdf(final_dict, final_barplot, GROUPS, final_barplot2, 
         pprint.pprint(final_barplot)
         pprint.pprint(final_barplot2)
         pprint.pprint(GROUPS)
+        print(final_stats)
     
     try: 
         pdf = PdfPage(PDF_sheet = 'final', debug=debug )
-        pdf.fill_final_results(final_dict, final_barplot, GROUPS, final_barplot2)
+        pdf.fill_final_results(final_dict, final_barplot, GROUPS, final_barplot2, final_stats)
         plt.savefig(f'C:/Users/sofia/Output_expe/In_Vitro/washout/Washout_PDFs/final_results.pdf') 
         print('OK final results PDF file saved successfully')
     except Exception as e:
@@ -392,21 +521,26 @@ if __name__=='__main__':
         create_individual_pdf(datafile, GROUPS, wash='all',  debug=debug1)
     
     ##############################################################################################################################
+    final_dict, final_barplot, final_barplot2 = get_final_info(datafiles)
+    final_stats = calc_stats(final_barplot, final_barplot2, GROUPS)
+    ##############################################################################################################################
+    
     #PDF creation for the chosen groups: #########################################################################################
     debug2 = False
-
     create_group_pdf(label="ketamine",  
                      dict = get_dict(datafiles['ketamine'], "ketamine", debug=debug2),
                      barplot= get_barplot_merged(get_dict(datafiles['ketamine'], "ketamine", debug=debug2), "ketamine"), 
                      len_group = len(datafiles['ketamine']), 
-                     GROUPS=GROUPS, 
+                     GROUPS=GROUPS,
+                     final_stats=final_stats, 
                      debug=debug2)
-
+    
     create_group_pdf(label="memantine", 
                      dict= get_dict(datafiles['memantine'], "memantine", debug=debug2),
                      barplot= get_barplot_merged(get_dict(datafiles['memantine'], "memantine", debug=debug2), "memantine"), 
                      len_group= len(datafiles['memantine']), 
                      GROUPS=GROUPS, 
+                     final_stats=final_stats, 
                      debug=debug2)  
     
     create_group_pdf(label="D-AP5", 
@@ -414,21 +548,21 @@ if __name__=='__main__':
                      barplot= get_barplot_merged(get_dict(datafiles['D-AP5'], "D-AP5", debug=debug2), "D-AP5"), 
                      len_group=len(datafiles['D-AP5']), 
                      GROUPS=GROUPS, 
+                     final_stats=final_stats, 
                      debug=debug2)  
     
     create_group_pdf(label="control", 
                      dict= get_dict(datafiles['control'], "control", debug=debug2), 
                      barplot= get_barplot_merged(get_dict(datafiles['control'], "control", debug=debug2), "control"), 
                      len_group = len(datafiles['control']), 
-                     GROUPS= GROUPS, 
+                     GROUPS= GROUPS,
+                     final_stats=final_stats,  
                      debug=debug2) 
 
     ###############################################################################################################################
     #PDF creation to compare groups: ##############################################################################################
-    
     debug3 = False
-    final_dict, final_barplot, final_barplot2 = get_final_info(datafiles)
-    create_final_results_pdf(final_dict, final_barplot, GROUPS, final_barplot2, debug=debug3)
+    create_final_results_pdf(final_dict, final_barplot, GROUPS, final_barplot2, final_stats, debug=debug3)
     
 
     
