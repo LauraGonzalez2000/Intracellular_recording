@@ -2,6 +2,8 @@ import matplotlib.pylab as plt
 import Curve_fit as cf
 import numpy as np
 import pandas as pd
+from scipy.stats import f_oneway, tukey_hsd, normaltest, kruskal, levene
+import scikit_posthocs as sp
 
 class PdfPage:
 
@@ -192,7 +194,7 @@ class PdfPage:
         # Read the Excel file into a DataFrame
             
         IGOR_results_df = pd.read_excel(file_path, header=0)
-        #print(IGOR_results_df)
+        print(IGOR_results_df)
         
         # Group labels
         labels = ['xyla eutha', 'Ketaxyla' , 'keta xyla eutha']
@@ -217,7 +219,6 @@ class PdfPage:
             means = []
             sems = []
             individual_data = []
-            
             # Collect data for each group
             for query in group_queries:
                 df_temp = IGOR_results_df.query(query)[metric]
@@ -242,16 +243,129 @@ class PdfPage:
             axes[idx].set_xticklabels(labels)
             #axes[idx].set_ylabel('Amplitude (pA)')
 
+            #ADD STATISTICS
+            final_stats = self.calc_stats(metric, IGOR_results_df)
+            y_pos_m = 0
+            keys = ['xyla euthasol', 'ketaxyla', 'keta xyla euthasol']
+            if np.isnan(final_stats).all():
+                print("no significance")  #no need to add stats when there is nothing
+                continue 
+            else: 
+                for j1, time1 in enumerate(keys):
+                    for j2, time2 in enumerate(keys):
+                        if j1 < j2:  # Avoid duplicate comparisons (i.e., comparing the same time to itself)
+                            significance = 'ns'
+                            p_value = final_stats[j1, j2]
+                            if p_value==np.nan or p_value>0.05:
+                                significance = 'ns'  # Default is "not significant"
+                            elif p_value < 0.001:
+                                significance = '***'
+                            elif p_value < 0.01:
+                                significance = '**'
+                            elif p_value < 0.05:
+                                significance = '*'
+                            # Get the y positions for both bars being compared
+                            y_pos1 = means[j1] + sems[j1]
+                            y_pos2 = means[j2] + sems[j2]
+                            y_pos = max(y_pos1, y_pos2) + 15 # Place the significance line above the highest bar
+                            if y_pos==y_pos_m:
+                                y_pos +=12
+                            y_pos_m=y_pos
+                            # Calculate the position to place the significance line
+                            x1 =  j1 
+                            x2 =  j2 
+                            # Draw a line between the bars
+                            axes[idx].plot([x1, x2], [y_pos, y_pos], color='black', lw=0.8)
+                            axes[idx].plot([x1, x1], [y_pos-3, y_pos], color='black', lw=0.8)
+                            axes[idx].plot([x2, x2], [y_pos-3, y_pos], color='black', lw=0.8)
+                                        
+                            # Annotate the significance above the line
+                            axes[idx].text((x1 + x2) / 2, y_pos + 0.03, f"{significance}", ha='center', va='bottom', fontsize=8)
+
         # Delete any remaining unused subplots (if any)
         for idx in range(num_metrics, len(axes)):
             fig.delaxes(axes[idx])
-        
+
         # Adjust layout to prevent overlap
         plt.tight_layout()
-        #plt.show()
+       
         return 0
 
+    def test_parametric_conditions(self, values1, values2, values3):
+        parametric=True
+        #test conditions to apply statistical test:
+            
+        #test normality (The three groups are normally distributed): 
+        res1 = normaltest(values1)
+        res2 = normaltest(values2)
+        res3 = normaltest(values3)
+        if res1.statistic==np.float64(np.nan) or res2.statistic==np.float64(np.nan) or res3.statistic==np.float64(np.nan):
+            parametric=False
+            
+        #test homoscedasticity (The three groups have a homogeneity of variance; meaning the population variances are equal):
+        #The Levene test tests the null hypothesis that all input samples are from populations with equal variances.
+        statistic, p_value = levene(values1, values2, values3)
+        if p_value <0.05:
+            #null hypothesis is rejected, the population variances are not equal!
+            parametric=False
 
+        print(parametric)
+        return parametric
+
+    def calc_stats(self, metric, IGOR_results_df ):
+        final_stats = np.array([[np.nan, np.nan, np.nan],
+                                [np.nan, np.nan, np.nan],
+                                [np.nan, np.nan, np.nan]])
+        #statistic performed within a specific group:
+        values_xe = IGOR_results_df.loc[IGOR_results_df['Group']=='xyla euthasol',  metric].values
+        values_kx = IGOR_results_df.loc[IGOR_results_df['Group']=='ketaxyla',  metric].values
+        values_kxe = IGOR_results_df.loc[IGOR_results_df['Group']=='keta xyla euthasol',  metric].values
+
+
+        parametric = self.test_parametric_conditions(values_xe, values_kx, values_kxe)
+
+            
+        # One way ANOVA test
+        # null hypothesis : all groups are statistically similar
+        if parametric:
+            print("Parametric test")
+            F_stat, p_val = f_oneway(values_xe, 
+                                     values_kx, 
+                                     values_kxe )
+            #print("F ", F_stat) 
+            #print("p value", p_val)   
+            if p_val < 0.05: #we can reject the null hypothesis, therefore there exists differences between groups
+                #In order to differenciate groups, Tukey post hoc test    #could be Dunnett -> compare with control?
+                Tukey_result = tukey_hsd(values_xe, 
+                                         values_kx, 
+                                         values_kxe )
+                    
+                #print("Tukey stats ", Tukey_result.statistic) 
+                #print("Tukey pvalues", Tukey_result.pvalue)   
+                final_stats = Tukey_result.pvalue
+
+        # Non parametric test : Kruskal Wallis test
+        # Tests the null hypothesis that the population median of all of the groups are equal.
+        else: 
+            print("Non parametric test")
+            F_stat, p_val = kruskal(values_xe, 
+                                    values_kx, 
+                                    values_kxe)
+            #print("F ", F_stat) 
+            #print("p value", p_val) 
+            #print("p_val KW : ", p_val)
+            if p_val < 0.05:
+                #we can reject the null hypothesis, therefore there exists differences between groups
+                #In order to differenciate groups, Dunn's post hoc test
+                p_values = sp.posthoc_dunn(values_xe, 
+                                           values_kx, 
+                                           values_kxe , 
+                                           p_adjust='holm')
+                final_stats = p_values
+
+        print("final stats : ")
+        print(final_stats)
+        return final_stats
 
 if __name__=='__main__':
     from trace_analysis_ratio import DataFile

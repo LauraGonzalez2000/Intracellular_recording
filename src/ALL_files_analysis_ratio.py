@@ -26,7 +26,7 @@ def find_nm_files(root_folder):
             normalized_path = os.path.normpath(file_path)
             forward_slash_path = normalized_path.replace("\\", "/")
             nm_paths.append(forward_slash_path)
-            #print('-', file)
+            print('-', file)
 
     return nm_paths
 
@@ -106,7 +106,6 @@ def analyse_datafiles(datafiles, data_list, files_id, debug=False, bis=False, PD
         create_final_barplots(bis)
 
     return 0
-
 
 ###create output
 def create_pdf(datafile, bis):
@@ -218,17 +217,24 @@ def create_final_excel(datafiles, files_id):
 
 def create_final_barplots(bis=False):
     try:
-        manual_results_path = 'C:/Users/sofia/Output_expe/In_Vitro/ratio/ratio_results_.xlsx'   #LauraGonzalez in lab laptop, #laura.gonzalez in PC
-        #automatic_results_path = 'C:/Users/laura.gonzalez/Output_expe/ratio/final_ratio.xlsx' #compare with IGOR results
-        automatic_results_path = 'C:/Users/sofia/Output_expe/In_Vitro/ratio/final_excel.xlsx' #compare with IGOR results
+        
+        final_excel_path = 'C:/Users/sofia/Output_expe/In_Vitro/ratio/final_excel.xlsx' #compare with IGOR results
 
-        metrics = ["1 AMPA Amplitude (pA)", "1 AMPA rise time (10-90%)", "1 AMPA decay time (50%)", "2 AMPA Amplitude (pA)",
-                "1 NMDA Amplitude (pA)", "1 NMDA rise time (10-90%)", "1 NMDA decay time (50%)", "2 NMDA Amplitude (pA)",
-                "1 NMDA/AMPA", "2 NMDA/AMPA"]  
+        metrics = ["1 AMPA Amplitude (pA)", 
+                   "1 AMPA rise time (10-90%)", 
+                   "1 AMPA decay time (50%)", 
+                   "2 AMPA Amplitude (pA)",
+                   "1 NMDA Amplitude (pA)", 
+                   "1 NMDA rise time (10-90%)", 
+                   "1 NMDA decay time (50%)", 
+                   "2 NMDA Amplitude (pA)",
+                   "1 NMDA/AMPA", 
+                   "2 NMDA/AMPA"]  
         
         pdf = PdfPage(debug=False)
-        pdf.fill_PDF_barplots(automatic_results_path, metrics)
+        pdf.fill_PDF_barplots(final_excel_path, metrics)
         plt.savefig(f'C:/Users/sofia/Output_expe/In_Vitro/ratio/Ratio_PDFs/auto_barplots.pdf')
+        print("Final barolots PDF file saved successfully.")
 
     except Exception as e:
         print(f"Error saving the barplots : {e}")
