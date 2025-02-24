@@ -4,6 +4,7 @@ import numpy as np
 import pandas as pd
 from scipy.stats import f_oneway, tukey_hsd, normaltest, kruskal, levene
 import scikit_posthocs as sp
+import openpyxl
 
 class PdfPage:
 
@@ -214,6 +215,7 @@ class PdfPage:
         if num_metrics == 1:
             axes = [axes]
         
+        stats_for_excel = []
         # Loop through each metric and plot
         for idx, metric in enumerate(metrics):
             means = []
@@ -244,10 +246,12 @@ class PdfPage:
             #axes[idx].set_ylabel('Amplitude (pA)')
 
             #ADD STATISTICS
-            final_stats = self.calc_stats(metric, IGOR_results_df)
+            stats = self.calc_stats(metric, IGOR_results_df)
+            stats_for_excel.append(stats)
+
             y_pos_m = 0
             keys = ['xyla euthasol', 'ketaxyla', 'keta xyla euthasol']
-            if np.isnan(final_stats).all():
+            if np.isnan(stats['final_stats']).all() :
                 print("no significance")  #no need to add stats when there is nothing
                 continue 
             else: 
@@ -255,7 +259,7 @@ class PdfPage:
                     for j2, time2 in enumerate(keys):
                         if j1 < j2:  # Avoid duplicate comparisons (i.e., comparing the same time to itself)
                             significance = 'ns'
-                            p_value = final_stats[j1, j2]
+                            p_value = stats['final_stats'][j1, j2]
                             if p_value==np.nan or p_value>0.05:
                                 significance = 'ns'  # Default is "not significant"
                             elif p_value < 0.001:
@@ -281,7 +285,8 @@ class PdfPage:
                                         
                             # Annotate the significance above the line
                             axes[idx].text((x1 + x2) / 2, y_pos + 0.03, f"{significance}", ha='center', va='bottom', fontsize=8)
-
+        
+        self.save_stats(stats_for_excel)
         # Delete any remaining unused subplots (if any)
         for idx in range(num_metrics, len(axes)):
             fig.delaxes(axes[idx])
@@ -292,25 +297,44 @@ class PdfPage:
         return 0
 
     def test_parametric_conditions(self, values1, values2, values3):
+        norm = True
+        homes = True
         parametric=True
         #test conditions to apply statistical test:
             
         #test normality (The three groups are normally distributed): 
-        res1 = normaltest(values1)
-        res2 = normaltest(values2)
-        res3 = normaltest(values3)
-        if res1.statistic==np.float64(np.nan) or res2.statistic==np.float64(np.nan) or res3.statistic==np.float64(np.nan):
-            parametric=False
+        stat1, p_val1 = normaltest(values1)
+        stat2, p_val2 = normaltest(values2)
+        stat3, p_val3 = normaltest(values3)
+        if np.isnan(p_val1).all() or np.isnan(p_val2).all() or np.isnan(p_val3).all():
+            norm=False
+            print("issue with normality check")
+        elif p_val1< 0.05 or p_val2< 0.05 or p_val3< 0.05:
+            norm=False
+            print("data is not normally distributed")
+
             
         #test homoscedasticity (The three groups have a homogeneity of variance; meaning the population variances are equal):
         #The Levene test tests the null hypothesis that all input samples are from populations with equal variances.
-        statistic, p_value = levene(values1, values2, values3)
+        statistic, p_value = levene(values1, 
+                                    values2, 
+                                    values3)
+        if np.isnan(p_value).all():
+            norm=False
+            print("issue with homoscedasticity check")
         if p_value <0.05:
             #null hypothesis is rejected, the population variances are not equal!
-            parametric=False
+            homoscedasticity=False
+            print("data does not have equal variances")
 
-        print(parametric)
-        return parametric
+        if norm==False or homoscedasticity==False:
+            parametric=False
+            print("non parametric tests should be used")
+
+        if norm==False or homes==False:
+            parametric = False
+
+        return norm, homes, parametric
 
     def calc_stats(self, metric, IGOR_results_df ):
         final_stats = np.array([[np.nan, np.nan, np.nan],
@@ -322,13 +346,13 @@ class PdfPage:
         values_kxe = IGOR_results_df.loc[IGOR_results_df['Group']=='keta xyla euthasol',  metric].values
 
 
-        parametric = self.test_parametric_conditions(values_xe, values_kx, values_kxe)
-
-            
+        norm, homes, parametric = self.test_parametric_conditions(values_xe, values_kx, values_kxe)
+        test2 = ""
         # One way ANOVA test
         # null hypothesis : all groups are statistically similar
         if parametric:
             print("Parametric test")
+            test = 'ONE_WAY_ANOVA'
             F_stat, p_val = f_oneway(values_xe, 
                                      values_kx, 
                                      values_kxe )
@@ -336,6 +360,7 @@ class PdfPage:
             #print("p value", p_val)   
             if p_val < 0.05: #we can reject the null hypothesis, therefore there exists differences between groups
                 #In order to differenciate groups, Tukey post hoc test    #could be Dunnett -> compare with control?
+                test2='Tukey test'
                 Tukey_result = tukey_hsd(values_xe, 
                                          values_kx, 
                                          values_kxe )
@@ -348,6 +373,7 @@ class PdfPage:
         # Tests the null hypothesis that the population median of all of the groups are equal.
         else: 
             print("Non parametric test")
+            test = 'KRUSKAL_WALLIS'
             F_stat, p_val = kruskal(values_xe, 
                                     values_kx, 
                                     values_kxe)
@@ -355,6 +381,7 @@ class PdfPage:
             #print("p value", p_val) 
             #print("p_val KW : ", p_val)
             if p_val < 0.05:
+                test2='Dunn test, holm adjust'
                 #we can reject the null hypothesis, therefore there exists differences between groups
                 #In order to differenciate groups, Dunn's post hoc test
                 p_values = sp.posthoc_dunn(values_xe, 
@@ -363,9 +390,37 @@ class PdfPage:
                                            p_adjust='holm')
                 final_stats = p_values
 
-        print("final stats : ")
-        print(final_stats)
-        return final_stats
+        #print("final stats : ")
+        #print(final_stats)
+
+        stats = {'Barplot':metric,
+                 'Normality': norm,
+                 'Homescedasticity': homes,
+                 'Parametric': parametric,
+                 'Test': test,
+                 'F_stat': F_stat,
+                 'p_val': p_val, 
+                 'Supplementary test':test2,
+                 'final_stats':final_stats}
+            
+        return stats
+    
+    def save_stats(self, data_list):
+        try:
+            data_for_excel = pd.DataFrame(data_list)
+            path = 'C:/Users/sofia/Output_expe/In_Vitro/ratio/statistics.xlsx'
+            with pd.ExcelWriter(path, engine='openpyxl') as writer: 
+                data_for_excel.to_excel(writer, sheet_name='Data analysis', index=False)
+                worksheet = writer.sheets['Data analysis']
+                # Adjust column widths for data_for_excel
+                for column in data_for_excel:
+                    column_length = max(data_for_excel[column].astype(str).map(len).max(), len(column))
+                    col_idx = data_for_excel.columns.get_loc(column)
+                    worksheet.column_dimensions[openpyxl.utils.get_column_letter(col_idx + 1)].width = column_length
+            print("stats file saved successfully.")
+        except Exception as e:
+            print(f"ERROR when saving the stats file : {e}")
+        return 0
 
 if __name__=='__main__':
     from trace_analysis_ratio import DataFile

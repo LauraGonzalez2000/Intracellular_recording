@@ -6,6 +6,7 @@ import numpy as np
 from matplotlib.lines import Line2D
 
 
+
 class PdfPage:
 
     def __init__(self, PDF_sheet,
@@ -50,6 +51,13 @@ class PdfPage:
             DY = 0.17
             self.AXs['barplot'] = self.create_panel([X0, Y0, 0.4, DY])
 
+            Y0 += 0.01
+            DY = 0.17
+            X0 = 0.55
+            DX = 0.40
+            self.AXs['stats'] = self.create_panel([X0, Y0, DX, DY], 'Statistics')
+            self.AXs['stats'].axis('off')
+
         elif PDF_sheet == 'group analysis':
             # build the axes one by one
             Y0, DY = 0.05, 0.05
@@ -76,6 +84,12 @@ class PdfPage:
             DY = 0.13
             self.AXs['barplot'] = self.create_panel([X0, Y0, 0.4, DY])
 
+            Y0 += 0.01
+            DY = 0.17
+            X0 = 0.55
+            DX = 0.40
+            self.AXs['stats'] = self.create_panel([X0, Y0, DX, DY], 'Statistics')
+            self.AXs['stats'].axis('off')
 
         elif PDF_sheet == 'final':
             X0, DX, Y0, DY = 0.12, 0.85, 0.05, 0.25
@@ -89,6 +103,32 @@ class PdfPage:
             #Y0 += 0.32
             #DY = 0.25
             #self.AXs['barplot2'] = self.create_panel([X0, Y0, 0.50, DY], 'Barplot memantine 33 min vs 50 min wash')
+
+            Y0 += 0.32
+            DY = 0.17
+            DX = 0.40
+            self.AXs['stats1'] = self.create_panel([X0, Y0, DX, DY], 'Statistics')
+            self.AXs['stats1'].axis('off')
+
+            Y0 += 0.15
+            DY = 0.17
+            DX = 0.40
+            self.AXs['stats2'] = self.create_panel([X0, Y0, DX, DY])
+            self.AXs['stats2'].axis('off')
+
+            Y0 = Y0 -0.15
+            DY = 0.17
+            X0 = 0.5
+            DX = 0.40
+            self.AXs['stats3'] = self.create_panel([X0, Y0, DX, DY])
+            self.AXs['stats3'].axis('off')
+
+            Y0 += 0.15
+            DY = 0.17
+            X0 = 0.5
+            DX = 0.40
+            self.AXs['stats4'] = self.create_panel([X0, Y0, DX, DY])
+            self.AXs['stats4'].axis('off')
 
     def create_panel(self, coords, title=None):
         """ 
@@ -106,6 +146,7 @@ class PdfPage:
     def fill_PDF(self, datafile, GROUPS, wash= 'all', debug=False): 
 
         for key in self.AXs:
+            print(self.AXs)
             
             if key=='Notes': ##includes metadata   
                 if debug: 
@@ -295,18 +336,28 @@ class PdfPage:
                 self.AXs[key].set_ylabel("Normalized \nNMDAR-eEPSCs (%) (± SEM)")
 
                 #ADD STATISTICS
-                y_pos_m = 0
-                final_stats = datafile.calc_stats()
-                for j1, time1 in enumerate(keys):
-                    for j2, time2 in enumerate(keys):
-                        if j1 < j2:  # Avoid duplicate comparisons (i.e., comparing the same time to itself)
-                            significance = 'ns'
-                            if final_stats.any() == np.nan:
-                                print("no significance")
-                                break;
-                            else:
+                values_barplot = datafile.get_barplot()
+                normality, homoscedasticity, parametric = datafile.test_parametric_conditions(values_barplot)
+                F_stat1, p_val1 = datafile.calc_stats1(values_barplot, parametric)
+                
+                if np.isnan(p_val1):
+                    print("no significance")
+                    print("check case")
+                    continue
+                
+                if p_val1 <0.05:  #let's see which group is different from which
+                    print("At least one group is different from the others")
+                    y_pos_m = 0
+                    final_stats = datafile.calc_stats2(values_barplot, parametric)
+
+                    for j1, time1 in enumerate(keys):
+                        
+                        for j2, time2 in enumerate(keys):
+                            if j1 < j2:  # Avoid duplicate comparisons (i.e., comparing the same time to itself)
                                 p_value = final_stats[j1, j2]
-                                if p_value==np.nan or p_value>0.05:
+                                if np.isnan(p_value):
+                                    significance = 'ns'
+                                elif (p_value>0.05):
                                     significance = 'ns'  # Default is "not significant"
                                 elif p_value < 0.001:
                                     significance = '***'
@@ -328,17 +379,48 @@ class PdfPage:
                                 self.AXs[key].plot([x1, x2], [y_pos, y_pos], color='black', lw=0.8)
                                 self.AXs[key].plot([x1, x1], [y_pos-3, y_pos], color='black', lw=0.8)
                                 self.AXs[key].plot([x2, x2], [y_pos-3, y_pos], color='black', lw=0.8)
-                                
                                 # Annotate the significance above the line
                                 self.AXs[key].text((x1 + x2) / 2, y_pos + 0.03, f"{significance}", ha='center', va='bottom', fontsize=8)
                 if debug: 
                     print("End ", key)
 
-    def fill_PDF_merge(self, num_files, group, my_list, barplot, GROUPS, final_stats, debug):
+            elif key=='stats':
+                if debug: 
+                    print("Start ", key)   
+                
+                values_barplot = datafile.get_barplot()
+                normality, homoscedasticity, parametric = datafile.test_parametric_conditions(values_barplot)
+                F_stat1, p_val1 = datafile.calc_stats1(values_barplot, parametric)
 
+                txt = ( f"\nNormality: {normality},  Homoscedasticity: {homoscedasticity}\n")
+                if parametric: 
+                    txt2 = (f"Parametric\n1wayANOVA\n")
+                else: 
+                    txt2 = (f"Non parametric\n\nKruskalwallis\n")
+                txt3 = (f"F_val = {F_stat1:.3f}, p_val = {p_val1:.3f}\n\n") 
+                
+                if p_val1 < 0.05:
+                    final_stats = datafile.calc_stats2(values_barplot, parametric)
+                    if parametric: 
+                        txt4 = (f"Tukey test\n")
+                    else:
+                        txt4 = (f"Dunn test holm adjust\n")
+                    
+                    txt5 = (f"Bsl vs Inf p= {final_stats[0,1]:.3f}\n"
+                            f"Bsl vs Wash p= {final_stats[0,2]:.3f}\n"
+                            f"Inf vs Wash p= {final_stats[1,2]:.3f}")
+                            
+                    self.AXs[key].annotate(txt + txt2 + txt3 + txt4 + txt5,(0, 1), va='top', xycoords='axes fraction')
+                else: 
+                    self.AXs[key].annotate(txt + txt2 + txt3,(0, 1), va='top', xycoords='axes fraction')
+
+                if debug: 
+                    print("End ", key)   
+
+    def fill_PDF_merge(self, num_files, group, my_list, barplot, GROUPS, stats, debug):
         for key in self.AXs:
             if key =='Notes':
-                txt = f"Group: {group}\nNumber of cells: {str(num_files)}"
+                txt = f"Group: {group}\nNumber of cells: {str(num_files)}"  #change for label and remove group 
                 self.AXs[key].annotate(txt,(0, 1), va='top', xycoords='axes fraction')
             
             elif key=='Id (nA)':
@@ -346,14 +428,14 @@ class PdfPage:
                 x_vals = range(len(my_list['Ids']['mean'][0]))
                 y_vals = my_list['Ids']['mean'][0]
                 y_vals_std = my_list['Ids']['std'][0]
-                colors_for_points = ['firebrick' if y < 0.29 else GROUPS[group]['color'] for y in y_vals]
+                colors_for_points = ['firebrick' if y < 0.29 else GROUPS['color'] for y in y_vals]
                 
                 if debug:
                     print('Id (nA)')
                     print("Means : ", y_vals)
                     print("Stds : ", y_vals_std)
 
-                self.AXs[key].plot(y_vals, marker="o", linewidth=0.5, markersize=2, color=GROUPS[group]['color'])
+                self.AXs[key].plot(y_vals, marker="o", linewidth=0.5, markersize=2, color=GROUPS['color'])
                 # Plot each point individually with the respective color
                 for x, y, y_std, color in zip(x_vals, y_vals, y_vals_std,colors_for_points):
                     self.AXs[key].plot(x, y, marker="o", markersize=2, color=color, linewidth=0.5)
@@ -371,9 +453,11 @@ class PdfPage:
                 self.AXs[key].set_ylabel("Acces (nA) \n(± Std)")
                 self.AXs[key].set_xlabel("time (min)")
 
-                if group=='memantine':
+                if (group=='memantine'):
                     self.AXs[key].axvspan(6, 13, color='lightgrey')  ###FIX
-                elif group=='ketamine' or group=='D-AP5':
+                elif (group=='ketamine'):
+                    self.AXs[key].axvspan(10, 17, color='lightgrey')  ###FIX
+                elif ((group=='D-AP5')):
                     self.AXs[key].axvspan(10, 17, color='lightgrey')  ###FIX
                 self.AXs[key].axvline(50, color="grey", linestyle="-")
 
@@ -381,18 +465,17 @@ class PdfPage:
                     self.AXs[key].axhline(0.29, color="firebrick", linestyle="-", linewidth=0.8)
                
             elif key=='Leak (nA)':
-
                 x_vals = range(len(my_list['Leaks']['mean'][0]))
                 y_vals = my_list['Leaks']['mean'][0]
                 std_vals = my_list['Leaks']['std'][0]
-                colors_for_points = ['firebrick' if y < -0.7 else GROUPS[group]['color'] for y in y_vals]
+                colors_for_points = ['firebrick' if y < -0.7 else GROUPS['color'] for y in y_vals]
 
                 if debug:
                     print('Leak (nA)')
                     print("Means : ", y_vals)
                     print("Stds : ", std_vals)
 
-                self.AXs[key].plot(y_vals, marker="o", linewidth=0.5, markersize=2, color=GROUPS[group]['color'])
+                self.AXs[key].plot(y_vals, marker="o", linewidth=0.5, markersize=2, color=GROUPS['color'])
                 for x, y, y_std, color in zip(x_vals, y_vals, std_vals, colors_for_points):
                     self.AXs[key].plot(x, y, marker="o", markersize=2, color=color, linewidth=0.5)
                     self.AXs[key].errorbar(x, y, yerr=y_std, 
@@ -407,23 +490,24 @@ class PdfPage:
                     self.AXs[key].set_xticks(np.arange(0, 51, 5))
                 self.AXs[key].set_ylabel("Leak (nA) \n(± Std)")
                 self.AXs[key].set_xlabel("time (min)")
-                if group=='memantine':
+                if (group=='memantine'):
                     self.AXs[key].axvspan(6, 13, color='lightgrey') ###FIX
-                elif group=='ketamine' or group=='D-AP5':
+                elif ((group=='ketamine')):
+                    self.AXs[key].axvspan(10, 17, color='lightgrey') ###FIX
+                elif ((group=='D-AP5')):
                     self.AXs[key].axvspan(10, 17, color='lightgrey') ###FIX
                 self.AXs[key].axvline(50, color="grey", linestyle="-")
                 if any(baseline < -0.7 for baseline in my_list['Leaks']['mean'][0]): 
                     self.AXs[key].axhline(-0.70, color="firebrick", linestyle="-", linewidth=0.8)
             
             elif key=='Difference_peak_baseline':
-                
                 x_vals = range(len(my_list['Diffs']['mean'][0]))
                 y_vals = my_list['Diffs']['mean'][0]
                 std_vals = my_list['Diffs']['std'][0]
 
-                self.AXs[key].plot(y_vals, marker="o", linewidth=0.5, markersize=2, color=GROUPS[group]['color'])
+                self.AXs[key].plot(y_vals, marker="o", linewidth=0.5, markersize=2, color=GROUPS['color'])
                 self.AXs[key].errorbar(x_vals, y_vals, yerr=std_vals, 
-                                       linestyle='None', marker='None', color=GROUPS[group]['color'], 
+                                       linestyle='None', marker='None', color=GROUPS['color'], 
                                        capsize=3, linewidth = 0.5, capthick=0.5)
                 
                 if len(y_vals)> 50:
@@ -437,14 +521,16 @@ class PdfPage:
                 self.AXs[key].set_xlabel("time (min)")
                 self.AXs[key].axhline(0, color="grey", linestyle="--")
 
-                if group=='memantine':
+                if (group=='memantine'):
                     self.AXs[key].axvspan(6, 13, color='lightgrey') 
-                elif group=='ketamine' or group=='D-AP5':
+                elif ((group=='ketamine')):
+                    self.AXs[key].axvspan(10, 17, color='lightgrey')
+                elif ((group=='D-AP5')):
                     self.AXs[key].axvspan(10, 17, color='lightgrey')
                 self.AXs[key].axvline(50, color="grey", linestyle="-")
                 
             elif key=='RespAnalyzed':  # Normalization by baseline mean (Baseline at 100%)
-                if group=='memantine':
+                if (group=='memantine'):
                     baseline_diffs_m = np.mean(my_list['Diffs']['mean'][0][2:7]) 
                 else:
                     baseline_diffs_m = np.mean(my_list['Diffs']['mean'][0][6:11])
@@ -452,9 +538,9 @@ class PdfPage:
                 batches_diffs_std_norm = (my_list['Diffs']['std'][0] / baseline_diffs_m) * 100  
                 
 
-                self.AXs[key].plot(batches_diffs_m_norm, marker="o", linewidth=0.5, markersize=2, color=GROUPS[group]['color'])
+                self.AXs[key].plot(batches_diffs_m_norm, marker="o", linewidth=0.5, markersize=2, color=GROUPS['color'])
                 self.AXs[key].errorbar(range(len(batches_diffs_m_norm)), batches_diffs_m_norm, yerr=batches_diffs_std_norm, 
-                                       linestyle='None', marker='None', color=GROUPS[group]['color'], 
+                                       linestyle='None', marker='None', color=GROUPS['color'], 
                                        capsize=3, linewidth = 0.5, capthick=0.5)
                 if len(batches_diffs_m_norm)> 50:
                     self.AXs[key].set_xlim(-1, len(batches_diffs_m_norm))
@@ -469,12 +555,15 @@ class PdfPage:
                 self.AXs[key].axhline(0, color="grey", linestyle="--")
                 self.AXs[key].axvline(50, color="grey", linestyle="-")
 
-                if group=='memantine':
+                if (group=='memantine'):
                     self.AXs[key].axvspan(6, 13, color='lightgrey') 
-                elif group=='ketamine' or group=='D-AP5':
+                elif ((group=='ketamine')):
+                    self.AXs[key].axvspan(10, 17, color='lightgrey')
+                elif ((group=='D-AP5')):
                     self.AXs[key].axvspan(10, 17, color='lightgrey')
    
             elif key == 'barplot':
+                
                 # Extract data
                 keys = list(barplot.keys())
                 means = [np.nanmean(barplot[key]['mean']) for key in keys]
@@ -482,9 +571,9 @@ class PdfPage:
                 
                 # Create the bar plot
                 self.AXs[key].bar(keys, means, yerr=sem_values,
-                                  color=GROUPS[group]['color'],  capsize=10, 
+                                  color=GROUPS['color'],  capsize=10, 
                                   alpha=0.8, linewidth = 0.7)
-
+                
                 # Add scatter points for individual values
                 for i, key_name in enumerate(keys):
                     if barplot[key_name]['mean'] is not None:
@@ -492,25 +581,28 @@ class PdfPage:
                         scatter_x += (np.random.rand(len(scatter_x)) - 0.5) * 0.2  # Add small jitter for clarity
                         scatter_y = barplot[key_name]['mean']
                         self.AXs[key].scatter(scatter_x, scatter_y, color='black', s=10, alpha=0.7)
-
+                
                 # Customize axes
                 self.AXs[key].set_xticks(range(len(keys)))  # Align xticks with bar positions
                 self.AXs[key].set_xticklabels(keys, rotation=0, ha='center', fontsize=10)
                 self.AXs[key].set_ylabel("Normalized \nNMDAR-eEPSCs (%) (± SEM)")
-
+               
                 #ADD STATISTICS
-                y_pos_m = 0
-                for j1, time1 in enumerate(keys):
-                    for j2, time2 in enumerate(keys):
-                        if j1 < j2:  # Avoid duplicate comparisons (i.e., comparing the same time to itself)
-                            significance = 'ns'
-                            if final_stats[group].any() == np.nan:
-                                break;
-                            else:
-                                p_value = final_stats[group][j1, j2]
-                                if p_value==np.nan or p_value>0.05:
-                                    significance = 'ns'  # Default is "not significant"
-                                elif p_value < 0.001:
+                if np.isnan(stats['final_stats'].any()):
+                    break;
+               
+                if stats['p_val'] <0.05:  #let's see which group is different from which
+                    print("final_stats : ")
+                    print(stats['final_stats'])
+                    #print("At least one group is different from the others")
+                    significance = 'ns'
+                    y_pos_m = 0
+                    for j1, time1 in enumerate(keys):
+                        for j2, time2 in enumerate(keys):
+                            if j1 < j2:  # Avoid duplicate comparisons (i.e., comparing the same time to itself)
+                                significance = 'ns'
+                                p_value = stats['final_stats'][j1, j2]
+                                if p_value < 0.001:
                                     significance = '***'
                                 elif p_value < 0.01:
                                     significance = '**'
@@ -526,23 +618,60 @@ class PdfPage:
                                 # Calculate the position to place the significance line
                                 x1 =  j1 
                                 x2 =  j2 
-                            
+                                
                                 # Draw a line between the bars
                                 self.AXs[key].plot([x1, x2], [y_pos, y_pos], color='black', lw=0.8)
                                 self.AXs[key].plot([x1, x1], [y_pos-3, y_pos], color='black', lw=0.8)
                                 self.AXs[key].plot([x2, x2], [y_pos-3, y_pos], color='black', lw=0.8)
-                                
+                                    
                                 # Annotate the significance above the line
                                 self.AXs[key].text((x1 + x2) / 2, y_pos + 0.05, f"{significance}", ha='center', va='bottom', fontsize=8)
+
+            elif key=='stats':
+                if debug: 
+                    print("Start ", key)   
+                txt = ( f"\nNormality: {stats['Normality']},  Homoscedasticity: {stats['Homescedasticity']}\n")
+                txt2 = (f"Parametric {stats['Parametric']}\n\n{stats['Test']}\n")
+                txt3 = (f"F_val = {stats['F_stat']:.3f}, p_val = {stats['p_val']:.3f}\n\n") 
+
+                if stats['p_val'] < 0.05:
+                    if stats['Parametric']: 
+                        txt4 = (f"Tukey test\n")
+                    else:
+                        txt4 = (f"Dunn test holm adjust\n")
                     
-    def fill_final_results(self, final_dict, final_barplot, GROUPS, final_barplot2, final_stats):
+                    if (group == 'memantine'):
+                        txt5 = (f"Bsl vs Inf p= {stats['final_stats'][0,1]:.3f}\n"
+                                f"Bsl vs Wash p= {stats['final_stats'][0,2]:.3f}\n"
+                                f"Bsl vs Wash_ p= {stats['final_stats'][0,3]:.3f}\n"
+                                f"Inf vs Wash p= {stats['final_stats'][1,2]:.3f}\n"
+                                f"Inf vs Wash_ p= {stats['final_stats'][1,3]:.3f}\n"
+                                f"Wash vs Wash_ p= {stats['final_stats'][2,3]:.3f}\n")  
+                    else:
+                        txt5 = (f"Bsl vs Inf p= {stats['final_stats'][0,1]:.3f}\n"
+                                f"Bsl vs Wash p= {stats['final_stats'][0,2]:.3f}\n"
+                                f"Inf vs Wash p= {stats['final_stats'][1,2]:.3f}")
+                            
+                    self.AXs[key].annotate(txt + txt2 + txt3 + txt4 + txt5,(0, 1), 
+                                           va='top', 
+                                           xycoords = 'axes fraction', 
+                                           fontsize = 9, 
+                                           linespacing = 0.9)
+                else: 
+                    self.AXs[key].annotate(txt + txt2 + txt3,(0, 1), va='top', xycoords='axes fraction')
+                
+                if debug: 
+                    print("End ", key)   
+
+    def fill_final_results(self, final_dict, final_barplot, GROUPS, final_barplot2, stats, debug):
         
         for key in self.AXs:
             
+            
             if key=='RespAnalyzed':  # Normalization by baseline mean (Baseline at 100%)  #why std negative?
-
+                
                 for group in GROUPS:
-                    baseline_diffs_m = np.mean(final_dict[group]['mean'][6:11]) #memantine has nan for the first values
+                    baseline_diffs_m = np.nanmean(final_dict[group]['mean'][6:11]) #memantine has nan for the first values
                     batches_diffs_m_norm   = (final_dict[group]['mean'] / baseline_diffs_m) * 100  
                     batches_diffs_std_norm = (final_dict[group]['std']  / baseline_diffs_m) * 100  
                     batches_diffs_sem_norm = (final_dict[group]['sem']  / baseline_diffs_m) * 100 
@@ -565,7 +694,7 @@ class PdfPage:
                 #self.AXs[key].legend()
                 
             elif key=='barplot': 
-
+                
                 time_periods = list(final_barplot.keys())
                 drug_types = list(final_barplot[time_periods[0]].keys())
                 x = np.arange(len(drug_types))  # location for each group
@@ -611,17 +740,25 @@ class PdfPage:
                 sec.tick_params('x', length=0)
                 
                 #ADD STATISTICS
+                stats_for_excel = []
+
                 for i, drug in enumerate(drug_types):
                     y_pos_m = 0
+
+                    stats_for_excel.append(stats)
+
                     for j1, time1 in enumerate(time_periods):
                         for j2, time2 in enumerate(time_periods):
                             if j1 < j2:  # Avoid duplicate comparisons (i.e., comparing the same time to itself)
                                 significance = 'ns'
-                                if final_stats[drug].any() == np.nan:
-                                    break;
+                                
+                                if np.isnan(stats[drug]['final_stats'].all()):
+                                    break
+                                
                                 else:
-                                    p_value = final_stats[drug][j1, j2]
-                                    if p_value==np.nan or p_value>0.05:
+                                    
+                                    p_value = stats[drug]['final_stats'][j1, j2]
+                                    if (p_value>0.05):
                                         significance = 'ns'  # Default is "not significant"
                                     elif p_value < 0.001:
                                         significance = '***'
@@ -636,7 +773,7 @@ class PdfPage:
                                     if y_pos==y_pos_m:
                                         y_pos +=20
                                     y_pos_m=y_pos
-                            
+                                
                                     # Calculate the position to place the significance line
                                     x1 = x[i] + j1 * (width + spacing)
                                     x2 = x[i] + j2 * (width + spacing)
@@ -648,9 +785,7 @@ class PdfPage:
                 
                                     # Annotate the p-value above the line
                                     self.AXs[key].text((x1 + x2) / 2, y_pos + 0.05, f"{significance}", ha='center', va='bottom', fontsize=8)
-
-
-             
+                                
             elif key=='barplot2':
                 barplot = final_barplot2
                 print("final barplot 2 : ",barplot)
@@ -675,7 +810,129 @@ class PdfPage:
                 self.AXs[key].set_xticks(range(len(keys)))  # Align xticks with bar positions
                 self.AXs[key].set_xticklabels(keys, rotation=45, ha='right', fontsize=10)
                 self.AXs[key].set_ylabel("Normalized NMDAR-eEPSCs (%)")
+
+            elif key=='stats1':
+                if debug: 
+                    print("Start ", key)  
+                
+
+                txt = ( f"\nControl\nNormality: {stats['control']['Normality']},  Homoscedasticity: {stats['control']['Homescedasticity']}\n")
+                if stats['control']['Parametric']: 
+                    txt2 = (f"Parametric\n1wayANOVA\n")
+                else: 
+                    txt2 = (f"Non parametric\n\nKruskalwallis\n")
+                txt3 = (f"F_val = {stats['control']['F_stat']:.3f}, p_val = {stats['control']['p_val']:.3f}\n\n") 
+                
+
+                if stats['control']['p_val'] < 0.05:
+                    if stats['control']['Parametric']: 
+                        txt4 = (f"Tukey test\n")
+                    else:
+                        txt4 = (f"Dunn test holm adjust\n")
+                        
+                    txt5 = (f"Bsl vs Inf p= {stats['control']['final_stats'][0,1]:.3f}\n"
+                                f"Bsl vs Wash p= {stats['control']['final_stats'][0,2]:.3f}\n"
+                                f"Inf vs Wash p= {stats['control']['final_stats'][1,2]:.3f}")
+                               
+                    self.AXs[key].annotate(txt + txt2 + txt3 + txt4 + txt5,(0, 1), va='top', xycoords='axes fraction')
+                else: 
+                    self.AXs[key].annotate(txt + txt2 + txt3,(0, 1), va='top', xycoords='axes fraction')
+                
+                if debug: 
+                    print("End ", key)   
+
+            elif key=='stats2':
+                if debug: 
+                    print("Start ", key)  
+
+                txt = ( f"Ketamine\nNormality: {stats['ketamine']['Normality']}, Homoscedasticity: {stats['ketamine']['Homescedasticity']}\n")
+                if stats['ketamine']['Parametric']: 
+                    txt2 = (f"Parametric\n1wayANOVA\n")
+                else: 
+                    txt2 = (f"Non parametric\n\nKruskalwallis\n")
+                txt3 = (f"F_val = {stats['ketamine']['F_stat']:.3f}, p_val = {stats['ketamine']['p_val']:.3f}\n\n") 
+                    
+
+                if stats['ketamine']['p_val'] < 0.05:
+                    if stats['ketamine']['Parametric']: 
+                        txt4 = (f"Tukey test\n")
+                    else:
+                        txt4 = (f"Dunn test holm adjust\n")
+                        
+                    txt5 = (f"Bsl vs Inf p= {stats['ketamine']['final_stats'][0,1]:.3f}\n"
+                                f"Bsl vs Wash p= {stats['ketamine']['final_stats'][0,2]:.3f}\n"
+                                f"Inf vs Wash p= {stats['ketamine']['final_stats'][1,2]:.3f}")
+                                
+                    self.AXs[key].annotate(txt + txt2 + txt3 + txt4 + txt5,(0, 1), va='top', xycoords='axes fraction')
+                else: 
+                    self.AXs[key].annotate(txt + txt2 + txt3,(0, 1), va='top', xycoords='axes fraction')
+
+                if debug: 
+                    print("End ", key) 
+
+            elif key=='stats3':
+                if debug: 
+                    print("Start ", key)  
+
+                
+
+                txt = ( f"D-AP5\nNormality: {stats['D-AP5']['Normality']}, Homoscedasticity: {stats['D-AP5']['Homescedasticity']}\n")
+                if stats['D-AP5']['Parametric']: 
+                    txt2 = (f"Parametric\n1wayANOVA\n")
+                else: 
+                    txt2 = (f"Non parametric\n\nKruskalwallis\n")
+                txt3 = (f"F_val = {stats['D-AP5']['F_stat']:.3f}, p_val = {stats['D-AP5']['p_val']:.3f}\n\n") 
+                    
+
+                if stats['D-AP5']['p_val'] < 0.05:
+                    if stats['D-AP5']['Parametric']: 
+                        txt4 = (f"Tukey test\n")
+                    else:
+                        txt4 = (f"Dunn test holm adjust\n")
+                        
+                    txt5 = (f"Bsl vs Inf p= {stats['D-AP5']['final_stats'][0,1]:.3f}\n"
+                                f"Bsl vs Wash p= {stats['D-AP5']['final_stats'][0,2]:.3f}\n"
+                                f"Inf vs Wash p= {stats['D-AP5']['final_stats'][1,2]:.3f}")
+                                
+                    self.AXs[key].annotate(txt + txt2 + txt3 + txt4 + txt5,(0, 1), va='top', xycoords='axes fraction')
+                else: 
+                    self.AXs[key].annotate(txt + txt2 + txt3,(0, 1), va='top', xycoords='axes fraction')
+
+                if debug: 
+                    print("End ", key) 
+
+            elif key=='stats4':
+                if debug: 
+                    print("Start ", key)  
+ 
+                txt = ( f"Memantine\nNormality: {stats['memantine']['Normality']}, Homoscedasticity: {stats['memantine']['Homescedasticity']}\n")
+                if stats['memantine']['Parametric']: 
+                    txt2 = (f"Parametric\n1wayANOVA\n")
+                else: 
+                    txt2 = (f"Non parametric\n\nKruskalwallis\n")
+                txt3 = (f"F_val = {stats['memantine']['F_stat']:.3f}, p_val = {stats['memantine']['p_val']:.3f}\n\n") 
+                    
+
+                if stats['memantine']['p_val'] < 0.05:
+                    if stats['memantine']['Parametric']: 
+                        txt4 = (f"Tukey test\n")
+                    else:
+                        txt4 = (f"Dunn test holm adjust\n")
+                        
+                    txt5 = (f"Bsl vs Inf p= {stats['memantine']['final_stats'][0,1]:.3f}\n"
+                                f"Bsl vs Wash p= {stats['memantine']['final_stats'][0,2]:.3f}\n"
+                                f"Inf vs Wash p= {stats['memantine']['final_stats'][1,2]:.3f}")
+                                
+                    self.AXs[key].annotate(txt + txt2 + txt3 + txt4 + txt5,(0, 1), va='top', xycoords='axes fraction')
+                else: 
+                    self.AXs[key].annotate(txt + txt2 + txt3,(0, 1), va='top', xycoords='axes fraction')
+
+
+                if debug: 
+                    print("End ", key)    
+
         return 0
+
 
 if __name__=='__main__':
     base_path = os.path.join(os.path.expanduser('~'), 'DATA', 'Washout_experiment') 

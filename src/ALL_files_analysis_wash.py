@@ -6,13 +6,15 @@ import matplotlib.pylab as plt
 import numpy as np
 from scipy.stats import f_oneway, tukey_hsd, normaltest, kruskal, levene
 import scikit_posthocs as sp
+import pandas as pd
+import openpyxl
 #from scipy import stats
 
 import pprint
 
 #keep this aborescence if program used in other computers
 base_path = os.path.join(os.path.expanduser('~'), 'DATA','In_Vitro_experiments', 'Washout_experiment') 
-directory = "RAW-DATA-WASHOUT-PYR-q"
+directory = "RAW-DATA-WASHOUT-PYR-bis"
 files_directory = os.path.join(base_path, directory)
 
 #methods
@@ -63,7 +65,7 @@ def get_dict(datafiles_group, label, debug=False):
         my_dict[key]['std'].append(np.nanstd(my_dict[key]['values'], axis=0)) #std of the different files's mean for each one of the 50 positions
         my_dict[key]['sem'].append(np.nanstd(my_dict[key]['values'], axis=0)/np.sqrt(len(my_dict[key]['values'])))  #sem of the different files's mean for each one of the 50 positions
     #add nonrmalized values
-    if label=='memantine': 
+    if (label=='memantine'): 
         baseline_diffs_m = np.nanmean(my_dict['Diffs']['mean'][0][2:7])
         my_dict['Diffs']['mean_norm'] = (my_dict['Diffs']['mean']/ baseline_diffs_m) * 100  
         my_dict['Diffs']['std_norm']  = (my_dict['Diffs']['std'] / baseline_diffs_m) * 100  
@@ -87,14 +89,14 @@ def pad(my_list):
         for mean in my_list[key]['values']:
             sizes.append(len(mean))
 
-            if len(np.unique(sizes))>1:  #we have to pad
+            if (len(np.unique(sizes))>1):  #we have to pad
 
                 for key in my_list:
                     for mean in my_list[key]['values']:
                         max_size = np.max(sizes)
                         size = len(mean)
                         
-                        if max_size==size: #don't pad the one defining the max size
+                        if (max_size==size): #don't pad the one defining the max size
                             continue
                         else: #pad
                             num_pad_after = max_size - size 
@@ -107,14 +109,14 @@ def pad(my_list):
 def get_barplot_merged(my_list, label):
     
     #to normalize:
-    if label=='memantine':
+    if (label=='memantine'):
         sliced_array = [arr[2:7] for arr in my_list['Diffs']['values']]
     else : 
         sliced_array = [arr[6:11] for arr in my_list['Diffs']['values']]
     baseline_diffs_m = np.mean(sliced_array, axis=1)
     
     #end baseline
-    if label=='memantine':
+    if (label=='memantine'):
         sliced_array_bsl = [arr[2:7] for arr in my_list['Diffs']['values']]
     else : 
         sliced_array_bsl = [arr[6:11] for arr in my_list['Diffs']['values']]
@@ -137,7 +139,7 @@ def get_barplot_merged(my_list, label):
     sliced_array_norm_wash_ = [(mean_sliced_array[i]/ baseline_diffs_m[i]) * 100 for i in range(len(sliced_array))] 
 
     #set barplot
-    if label=='memantine':
+    if (label=='memantine'):
         barplot = {'End baseline' : {'values': sliced_array_bsl,   'mean' : sliced_array_norm_bsl,  'sem': np.nanstd(sliced_array_norm_bsl)/np.sqrt(len(sliced_array_norm_bsl)),     'std': np.nanstd(sliced_array_norm_bsl)},
                    'End infusion' : {'values': sliced_array_inf,   'mean' : sliced_array_norm_inf,  'sem': np.nanstd(sliced_array_norm_inf)/np.sqrt(len(sliced_array_norm_inf)),     'std': np.nanstd(sliced_array_norm_inf)},
                    'End wash'     : {'values': sliced_array_wash,  'mean' : sliced_array_norm_wash, 'sem': np.nanstd(sliced_array_norm_wash)/np.sqrt(len(sliced_array_norm_wash)),   'std': np.nanstd(sliced_array_norm_wash)},
@@ -151,7 +153,7 @@ def get_barplot_merged(my_list, label):
 
 def get_barplot(my_list, label):
 
-    if label=='memantine':
+    if (label=='memantine'):
         list_end_bsl  = my_list['Diffs']['mean_norm'][0][2:7]  #generalize
     else: 
         list_end_bsl  = my_list['Diffs']['mean_norm'][0][6:11]
@@ -160,7 +162,7 @@ def get_barplot(my_list, label):
     list_end_wash = my_list['Diffs']['mean_norm'][0][45:50]
     list_end_wash_ = my_list['Diffs']['mean_norm'][0][-5:-1]
 
-    if label=='memantine':
+    if (label=='memantine'):
         barplot = {'End baseline' : {'values': list_end_bsl,   'mean' : np.nanmean(list_end_bsl),  'sem': np.nanstd(list_end_bsl)/np.sqrt(len(list_end_bsl)),     'std': np.nanstd(list_end_bsl)},#   'sem_means': np.nanstd(np.nanmean(list_end_bsl))  /np.sqrt(len(np.nanmean(list_end_bsl))) },
                    'End infusion' : {'values': list_end_inf,   'mean' : np.nanmean(list_end_inf),  'sem': np.nanstd(list_end_inf)/np.sqrt(len(list_end_inf)),     'std': np.nanstd(list_end_inf)},#   'sem_means': np.nanstd(np.nanmean(list_end_inf))  /np.sqrt(len(np.nanmean(list_end_inf))) },
                    'End wash'     : {'values': list_end_wash,  'mean' : np.nanmean(list_end_wash), 'sem': np.nanstd(list_end_wash)/np.sqrt(len(list_end_wash)),   'std': np.nanstd(list_end_wash)},#  'sem_means': np.nanstd(np.nanmean(list_end_wash)) /np.sqrt(len(np.nanmean(list_end_wash)))},
@@ -174,10 +176,12 @@ def get_barplot(my_list, label):
 
 def get_final_barplot(my_list, label) : 
 
+    #print("get final barplot")
+
     list_values_norm = []
 
     for i in range(len(my_list['Diffs']['values'])): 
-        if label=='memantine':
+        if (label=='memantine'):
             baseline_diffs_m = np.nanmean(my_list['Diffs']['values'][i][2:7])
         else: 
             baseline_diffs_m = np.nanmean(my_list['Diffs']['values'][i][6:11])
@@ -192,20 +196,32 @@ def get_final_barplot(my_list, label) :
     temp = []
 
     for i in range(len(list_values_norm)):
-        if label=='memantine':
+        #print("i ", i)
+        #print("list values norm i ", list_values_norm[i])
+        #print("baseline",list_values_norm[i][2:7])
+        #print("baseline",list_values_norm[i][15:19])
+        #print("baseline",list_values_norm[i][45:50])
+        #print("baseline",list_values_norm[i][-5:-1])
+        if (label=='memantine'):
             temp = list_values_norm[i][2:7]
             list_end_bsl.append(temp)
         else: 
             temp = list_values_norm[i][6:11]
             list_end_bsl.append(temp)
+        
         temp = list_values_norm[i][15:19]
         list_end_inf.append(temp)
+        
         temp = list_values_norm[i][45:50]
         list_end_wash.append(temp)
+
         temp = list_values_norm[i][-5:-1]
         list_end_wash_.append(temp)
+
+    #print("fff")
+    #print("list_end_wash_ ", list_end_wash_)
     
-    if label=='memantine':
+    if (label=='memantine'):
         barplot2 = {'End baseline' : {'values': list_end_bsl,   'mean' : np.nanmean(list_end_bsl, axis=1),  'sem': np.nanstd(list_end_bsl)/np.sqrt(len(list_end_bsl)),     'std': np.nanstd(list_end_bsl)},
                    'End infusion' : {'values': list_end_inf,   'mean' : np.nanmean(list_end_inf, axis=1),  'sem': np.nanstd(list_end_inf)/np.sqrt(len(list_end_inf)),     'std': np.nanstd(list_end_inf)},
                    'End wash'     : {'values': list_end_wash,  'mean' : np.nanmean(list_end_wash, axis=1), 'sem': np.nanstd(list_end_wash)/np.sqrt(len(list_end_wash)),   'std': np.nanstd(list_end_wash)},
@@ -214,6 +230,7 @@ def get_final_barplot(my_list, label) :
         barplot2 = {'End baseline' : {'values': list_end_bsl,   'mean' : np.nanmean(list_end_bsl, axis=1), 'sem': np.nanstd(list_end_bsl)/np.sqrt(len(list_end_bsl)),   'std': np.nanstd(list_end_bsl)},
                    'End infusion' : {'values': list_end_inf,   'mean' : np.nanmean(list_end_inf, axis=1), 'sem': np.nanstd(list_end_inf)/np.sqrt(len(list_end_inf)),   'std': np.nanstd(list_end_inf)},
                    'End wash'     : {'values': list_end_wash,  'mean' : np.nanmean(list_end_wash, axis=1),'sem': np.nanstd(list_end_wash)/np.sqrt(len(list_end_wash)), 'std': np.nanstd(list_end_wash)}}
+
 
     return barplot2
 
@@ -256,27 +273,27 @@ def get_final_info(datafiles):
         final_barplot['End infusion'][label]['values'] = barplot['End infusion']['values']
         final_barplot['End wash'][label]['values']     = barplot['End wash']['values']
 
-        final_barplot['End baseline'][label]['mean']   = np.mean(barplot["End baseline"]['values'], axis=1)
-        final_barplot['End infusion'][label]['mean']   = np.mean(barplot['End infusion']['values'], axis=1)
-        final_barplot['End wash'][label]['mean']       = np.mean(barplot['End wash']['values'], axis=1)
+        final_barplot['End baseline'][label]['mean']   = np.nanmean(barplot["End baseline"]['values'], axis=1)
+        final_barplot['End infusion'][label]['mean']   = np.nanmean(barplot['End infusion']['values'], axis=1)
+        final_barplot['End wash'][label]['mean']       = np.nanmean(barplot['End wash']['values'], axis=1)
 
-        final_barplot['End baseline'][label]['sem']    = np.std(barplot["End baseline"]['values'], axis=1)/np.sqrt(len(barplot["End baseline"]['values']))
-        final_barplot['End infusion'][label]['sem']    = np.std(barplot['End infusion']['values'], axis=1)/np.sqrt(len(barplot['End infusion']['values']))
-        final_barplot['End wash'][label]['sem']        = np.std(barplot['End wash']['values'], axis=1)/np.sqrt(len(barplot['End wash']['values']))
+        final_barplot['End baseline'][label]['sem']    = np.nanstd(barplot["End baseline"]['values'], axis=1)/np.sqrt(len(barplot["End baseline"]['values']))
+        final_barplot['End infusion'][label]['sem']    = np.nanstd(barplot['End infusion']['values'], axis=1)/np.sqrt(len(barplot['End infusion']['values']))
+        final_barplot['End wash'][label]['sem']        = np.nanstd(barplot['End wash']['values'], axis=1)/np.sqrt(len(barplot['End wash']['values']))
 
-        final_barplot['End baseline'][label]['std']    = np.std(barplot["End baseline"]['values'], axis=1)
-        final_barplot['End infusion'][label]['std']    = np.std(barplot['End infusion']['values'], axis=1)
-        final_barplot['End wash'][label]['std']        = np.std(barplot['End wash']['values'], axis=1)
+        final_barplot['End baseline'][label]['std']    = np.nanstd(barplot["End baseline"]['values'], axis=1)
+        final_barplot['End infusion'][label]['std']    = np.nanstd(barplot['End infusion']['values'], axis=1)
+        final_barplot['End wash'][label]['std']        = np.nanstd(barplot['End wash']['values'], axis=1)
       
-        if label=='memantine': 
+        if (label=='memantine'): 
             final_barplot2['End wash']['values']      = barplot['End wash']['values']
             final_barplot2['End wash long']['values'] = barplot['End wash_']['values']
-            final_barplot2['End wash']['mean']        = np.mean(barplot['End wash']['values'], axis=0)
-            final_barplot2['End wash long']['mean']   = np.mean(barplot['End wash_']['values'], axis=0)  
-            final_barplot2['End wash']['sem']         = np.std(barplot['End wash']['values'], axis=0)/np.sqrt(len(barplot['End wash']['values']))
-            final_barplot2['End wash long']['sem']    = np.std(barplot['End wash_']['values'], axis=0)/np.sqrt(len(barplot['End wash_']['values']))
-            final_barplot2['End wash']['std']         = np.std(barplot['End wash']['values'], axis=0)
-            final_barplot2['End wash long']['std']    = np.std(barplot['End wash_']['values'], axis=0)
+            final_barplot2['End wash']['mean']        = np.nanmean(barplot['End wash']['values'], axis=0)
+            final_barplot2['End wash long']['mean']   = np.nanmean(barplot['End wash_']['values'], axis=0)  
+            final_barplot2['End wash']['sem']         = np.nanstd(barplot['End wash']['values'], axis=0)/np.sqrt(np.sum(~np.isnan(barplot['End wash']['values'])))
+            final_barplot2['End wash long']['sem']    = np.nanstd(barplot['End wash_']['values'], axis=0)/np.sqrt(np.sum(~np.isnan(barplot['End wash_']['values'])))
+            final_barplot2['End wash']['std']         = np.nanstd(barplot['End wash']['values'], axis=0)
+            final_barplot2['End wash long']['std']    = np.nanstd(barplot['End wash_']['values'], axis=0)
      
         GROUPS[label]['num_files'] = len(datafiles_group)
  
@@ -314,118 +331,231 @@ def calc_stats(final_barplot, final_barplot2, GROUPS):
                                     "End wash"     : None},
                      "memantine" : {"End baseline" : None, 
                                     "End infusion" : None,
-                                    "End wash"     : None, 
-                                    "End wash_"    : None}}
+                                    "End wash"     : None}}
     for group in GROUPS:
         for time in final_barplot.keys():
             values_barplot[group][time] = final_barplot[time][group]['mean']
-    if group=='memantine':
-        values_barplot['memantine']['End wash_'] = final_barplot2['End wash long']['mean']
-        
+        if (group=='memantine'):
+            values_barplot['memantine']['End wash_'] = final_barplot2['End wash long']['mean']
 
-    print("values barplot :", values_barplot) 
     #####################################################################
-    final_stats = {"control"   : np.array([[np.nan, np.nan, np.nan],
-                                           [np.nan, np.nan, np.nan],
-                                           [np.nan, np.nan, np.nan]]),
-                   "ketamine"  : np.array([[np.nan, np.nan, np.nan],
-                                           [np.nan, np.nan, np.nan],
-                                           [np.nan, np.nan, np.nan]]),
-                   "D-AP5"     : np.array([[np.nan, np.nan, np.nan],
-                                           [np.nan, np.nan, np.nan],
-                                           [np.nan, np.nan, np.nan]]),              
-                   "memantine" : np.array([[np.nan, np.nan, np.nan, np.nan],
-                                           [np.nan, np.nan, np.nan, np.nan],
-                                           [np.nan, np.nan, np.nan, np.nan], 
-                                           [np.nan, np.nan, np.nan, np.nan]])}
-    
+    stats = {'control':{'Normality': True,
+                        'Homescedasticity': True,
+                        'Parametric': True,
+                        'Test': "",
+                        'F_stat': None,
+                        'p_val': None, 
+                        'Post hoc test':"",
+                        'final_stats': np.array([[np.nan, np.nan, np.nan],
+                                                 [np.nan, np.nan, np.nan],
+                                                 [np.nan, np.nan, np.nan]])}, 
+            'ketamine':{'Normality': True,
+                        'Homescedasticity': True,
+                        'Parametric': True,
+                        'Test': "",
+                        'F_stat': None,
+                        'p_val': None, 
+                        'Post hoc test':"",
+                        'final_stats': np.array([[np.nan, np.nan, np.nan],
+                                                 [np.nan, np.nan, np.nan],
+                                                 [np.nan, np.nan, np.nan]])}, 
+            'D-AP5':{'Normality': True,
+                        'Homescedasticity': True,
+                        'Parametric': True,
+                        'Test': "",
+                        'F_stat': None,
+                        'p_val': None, 
+                        'Post hoc test':"",
+                        'final_stats': np.array([[np.nan, np.nan, np.nan],
+                                                 [np.nan, np.nan, np.nan],
+                                                 [np.nan, np.nan, np.nan]])}, 
+            'memantine':{'Normality': True,
+                        'Homescedasticity': True,
+                        'Parametric': True,
+                        'Test': "",
+                        'F_stat': None,
+                        'p_val': None, 
+                        'Post hoc test':"",
+                        'final_stats': np.array([[np.nan, np.nan, np.nan, np.nan],
+                                                 [np.nan, np.nan, np.nan, np.nan],
+                                                 [np.nan, np.nan, np.nan, np.nan],
+                                                 [np.nan, np.nan, np.nan, np.nan]])}}
+
+
     #statistic performed within each group:
     for group in GROUPS:
-        print(group)
-        parametric = test_parametric_conditions(values_barplot, group)
+        print(f"\n start calc stats for group {group}")
+        norm_, homes_, parametric_ = test_parametric_conditions(values_barplot, group)
+        stats[group]['Normality'] = norm_
+        stats[group]['Homescedasticity'] = homes_
+        stats[group]['Parametric'] = parametric_
+
+        F_stat, p_val = 10,10
+
         # One way ANOVA test
         # null hypothesis : all groups are statistically similar
-        if parametric:
-            print("Parametric test")
+        if (stats[group]['Parametric']):
+            print("Parametric test because assumptions are met :  ONE WAY ANOVA")
+            stats[group]['Test'] = "ONE_WAY_ANOVA"
             F_stat, p_val = f_oneway(values_barplot[group]['End baseline'], 
                                      values_barplot[group]['End infusion'], 
                                      values_barplot[group]['End wash'] )
-            if group=='memantine':
+            if (group=='memantine'):
                 F_stat, p_val = f_oneway(values_barplot[group]['End baseline'], 
                                      values_barplot[group]['End infusion'], 
                                      values_barplot[group]['End wash'],
                                      values_barplot[group]['End wash_'] )
-            #print("F ", F_stat) 
-            #print("p value", p_val)   
-            if p_val < 0.05: #we can reject the null hypothesis, therefore there exists differences between groups
+            stats[group]['F_stat'] = F_stat
+            stats[group]['p_val'] = p_val
+              
+            if (p_val < 0.05): 
+                print(f"At least one group is different from the others for {group} group because {p_val} < 0.05")
+                print(f"Post hoc test for group {group}, TUKEY Test")
+                #print(f"at least one group is different from the others for drug {group}")
+                #we can reject the null hypothesis, therefore there exists differences between groups
                 #In order to differenciate groups, Tukey post hoc test    #could be Dunnett -> compare with control?
-                Tukey_result = tukey_hsd(values_barplot[group]['End baseline'], 
-                                         values_barplot[group]['End infusion'], 
-                                         values_barplot[group]['End wash'] )
-                if group=='memantine':
+                stats[group]['Post hoc test'] = "Tukey"
+                
+                if (group=='memantine'):
                     Tukey_result = tukey_hsd(values_barplot[group]['End baseline'], 
-                                         values_barplot[group]['End infusion'], 
-                                         values_barplot[group]['End wash'], 
-                                         values_barplot[group]['End wash_'] )
+                                             values_barplot[group]['End infusion'], 
+                                             values_barplot[group]['End wash'], 
+                                             values_barplot[group]['End wash_'] )
+                    
+                else:
+                    Tukey_result = tukey_hsd(values_barplot[group]['End baseline'], 
+                                             values_barplot[group]['End infusion'], 
+                                             values_barplot[group]['End wash'] )
+
                 #print("Tukey stats ", Tukey_result.statistic) 
                 #print("Tukey pvalues", Tukey_result.pvalue)   
-                final_stats[group] = Tukey_result.pvalue
+                print("post hoc p_val", Tukey_result.pvalue)
+                stats[group]['final_stats'] = Tukey_result.pvalue
+                print(Tukey_result.pvalue)
+
 
         # Non parametric test : Kruskal Wallis test
         # Tests the null hypothesis that the population median of all of the groups are equal.
         else: 
-            print("Non parametric test")
-            F_stat, p_val = kruskal(values_barplot[group]['End baseline'], 
-                                    values_barplot[group]['End infusion'], 
-                                    values_barplot[group]['End wash'])
-            if group=='memantine':
+            try:
+                print("Non parametric test because assumptions are not met : KRUSKAL WALLIS")
+                stats[group]['Test'] = "KRUSKAL WALLIS"
                 F_stat, p_val = kruskal(values_barplot[group]['End baseline'], 
                                         values_barplot[group]['End infusion'], 
-                                        values_barplot[group]['End wash'],
-                                        values_barplot[group]['End wash_'])
-            #print("F ", F_stat) 
-            #print("p value", p_val) 
-            #print("p_val KW : ", p_val)
-            if p_val < 0.05:
+                                        values_barplot[group]['End wash'])
+                if (group=='memantine'):
+                    F_stat, p_val = kruskal(values_barplot[group]['End baseline'], 
+                                            values_barplot[group]['End infusion'], 
+                                            values_barplot[group]['End wash'],
+                                            values_barplot[group]['End wash_'])
+                    
+                stats[group]['F_stat'] = F_stat
+                stats[group]['p_val'] = p_val
+            except Exception as e:
+                print(f"Issue with Kruskal Wallis test : {e}")
+
+            if (p_val < 0.05):
                 #we can reject the null hypothesis, therefore there exists differences between groups
                 #In order to differenciate groups, Dunn's post hoc test
-                p_values = sp.posthoc_dunn(values_barplot[group]['End baseline'], 
-                                           values_barplot[group]['End infusion'], 
-                                           values_barplot[group]['End wash'] , 
-                                           p_adjust='holm')
-                if group=='memantine':
-                    p_values = sp.posthoc_dunn(values_barplot[group]['End baseline'], 
-                                           values_barplot[group]['End infusion'], 
-                                           values_barplot[group]['End wash'] , 
-                                           values_barplot[group]['End wash_'] ,
-                                           p_adjust='holm')
-                final_stats[group] = p_values
+                print(f"At least one group is different from the others for {group} group because {p_val} < 0.05")
+                print(f"Post hoc test for group {group}, DUNN TEST ")
+                stats[group]['Post hoc test'] = "Dunn holm adjust"
+                try: 
+                    if (group=='memantine'):
+                        data = {"Value": list(values_barplot[group]['End baseline']) + 
+                                         list(values_barplot[group]['End infusion']) +
+                                         list(values_barplot[group]['End wash']) + 
+                                         list(values_barplot[group]['End wash_']),
+                                "Group": (["End baseline"] * len(list(values_barplot[group]['End baseline']))) +
+                                         (["End infusion"] * len(list(values_barplot[group]['End infusion']))) +
+                                         (["End wash"]     * len(list(values_barplot[group]['End wash']))) + 
+                                         (["End wash_"]    * len(list(values_barplot[group]['End wash_'])))}
+                        
+                    else:
+                        data = {"Value": list(values_barplot[group]['End baseline']) + 
+                                         list(values_barplot[group]['End infusion']) +
+                                         list(values_barplot[group]['End wash']),
+                                "Group": (["End baseline"] * len(list(values_barplot[group]['End baseline']))) +
+                                         (["End infusion"] * len(list(values_barplot[group]['End infusion']))) +
+                                         (["End wash"] * len(list(values_barplot[group]['End wash'])))}
+                    
+                    df = pd.DataFrame(data)
+                    p_values = sp.posthoc_dunn(df, val_col="Value", group_col="Group", p_adjust='holm')
+                    p_values_array = p_values.to_numpy()
+                    stats[group]['final_stats'] = p_values_array
+                except Exception as e:
+                    print(f"Issue with Dunn test : {e}")
 
-    #print("final stats : ", final_stats)
-    return final_stats
+        print(f"end calc stats for group {group}")        
+
+    return stats
 
 def test_parametric_conditions(values_barplot, group):
-    parametric=True
-    #test conditions to apply statistical test:
+        #start with null hypothesis that the data is normally distributed and with equal variances
+        normality = True
+        homoscedasticity = True
+        parametric= True
+  
+        #test normality: D’Agostino and Pearson’s test
+        #null hypothesis : the data is normally distributed
+        #print(values_barplot)
+        stat1, p_val1 = normaltest(values_barplot[group]['End baseline'])
+        stat2, p_val2 = normaltest(values_barplot[group]['End infusion'])
+        stat3, p_val3 = normaltest(values_barplot[group]['End wash'])
+
+        if (np.isnan(p_val1)):
+            normality=False
+        if (np.isnan(p_val2)):
+            normality=False
+        if (np.isnan(p_val3)):
+            normality=False
+        if (p_val1< 0.05):
+            normality=False
+        if (p_val2< 0.05):
+            normality=False
+        if (p_val3< 0.05):
+            normality=False
         
-    #test normality (The three groups are normally distributed): 
-    res1 = normaltest(values_barplot[group]['End baseline'])
-    res2 = normaltest(values_barplot[group]['End infusion'])
-    res3 = normaltest(values_barplot[group]['End wash'])
-    if res1.statistic==np.float64(np.nan) or res2.statistic==np.float64(np.nan) or res3.statistic==np.float64(np.nan):
-        parametric=False
-        
-    #test homoscedasticity (The three groups have a homogeneity of variance; meaning the population variances are equal):
-    #The Levene test tests the null hypothesis that all input samples are from populations with equal variances.
-    statistic, p_value = levene(values_barplot[group]['End baseline'], 
+        #test homoscedasticity (The three groups have a homogeneity of variance; meaning the population variances are equal):
+        #The Levene test tests the null hypothesis that all input samples are from populations with equal variances.
+        statistic, p_value = levene(values_barplot[group]['End baseline'], 
                                     values_barplot[group]['End infusion'], 
                                     values_barplot[group]['End wash'])
-    if p_value <0.05:
-        #null hypothesis is rejected, the population variances are not equal!
-        parametric=False
-    return parametric
+        if (np.isnan(p_value).all()):
+            normality=False
+            #print("issue with homoscedasticity check")
+        if (p_value <0.05):
+            #null hypothesis is rejected, the population variances are not equal!
+            homoscedasticity=False
+            #print("data does not have equal variances")
+
+        if normality==False:
+            parametric=False  
+
+        if homoscedasticity==False:
+            parametric=False
+
+        return normality, homoscedasticity, parametric
+
+def save_stats(data_list):
+    try:
+        data_for_excel = pd.DataFrame(data_list)
+        path = 'C:/Users/sofia/Output_expe/In_Vitro/washout/statistics.xlsx'
+        with pd.ExcelWriter(path, engine='openpyxl') as writer: 
+            data_for_excel.to_excel(writer, sheet_name='Statistics', index=False)
+            worksheet = writer.sheets['Statistics']
+            # Adjust column widths for data_for_excel
+            for column in data_for_excel:
+                column_length = max(data_for_excel[column].astype(str).map(len).max(), len(column))
+                col_idx = data_for_excel.columns.get_loc(column)
+                worksheet.column_dimensions[openpyxl.utils.get_column_letter(col_idx + 1)].width = column_length
+        print("stats file saved successfully.")
+    except Exception as e:
+        print(f"ERROR when saving the stats file : {e}")
+    return 0
+    
 #OK
-def create_individual_pdf(datafile, GROUPS, wash= 'all',  debug=False):
+def create_individual_pdf(datafile, GROUPS, wash='all',  debug=False):
     try:
         pdf = PdfPage(PDF_sheet = 'individual', debug=debug )
         pdf.fill_PDF(datafile, GROUPS, wash= wash,  debug=debug)
@@ -436,7 +566,7 @@ def create_individual_pdf(datafile, GROUPS, wash= 'all',  debug=False):
     return 0
 
 #OK
-def create_group_pdf(label, dict, barplot, len_group, GROUPS, final_stats, debug=False):
+def create_group_pdf(label, dict, barplot, len_group, GROUPS, stats, debug=False):
     if debug:
         print("label :\n" , label)
         print("dict :\n" , dict)
@@ -445,7 +575,7 @@ def create_group_pdf(label, dict, barplot, len_group, GROUPS, final_stats, debug
 
     try:
         pdf = PdfPage(PDF_sheet = 'group analysis', debug=debug)
-        pdf.fill_PDF_merge(num_files = len_group, group = label, my_list = dict, barplot = barplot, GROUPS=GROUPS, final_stats=final_stats, debug=debug)
+        pdf.fill_PDF_merge(num_files = len_group, group = label, my_list = dict, barplot = barplot, GROUPS=GROUPS, stats=stats, debug=debug)
         plt.savefig(f'C:/Users/sofia/Output_expe/In_Vitro/washout/Washout_PDFs/{label}_merged.pdf') 
         print(f"OK PDF file saved successfully for group {label}. \n")
     except Exception as e:
@@ -453,7 +583,7 @@ def create_group_pdf(label, dict, barplot, len_group, GROUPS, final_stats, debug
     return 0
 
 #OK
-def create_final_results_pdf(final_dict, final_barplot, GROUPS, final_barplot2, final_stats, debug=False):
+def create_final_results_pdf(final_dict, final_barplot, GROUPS, final_barplot2, stats, debug):
     if debug: 
         print("Debug for final PDF")
         print("final dict : ")
@@ -462,11 +592,11 @@ def create_final_results_pdf(final_dict, final_barplot, GROUPS, final_barplot2, 
         pprint.pprint(final_barplot)
         pprint.pprint(final_barplot2)
         pprint.pprint(GROUPS)
-        print(final_stats)
+        
     
     try: 
         pdf = PdfPage(PDF_sheet = 'final', debug=debug )
-        pdf.fill_final_results(final_dict, final_barplot, GROUPS, final_barplot2, final_stats)
+        pdf.fill_final_results(final_dict, final_barplot, GROUPS, final_barplot2, stats, debug=debug3)
         plt.savefig(f'C:/Users/sofia/Output_expe/In_Vitro/washout/Washout_PDFs/final_results.pdf') 
         print('OK final results PDF file saved successfully')
     except Exception as e:
@@ -508,10 +638,10 @@ if __name__=='__main__':
     files = find_nm_files(files_directory)
 
     for file in files:
-            print("\n", file)     
-            datafile = DataFile_washout(file, debug=debug0)
-            datafiles['all'].append(datafile)
-            datafiles[datafile.infos['Group']].append(datafile)
+        print("\n", file)     
+        datafile = DataFile_washout(file, debug=debug0)
+        datafiles['all'].append(datafile)
+        datafiles[datafile.infos['Group']].append(datafile)
 
     #############################################################################################################################
     #PDF creation for each datafile : ###########################################################################################
@@ -520,49 +650,49 @@ if __name__=='__main__':
     for datafile in datafiles['all']: 
         create_individual_pdf(datafile, GROUPS, wash='all',  debug=debug1)
     
+    
     ##############################################################################################################################
     final_dict, final_barplot, final_barplot2 = get_final_info(datafiles)
-    final_stats = calc_stats(final_barplot, final_barplot2, GROUPS)
-    ##############################################################################################################################
+    stats = calc_stats(final_barplot, final_barplot2, GROUPS)
     
+    ##############################################################################################################################
     #PDF creation for the chosen groups: #########################################################################################
     debug2 = False
     create_group_pdf(label="ketamine",  
                      dict = get_dict(datafiles['ketamine'], "ketamine", debug=debug2),
                      barplot= get_barplot_merged(get_dict(datafiles['ketamine'], "ketamine", debug=debug2), "ketamine"), 
                      len_group = len(datafiles['ketamine']), 
-                     GROUPS=GROUPS,
-                     final_stats=final_stats, 
+                     GROUPS=GROUPS['ketamine'],
+                     stats = stats['ketamine'], 
                      debug=debug2)
-    
+
     create_group_pdf(label="memantine", 
                      dict= get_dict(datafiles['memantine'], "memantine", debug=debug2),
                      barplot= get_barplot_merged(get_dict(datafiles['memantine'], "memantine", debug=debug2), "memantine"), 
                      len_group= len(datafiles['memantine']), 
-                     GROUPS=GROUPS, 
-                     final_stats=final_stats, 
+                     GROUPS=GROUPS['memantine'], 
+                     stats=stats["memantine"],
                      debug=debug2)  
     
     create_group_pdf(label="D-AP5", 
                      dict= get_dict(datafiles['D-AP5'], "D-AP5", debug=debug2),
                      barplot= get_barplot_merged(get_dict(datafiles['D-AP5'], "D-AP5", debug=debug2), "D-AP5"), 
                      len_group=len(datafiles['D-AP5']), 
-                     GROUPS=GROUPS, 
-                     final_stats=final_stats, 
+                     GROUPS=GROUPS['D-AP5'], 
+                     stats=stats["D-AP5"],
                      debug=debug2)  
     
     create_group_pdf(label="control", 
                      dict= get_dict(datafiles['control'], "control", debug=debug2), 
                      barplot= get_barplot_merged(get_dict(datafiles['control'], "control", debug=debug2), "control"), 
                      len_group = len(datafiles['control']), 
-                     GROUPS= GROUPS,
-                     final_stats=final_stats,  
+                     GROUPS= GROUPS['control'],
+                     stats = stats["control"],
                      debug=debug2) 
-
+    
     ###############################################################################################################################
+
     #PDF creation to compare groups: ##############################################################################################
     debug3 = False
-    create_final_results_pdf(final_dict, final_barplot, GROUPS, final_barplot2, final_stats, debug=debug3)
-    
-
-    
+    create_final_results_pdf(final_dict, final_barplot, GROUPS, final_barplot2, stats, debug=debug3)
+    save_stats(stats)
