@@ -2,6 +2,7 @@ import matplotlib.pylab as plt
 import Curve_fit as cf
 import numpy as np
 import pandas as pd
+from utils.statistics import test_parametric_conditions, calc_stats
 from scipy.stats import f_oneway, tukey_hsd, normaltest, kruskal, levene
 import scikit_posthocs as sp
 import openpyxl
