@@ -191,7 +191,7 @@ class PdfPage:
 
                 self.AXs[key].annotate(txt,(0.65, 0.3), va='top', xycoords='axes fraction')
 
-    def fill_PDF_barplots(self, file_path, metrics):
+    def fill_PDF_barplots(self, file_path, metrics, STATS=False):
         # Read the Excel file into a DataFrame
             
         IGOR_results_df = pd.read_excel(file_path, header=0)
@@ -244,49 +244,50 @@ class PdfPage:
             axes[idx].set_xticks(bar_positions)
             axes[idx].set_xticklabels(labels)
             #axes[idx].set_ylabel('Amplitude (pA)')
+            if (STATS==True) : 
+                #ADD STATISTICS
+                stats = self.calc_stats(metric, IGOR_results_df)
+                print(stats)
+                stats_for_excel.append(stats)
 
-            #ADD STATISTICS
-            stats = self.calc_stats(metric, IGOR_results_df)
-            stats_for_excel.append(stats)
-
-            y_pos_m = 0
-            keys = ['xyla euthasol', 'ketaxyla', 'keta xyla euthasol']
-            if np.isnan(stats['final_stats']).all() :
-                print("no significance")  #no need to add stats when there is nothing
-                continue 
-            else: 
-                for j1, time1 in enumerate(keys):
-                    for j2, time2 in enumerate(keys):
+                y_pos_m = 0
+                keys = ['xyla euthasol', 'ketaxyla', 'keta xyla euthasol'] 
+                for j1, group1 in enumerate(keys):
+                    for j2, group2 in enumerate(keys):
                         if j1 < j2:  # Avoid duplicate comparisons (i.e., comparing the same time to itself)
                             significance = 'ns'
                             p_value = stats['final_stats'][j1, j2]
-                            if p_value==np.nan or p_value>0.05:
+                            if (np.isnan(p_value).all()):
                                 significance = 'ns'  # Default is "not significant"
-                            elif p_value < 0.001:
+                            elif (p_value>0.05):
+                                significance = 'ns'  # Default is "not significant"
+                            elif (p_value < 0.001):
                                 significance = '***'
-                            elif p_value < 0.01:
+                            elif (p_value < 0.01):
                                 significance = '**'
-                            elif p_value < 0.05:
+                            elif (p_value < 0.05):
                                 significance = '*'
-                            # Get the y positions for both bars being compared
-                            y_pos1 = means[j1] + sems[j1]
-                            y_pos2 = means[j2] + sems[j2]
-                            y_pos = max(y_pos1, y_pos2) + 15 # Place the significance line above the highest bar
-                            if y_pos==y_pos_m:
-                                y_pos +=12
-                            y_pos_m=y_pos
-                            # Calculate the position to place the significance line
-                            x1 =  j1 
-                            x2 =  j2 
-                            # Draw a line between the bars
-                            axes[idx].plot([x1, x2], [y_pos, y_pos], color='black', lw=0.8)
-                            axes[idx].plot([x1, x1], [y_pos-3, y_pos], color='black', lw=0.8)
-                            axes[idx].plot([x2, x2], [y_pos-3, y_pos], color='black', lw=0.8)
-                                        
-                            # Annotate the significance above the line
-                            axes[idx].text((x1 + x2) / 2, y_pos + 0.03, f"{significance}", ha='center', va='bottom', fontsize=8)
-        
-        self.save_stats(stats_for_excel)
+
+                            if significance!='ns':
+                                # Get the y positions for both bars being compared
+                                y_pos1 = means[j1] + sems[j1]
+                                y_pos2 = means[j2] + sems[j2]
+                                y_pos = max(y_pos1, y_pos2) + 15 # Place the significance line above the highest bar
+                                if y_pos==y_pos_m:
+                                    y_pos +=12
+                                y_pos_m=y_pos
+                                # Calculate the position to place the significance line
+                                x1 =  j1 
+                                x2 =  j2 
+                                # Draw a line between the bars
+                                axes[idx].plot([x1, x2], [y_pos, y_pos], color='black', lw=0.8)
+                                axes[idx].plot([x1, x1], [y_pos-3, y_pos], color='black', lw=0.8)
+                                axes[idx].plot([x2, x2], [y_pos-3, y_pos], color='black', lw=0.8)
+                                                
+                                # Annotate the significance above the line
+                                axes[idx].text((x1 + x2) / 2, y_pos + 0.03, f"{significance}", ha='center', va='bottom', fontsize=8)
+                
+                self.save_stats(stats_for_excel)
         # Delete any remaining unused subplots (if any)
         for idx in range(num_metrics, len(axes)):
             fig.delaxes(axes[idx])
@@ -306,10 +307,22 @@ class PdfPage:
         stat1, p_val1 = normaltest(values1)
         stat2, p_val2 = normaltest(values2)
         stat3, p_val3 = normaltest(values3)
-        if np.isnan(p_val1).all() or np.isnan(p_val2).all() or np.isnan(p_val3).all():
+        if (np.isnan(p_val1)):
             norm=False
             print("issue with normality check")
-        elif p_val1< 0.05 or p_val2< 0.05 or p_val3< 0.05:
+        if (np.isnan(p_val2)):
+            norm=False
+            print("issue with normality check")
+        if (np.isnan(p_val3)):
+            norm=False
+            print("issue with normality check")
+        if (p_val1< 0.05):
+            norm=False
+            print("data is not normally distributed")
+        if (p_val2< 0.05): 
+            norm=False
+            print("data is not normally distributed")
+        if (p_val3< 0.05):
             norm=False
             print("data is not normally distributed")
 
@@ -319,20 +332,21 @@ class PdfPage:
         statistic, p_value = levene(values1, 
                                     values2, 
                                     values3)
-        if np.isnan(p_value).all():
+        if (np.isnan(p_value)):
             norm=False
             print("issue with homoscedasticity check")
-        if p_value <0.05:
+        if (p_value <0.05):
             #null hypothesis is rejected, the population variances are not equal!
-            homoscedasticity=False
+            homes=False
             print("data does not have equal variances")
 
-        if norm==False or homoscedasticity==False:
+        if (norm==False): 
             parametric=False
             print("non parametric tests should be used")
 
-        if norm==False or homes==False:
-            parametric = False
+        if (homes==False):
+            parametric=False
+            print("non parametric tests should be used")
 
         return norm, homes, parametric
 
@@ -358,7 +372,7 @@ class PdfPage:
                                      values_kxe )
             #print("F ", F_stat) 
             #print("p value", p_val)   
-            if p_val < 0.05: #we can reject the null hypothesis, therefore there exists differences between groups
+            if (p_val < 0.05): #we can reject the null hypothesis, therefore there exists differences between groups
                 #In order to differenciate groups, Tukey post hoc test    #could be Dunnett -> compare with control?
                 test2='Tukey test'
                 Tukey_result = tukey_hsd(values_xe, 
@@ -380,15 +394,27 @@ class PdfPage:
             #print("F ", F_stat) 
             #print("p value", p_val) 
             #print("p_val KW : ", p_val)
-            if p_val < 0.05:
-                test2='Dunn test, holm adjust'
+            
+            if (p_val < 0.05):
+                test2='Dunn test, bonferroni adjust'
                 #we can reject the null hypothesis, therefore there exists differences between groups
                 #In order to differenciate groups, Dunn's post hoc test
+                data = {"Value":list(values_xe)+
+                                list(values_kx)+
+                                list(values_kxe),
+                        "Group":(["values_xe"] * len(list(values_xe)))+
+                                (["values_kx"] * len(list(values_kx)))+
+                                (["values_kxe"] * len(list(values_kxe)))}
+                df = pd.DataFrame(data)
+                p_values = sp.posthoc_dunn(df, val_col="Value", group_col="Group", p_adjust='bonferroni')
+                p_values_array = p_values.to_numpy()
+                '''
                 p_values = sp.posthoc_dunn(values_xe, 
                                            values_kx, 
-                                           values_kxe , 
+                                           values_kxe, 
                                            p_adjust='holm')
-                final_stats = p_values
+                '''
+                final_stats = p_values_array
 
         #print("final stats : ")
         #print(final_stats)
@@ -408,7 +434,7 @@ class PdfPage:
     def save_stats(self, data_list):
         try:
             data_for_excel = pd.DataFrame(data_list)
-            path = 'C:/Users/sofia/Output_expe/In_Vitro/ratio/statistics.xlsx'
+            path = 'C:/Users/sofia/Output_expe/In_Vitro/ratio/statistics_ratio.xlsx'
             with pd.ExcelWriter(path, engine='openpyxl') as writer: 
                 data_for_excel.to_excel(writer, sheet_name='Data analysis', index=False)
                 worksheet = writer.sheets['Data analysis']

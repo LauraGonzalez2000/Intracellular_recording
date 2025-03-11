@@ -75,8 +75,6 @@ class DataFile:
             print(f'Error with smoothing {e}')
         return smooth_avg
     
-
-
     def fill_infos(self, info_df):
         try:
            
@@ -144,7 +142,7 @@ class DataFile:
         return averages_baselines
 
     def get_boundaries(self): #to FIX
-        return 600, 699, 700, 799
+        return 600, 650, 700, 750
 
     def get_mem_values(self, recording, time, delta_v = 5*1e-3): 
 

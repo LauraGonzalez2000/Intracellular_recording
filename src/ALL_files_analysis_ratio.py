@@ -54,7 +54,7 @@ def final_names(files):
         files_id_ = [x for x in files_id if x not in used and (used.add(x) or True)]
     return files_id_
 
-def analyse_datafiles(datafiles, data_list, files_id, debug=False, bis=False, PDF=False, Excel1=False, final_excel=False, barplots=False):
+def analyse_datafiles(datafiles, data_list, files_id, debug=False, bis=False, PDF=False, Excel1=False, final_excel=False, barplots=False, STATS=False):
     
     datafiles_ = []
     for datafile in datafiles:
@@ -103,7 +103,7 @@ def analyse_datafiles(datafiles, data_list, files_id, debug=False, bis=False, PD
         create_final_excel(datafiles, files_id)
 
     if barplots==True:
-        create_final_barplots(bis)
+        create_final_barplots(STATS, bis)
 
     return 0
 
@@ -215,7 +215,7 @@ def create_final_excel(datafiles, files_id):
     except Exception as e:
         print(f"ERROR when saving the file to final excel : {e}")
 
-def create_final_barplots(bis=False):
+def create_final_barplots(STATS, bis=False):
     try:
         
         final_excel_path = 'C:/Users/sofia/Output_expe/In_Vitro/ratio/final_excel.xlsx' #compare with IGOR results
@@ -232,7 +232,7 @@ def create_final_barplots(bis=False):
                    "2 NMDA/AMPA"]  
         
         pdf = PdfPage(debug=False)
-        pdf.fill_PDF_barplots(final_excel_path, metrics)
+        pdf.fill_PDF_barplots(final_excel_path, metrics, STATS)
         plt.savefig(f'C:/Users/sofia/Output_expe/In_Vitro/ratio/Ratio_PDFs/auto_barplots.pdf')
         print("Final barolots PDF file saved successfully.")
 
@@ -255,7 +255,7 @@ if __name__=='__main__':
     else:
         #files_directory = 'C:/Users/laura.gonzalez/DATA/Ratio_experiment/RAW_DATA_AMPA_NMDA_RATIO'  #PC   #files_directory = 'C:/Users/LauraGonzalez/DATA/Ratio_experiment/RAW_DATA_AMPA_NMDA_RATIO-q' #laptop
         #meta_info_directory = 'C:/Users/laura.gonzalez/DATA/Ratio_experiment/Files.csv'
-        files_directory = 'C:/Users/sofia/DATA/In_Vitro_experiments/Ratio_experiment/RAW_DATA_AMPA_NMDA_RATIO_PYR'  #PC   #files_directory = 'C:/Users/LauraGonzalez/DATA/Ratio_experiment/RAW_DATA_AMPA_NMDA_RATIO-q' #laptop
+        files_directory = 'C:/Users/sofia/DATA/In_Vitro_experiments/Ratio_experiment/RAW_DATA_AMPA_NMDA_RATIO_L1'  #PC   #files_directory = 'C:/Users/LauraGonzalez/DATA/Ratio_experiment/RAW_DATA_AMPA_NMDA_RATIO-q' #laptop
         meta_info_directory = 'C:/Users/sofia/DATA/In_Vitro_experiments/Ratio_experiment/Files.csv'
         
     files = find_nm_files(files_directory)
@@ -271,7 +271,8 @@ if __name__=='__main__':
                       files_id, 
                       debug=debug,
                       bis=bis, 
-                      PDF=True, 
+                      PDF=False, 
                       Excel1=True, 
                       final_excel=True, 
-                      barplots=True)
+                      barplots=True, 
+                      STATS=True)
