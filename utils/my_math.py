@@ -4,7 +4,7 @@ from scipy.stats import f_oneway, tukey_hsd, normaltest, kruskal, levene
 import scikit_posthocs as sp
 
 
-def test_parametric_conditions(self, values1, values2, values3):
+def test_parametric_conditions(values1, values2, values3):
         norm = True
         homes = True
         parametric=True
@@ -57,7 +57,7 @@ def test_parametric_conditions(self, values1, values2, values3):
 
         return norm, homes, parametric
 
-def calc_stats(self, metric, IGOR_results_df, debug=False ):
+def calc_stats(metric, IGOR_results_df, debug=False ):
         final_stats = np.array([[np.nan, np.nan, np.nan],
                                 [np.nan, np.nan, np.nan],
                                 [np.nan, np.nan, np.nan]])
@@ -66,7 +66,7 @@ def calc_stats(self, metric, IGOR_results_df, debug=False ):
         values_kx = IGOR_results_df.loc[IGOR_results_df['Group']=='ketaxyla',  metric].values
         values_kxe = IGOR_results_df.loc[IGOR_results_df['Group']=='keta xyla euthasol',  metric].values
 
-        norm, homes, parametric = self.test_parametric_conditions(values_xe, values_kx, values_kxe)
+        norm, homes, parametric = test_parametric_conditions(values_xe, values_kx, values_kxe)
         test2 = ""
         # One way ANOVA test
         # null hypothesis : all groups are statistically similar
