@@ -249,7 +249,10 @@ class PdfPage:
             #axes[idx].set_ylabel('Amplitude (pA)')
             if (STATS==True) : 
                 #ADD STATISTICS
-                stats = calc_stats(metric, IGOR_results_df)
+                values_xe = IGOR_results_df.loc[IGOR_results_df['Group']=='xyla euthasol',  metric].values
+                values_kx = IGOR_results_df.loc[IGOR_results_df['Group']=='ketaxyla',  metric].values
+                values_kxe = IGOR_results_df.loc[IGOR_results_df['Group']=='keta xyla euthasol',  metric].values
+                stats = calc_stats(metric, values_xe, values_kx, values_kxe)
                 print(stats)
                 stats_for_excel.append(stats)
 

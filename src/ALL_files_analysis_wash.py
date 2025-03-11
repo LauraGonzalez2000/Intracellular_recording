@@ -12,6 +12,10 @@ import openpyxl
 
 import pprint
 
+import sys
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+from utils.my_math import calc_stats
+
 #keep this aborescence if program used in other computers
 base_path = os.path.join(os.path.expanduser('~'), 'DATA','In_Vitro_experiments', 'Washout_experiment') 
 directory = "RAW-DATA-WASHOUT-PYR-bis"
@@ -317,7 +321,7 @@ def get_final_info(datafiles):
     
     return final_dict, final_barplot, final_barplot2
 
-def calc_stats(final_barplot, final_barplot2, GROUPS):
+def my_calc_stats(final_barplot, final_barplot2, GROUPS):
 
     #flipping structure seems easier ##########################################
     values_barplot = {"control"  : {"End baseline" : None, 
@@ -384,163 +388,23 @@ def calc_stats(final_barplot, final_barplot2, GROUPS):
 
     #statistic performed within each group:
     for group in GROUPS:
-        print(f"\n start calc stats for group {group}")
-        norm_, homes_, parametric_ = test_parametric_conditions(values_barplot, group)
-        stats[group]['Normality'] = norm_
-        stats[group]['Homescedasticity'] = homes_
-        stats[group]['Parametric'] = parametric_
-
-        F_stat, p_val = 10,10
-
-        # One way ANOVA test
-        # null hypothesis : all groups are statistically similar
-        if (stats[group]['Parametric']):
-            print("Parametric test because assumptions are met :  ONE WAY ANOVA")
-            stats[group]['Test'] = "ONE_WAY_ANOVA"
-            F_stat, p_val = f_oneway(values_barplot[group]['End baseline'], 
-                                     values_barplot[group]['End infusion'], 
-                                     values_barplot[group]['End wash'] )
-            if (group=='memantine'):
-                F_stat, p_val = f_oneway(values_barplot[group]['End baseline'], 
-                                     values_barplot[group]['End infusion'], 
-                                     values_barplot[group]['End wash'],
-                                     values_barplot[group]['End wash_'] )
-            stats[group]['F_stat'] = F_stat
-            stats[group]['p_val'] = p_val
-              
-            if (p_val < 0.05): 
-                print(f"At least one group is different from the others for {group} group because {p_val} < 0.05")
-                print(f"Post hoc test for group {group}, TUKEY Test")
-                #print(f"at least one group is different from the others for drug {group}")
-                #we can reject the null hypothesis, therefore there exists differences between groups
-                #In order to differenciate groups, Tukey post hoc test    #could be Dunnett -> compare with control?
-                stats[group]['Post hoc test'] = "Tukey"
-                
-                if (group=='memantine'):
-                    Tukey_result = tukey_hsd(values_barplot[group]['End baseline'], 
-                                             values_barplot[group]['End infusion'], 
-                                             values_barplot[group]['End wash'], 
-                                             values_barplot[group]['End wash_'] )
-                    
-                else:
-                    Tukey_result = tukey_hsd(values_barplot[group]['End baseline'], 
-                                             values_barplot[group]['End infusion'], 
-                                             values_barplot[group]['End wash'] )
-
-                #print("Tukey stats ", Tukey_result.statistic) 
-                #print("Tukey pvalues", Tukey_result.pvalue)   
-                print("post hoc p_val", Tukey_result.pvalue)
-                stats[group]['final_stats'] = Tukey_result.pvalue
-                print(Tukey_result.pvalue)
-
-
-        # Non parametric test : Kruskal Wallis test
-        # Tests the null hypothesis that the population median of all of the groups are equal.
-        else: 
-            try:
-                print("Non parametric test because assumptions are not met : KRUSKAL WALLIS")
-                stats[group]['Test'] = "KRUSKAL WALLIS"
-                F_stat, p_val = kruskal(values_barplot[group]['End baseline'], 
-                                        values_barplot[group]['End infusion'], 
-                                        values_barplot[group]['End wash'])
-                if (group=='memantine'):
-                    F_stat, p_val = kruskal(values_barplot[group]['End baseline'], 
-                                            values_barplot[group]['End infusion'], 
-                                            values_barplot[group]['End wash'],
-                                            values_barplot[group]['End wash_'])
-                    
-                stats[group]['F_stat'] = F_stat
-                stats[group]['p_val'] = p_val
-            except Exception as e:
-                print(f"Issue with Kruskal Wallis test : {e}")
-
-            if (p_val < 0.05):
-                #we can reject the null hypothesis, therefore there exists differences between groups
-                #In order to differenciate groups, Dunn's post hoc test
-                print(f"At least one group is different from the others for {group} group because {p_val} < 0.05")
-                print(f"Post hoc test for group {group}, DUNN TEST ")
-                stats[group]['Post hoc test'] = "Dunn holm adjust"
-                try: 
-                    if (group=='memantine'):
-                        data = {"Value": list(values_barplot[group]['End baseline']) + 
-                                         list(values_barplot[group]['End infusion']) +
-                                         list(values_barplot[group]['End wash']) + 
-                                         list(values_barplot[group]['End wash_']),
-                                "Group": (["End baseline"] * len(list(values_barplot[group]['End baseline']))) +
-                                         (["End infusion"] * len(list(values_barplot[group]['End infusion']))) +
-                                         (["End wash"]     * len(list(values_barplot[group]['End wash']))) + 
-                                         (["End wash_"]    * len(list(values_barplot[group]['End wash_'])))}
-                        
-                    else:
-                        data = {"Value": list(values_barplot[group]['End baseline']) + 
-                                         list(values_barplot[group]['End infusion']) +
-                                         list(values_barplot[group]['End wash']),
-                                "Group": (["End baseline"] * len(list(values_barplot[group]['End baseline']))) +
-                                         (["End infusion"] * len(list(values_barplot[group]['End infusion']))) +
-                                         (["End wash"] * len(list(values_barplot[group]['End wash'])))}
-                    
-                    df = pd.DataFrame(data)
-                    p_values = sp.posthoc_dunn(df, val_col="Value", group_col="Group", p_adjust='holm')
-                    p_values_array = p_values.to_numpy()
-                    stats[group]['final_stats'] = p_values_array
-                except Exception as e:
-                    print(f"Issue with Dunn test : {e}")
-
-        print(f"end calc stats for group {group}")        
-
+        test_stats = calc_stats(group,
+                                values_barplot[group]["End baseline"],
+                                values_barplot[group]["End infusion"], 
+                                values_barplot[group]["End wash"])
+        stats[group]['Normality'] = test_stats['Normality']
+        stats[group]['Homescedasticity'] = test_stats['Homescedasticity']
+        stats[group]['Parametric'] = test_stats['Parametric']
+        stats[group]['F_stat'] = test_stats['F_stat']
+        stats[group]['p_val'] = test_stats['p_val']
+        stats[group]['Post hoc test'] = test_stats['Supplementary test']
+        stats[group]['final_stats'] = test_stats['final_stats']
     return stats
-
-def test_parametric_conditions(values_barplot, group):
-        #start with null hypothesis that the data is normally distributed and with equal variances
-        normality = True
-        homoscedasticity = True
-        parametric= True
-  
-        #test normality: D’Agostino and Pearson’s test
-        #null hypothesis : the data is normally distributed
-        #print(values_barplot)
-        stat1, p_val1 = normaltest(values_barplot[group]['End baseline'])
-        stat2, p_val2 = normaltest(values_barplot[group]['End infusion'])
-        stat3, p_val3 = normaltest(values_barplot[group]['End wash'])
-
-        if (np.isnan(p_val1)):
-            normality=False
-        if (np.isnan(p_val2)):
-            normality=False
-        if (np.isnan(p_val3)):
-            normality=False
-        if (p_val1< 0.05):
-            normality=False
-        if (p_val2< 0.05):
-            normality=False
-        if (p_val3< 0.05):
-            normality=False
-        
-        #test homoscedasticity (The three groups have a homogeneity of variance; meaning the population variances are equal):
-        #The Levene test tests the null hypothesis that all input samples are from populations with equal variances.
-        statistic, p_value = levene(values_barplot[group]['End baseline'], 
-                                    values_barplot[group]['End infusion'], 
-                                    values_barplot[group]['End wash'])
-        if (np.isnan(p_value).all()):
-            normality=False
-            #print("issue with homoscedasticity check")
-        if (p_value <0.05):
-            #null hypothesis is rejected, the population variances are not equal!
-            homoscedasticity=False
-            #print("data does not have equal variances")
-
-        if normality==False:
-            parametric=False  
-
-        if homoscedasticity==False:
-            parametric=False
-
-        return normality, homoscedasticity, parametric
 
 def save_stats(data_list):
     try:
         data_for_excel = pd.DataFrame(data_list)
-        path = 'C:/Users/sofia/Output_expe/In_Vitro/washout/statistics.xlsx'
+        path = 'C:/Users/sofia/Output_expe/In_Vitro/washout/statistics_wash.xlsx'
         with pd.ExcelWriter(path, engine='openpyxl') as writer: 
             data_for_excel.to_excel(writer, sheet_name='Statistics', index=False)
             worksheet = writer.sheets['Statistics']
@@ -645,16 +509,16 @@ if __name__=='__main__':
 
     #############################################################################################################################
     #PDF creation for each datafile : ###########################################################################################
-    
+    '''
     debug1=False
     for datafile in datafiles['all']: 
         create_individual_pdf(datafile, GROUPS, wash='all',  debug=debug1)
     
-    
+    '''
     ##############################################################################################################################
     final_dict, final_barplot, final_barplot2 = get_final_info(datafiles)
-    stats = calc_stats(final_barplot, final_barplot2, GROUPS)
-    
+    stats = my_calc_stats(final_barplot, final_barplot2, GROUPS)
+    '''
     ##############################################################################################################################
     #PDF creation for the chosen groups: #########################################################################################
     debug2 = False
@@ -689,7 +553,7 @@ if __name__=='__main__':
                      GROUPS= GROUPS['control'],
                      stats = stats["control"],
                      debug=debug2) 
-    
+    '''
     ###############################################################################################################################
 
     #PDF creation to compare groups: ##############################################################################################
