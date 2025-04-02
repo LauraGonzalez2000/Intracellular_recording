@@ -89,12 +89,12 @@ def calc_stats(title, values1, values2, values3, debug=False ):  #FOR 3 GROUPS, 
                 #we can reject the null hypothesis, therefore there exists differences between groups
                 #In order to differenciate groups, Dunn's post hoc test
                 test2='Dunn test, bonferroni adjust'
-                data = {"Value":list(values1)+
-                                list(values2)+
-                                list(values3),
-                        "Group":(["values_xe"] * len(list(values1)))+
-                                (["values_kx"] * len(list(values2)))+
-                                (["values_kxe"] * len(list(values3)))}
+                
+                data = {"Value": list(values1) + list(values2) + list(values3),
+                        "Group": (["label1"] * len(values1))+
+                                 (["label2"] * len(values2)) +
+                                 (["label3"] * len(values3))}
+                
                 df = pd.DataFrame(data)
                 p_values = sp.posthoc_dunn(df, val_col="Value", group_col="Group", p_adjust='bonferroni')
                 print(p_values)
@@ -113,6 +113,7 @@ def calc_stats(title, values1, values2, values3, debug=False ):  #FOR 3 GROUPS, 
         
         if debug:
             print("stats\n", stats)
+
         return stats
 
 

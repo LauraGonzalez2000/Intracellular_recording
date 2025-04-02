@@ -401,22 +401,6 @@ def my_calc_stats(final_barplot, final_barplot2, GROUPS):
         stats[group]['final_stats'] = test_stats['final_stats']
     return stats
 
-def save_stats(data_list):
-    try:
-        data_for_excel = pd.DataFrame(data_list)
-        path = 'C:/Users/sofia/Output_expe/In_Vitro/washout/statistics_wash.xlsx'
-        with pd.ExcelWriter(path, engine='openpyxl') as writer: 
-            data_for_excel.to_excel(writer, sheet_name='Statistics', index=False)
-            worksheet = writer.sheets['Statistics']
-            # Adjust column widths for data_for_excel
-            for column in data_for_excel:
-                column_length = max(data_for_excel[column].astype(str).map(len).max(), len(column))
-                col_idx = data_for_excel.columns.get_loc(column)
-                worksheet.column_dimensions[openpyxl.utils.get_column_letter(col_idx + 1)].width = column_length
-        print("stats file saved successfully.")
-    except Exception as e:
-        print(f"ERROR when saving the stats file : {e}")
-    return 0
     
 #OK
 def create_individual_pdf(datafile, GROUPS, wash='all',  debug=False):
@@ -466,6 +450,25 @@ def create_final_results_pdf(final_dict, final_barplot, GROUPS, final_barplot2, 
     except Exception as e:
         print(f"Error saving final PDF file : {e}")
     return 0
+
+#OK
+def create_stats_excel(data_list):
+    try:
+        data_for_excel = pd.DataFrame(data_list)
+        path = 'C:/Users/sofia/Output_expe/In_Vitro/washout/statistics_wash.xlsx'
+        with pd.ExcelWriter(path, engine='openpyxl') as writer: 
+            data_for_excel.to_excel(writer, sheet_name='Statistics', index=False)
+            worksheet = writer.sheets['Statistics']
+            # Adjust column widths for data_for_excel
+            for column in data_for_excel:
+                column_length = max(data_for_excel[column].astype(str).map(len).max(), len(column))
+                col_idx = data_for_excel.columns.get_loc(column)
+                worksheet.column_dimensions[openpyxl.utils.get_column_letter(col_idx + 1)].width = column_length
+        print("stats file saved successfully.")
+    except Exception as e:
+        print(f"ERROR when saving the stats file : {e}")
+    return 0
+
 
 ###################################################################################################
 ###################################################################################################
@@ -559,4 +562,4 @@ if __name__=='__main__':
     #PDF creation to compare groups: ##############################################################################################
     debug3 = False
     create_final_results_pdf(final_dict, final_barplot, GROUPS, final_barplot2, stats, debug=debug3)
-    save_stats(stats)
+    create_stats_excel(stats)

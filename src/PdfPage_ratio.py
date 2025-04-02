@@ -3,6 +3,7 @@ import Curve_fit as cf
 import numpy as np
 import pandas as pd
 import openpyxl
+from scipy import stats as stats_
 
 import sys
 import os
@@ -197,13 +198,15 @@ class PdfPage:
     def fill_PDF_barplots(self, file_path, metrics, STATS=False):
         # Read the Excel file into a DataFrame
             
-        IGOR_results_df = pd.read_excel(file_path, header=0)
-        print(IGOR_results_df)
         
-        # Group labels
-        labels = ['xyla eutha', 'Ketaxyla' , 'keta xyla eutha']
-        group_queries = ["Group=='xyla euthasol'", "Group=='ketaxyla'",  "Group=='keta xyla euthasol'"]
-        colors = ['grey',  'orange',  'purple']
+        labels = ['xyla euthasol', 'ketaxyla' , 'keta xyla euthasol']
+        labels_sh = ['xyla eutha', 'ketaxyla' , 'keta xyla eutha']
+        colors = ['grey', 'orange',  'purple']
+
+        IGOR_results_df = pd.read_excel(file_path, header=0)
+        IGOR_results_df['Group'] = pd.Categorical(IGOR_results_df['Group'], categories=labels, ordered=True)
+        IGOR_results_df = IGOR_results_df.sort_values('Group')
+        print(IGOR_results_df)
         
         # Number of plots based on the number of metrics
         num_metrics = len(metrics)
@@ -212,8 +215,6 @@ class PdfPage:
         fig, axes = plt.subplots(3, 4, figsize=(14, 16))
         axes = axes.flatten()
         
-        #plt.subplots(1, num_metrics, figsize=(10 * num_metrics, 6), sharey=False)
-        
         # Ensure axes is always a list (in case there's only one metric)
         if num_metrics == 1:
             axes = [axes]
@@ -221,14 +222,16 @@ class PdfPage:
         stats_for_excel = []
         # Loop through each metric and plot
         for idx, metric in enumerate(metrics):
+            print("metric :", metric)
             means = []
             sems = []
             individual_data = []
             # Collect data for each group
-            for query in group_queries:
-                df_temp = IGOR_results_df.query(query)[metric]
+            #for query in group_queries:
+            for label in labels:
+                df_temp = IGOR_results_df.loc[IGOR_results_df['Group']==label, metric].values
                 means.append(df_temp.mean())
-                sems.append(df_temp.sem())
+                sems.append(stats_.sem(df_temp))
                 individual_data.append(df_temp)
             
             # Bar plot with error bars
@@ -236,16 +239,17 @@ class PdfPage:
             axes[idx].bar(bar_positions, means, yerr=sems, color=colors, width=0.6, capsize=5, alpha=0.6, label='Mean ± SEM')
             
             # Plot individual data points
-            for i, df in enumerate(individual_data):
+            for i, (df, label) in enumerate(zip(individual_data, labels)):
+                #print(f"Plotting individual data for: {label}")
                 axes[idx].scatter(np.full(df.shape, bar_positions[i]), df, color='black', zorder=5)
-            
+                
             axes[idx].spines['top'].set_visible(False)
             axes[idx].spines['right'].set_visible(False)
             
             # Add title and labels to each subplot
             axes[idx].set_title(f'{metric}')
             axes[idx].set_xticks(bar_positions)
-            axes[idx].set_xticklabels(labels)
+            axes[idx].set_xticklabels(labels_sh) #shorter names, careful to check order names
             #axes[idx].set_ylabel('Amplitude (pA)')
             if (STATS==True) : 
                 #ADD STATISTICS
@@ -253,15 +257,16 @@ class PdfPage:
                 values_kx = IGOR_results_df.loc[IGOR_results_df['Group']=='ketaxyla',  metric].values
                 values_kxe = IGOR_results_df.loc[IGOR_results_df['Group']=='keta xyla euthasol',  metric].values
                 stats = calc_stats(metric, values_xe, values_kx, values_kxe)
-                print(stats)
                 stats_for_excel.append(stats)
 
                 y_pos_m = 0
-                keys = ['xyla euthasol', 'ketaxyla', 'keta xyla euthasol'] 
-                for j1, group1 in enumerate(keys):
-                    for j2, group2 in enumerate(keys):
+            
+                for j1, group1 in enumerate(labels):
+                    for j2, group2 in enumerate(labels):
                         if j1 < j2:  # Avoid duplicate comparisons (i.e., comparing the same time to itself)
                             significance = 'ns'
+                            #print(group1, ' vs ', group2)
+                            #print(stats['final_stats'][j1, j2])
                             p_value = stats['final_stats'][j1, j2]
                             if (np.isnan(p_value).all()):
                                 significance = 'ns'  # Default is "not significant"
@@ -278,20 +283,20 @@ class PdfPage:
                                 # Get the y positions for both bars being compared
                                 y_pos1 = means[j1] + sems[j1]
                                 y_pos2 = means[j2] + sems[j2]
-                                y_pos = max(y_pos1, y_pos2) + 15 # Place the significance line above the highest bar
+                                y_pos = max(y_pos1, y_pos2) + 4 # Place the significance line above the highest bar
                                 if y_pos==y_pos_m:
-                                    y_pos +=12
+                                    y_pos +=5
                                 y_pos_m=y_pos
                                 # Calculate the position to place the significance line
                                 x1 =  j1 
                                 x2 =  j2 
                                 # Draw a line between the bars
-                                axes[idx].plot([x1, x2], [y_pos, y_pos], color='black', lw=0.8)
-                                axes[idx].plot([x1, x1], [y_pos-3, y_pos], color='black', lw=0.8)
-                                axes[idx].plot([x2, x2], [y_pos-3, y_pos], color='black', lw=0.8)
+                                axes[idx].plot([x1, x2], [y_pos, y_pos], color='black', lw=0.9)
+                                axes[idx].plot([x1, x1], [y_pos-0.5, y_pos], color='black', lw=0.9)
+                                axes[idx].plot([x2, x2], [y_pos-0.5, y_pos], color='black', lw=0.9)
                                                 
                                 # Annotate the significance above the line
-                                axes[idx].text((x1 + x2) / 2, y_pos + 0.03, f"{significance}", ha='center', va='bottom', fontsize=8)
+                                axes[idx].text((x1 + x2) / 2, y_pos + 0.03, f"{significance}", ha='center', va='bottom', fontsize=15)
                 
                 self.save_stats(stats_for_excel)
         # Delete any remaining unused subplots (if any)

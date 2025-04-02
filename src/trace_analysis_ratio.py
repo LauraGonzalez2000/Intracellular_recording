@@ -207,7 +207,7 @@ class DataFile:
              
     def calc_values(self, bis=False):
         self.get_mem_values(self.avg_response, self.time)
-        #print("calc_values ", self.infos['Type'])
+        print("calc_values ", self.infos['Type'])
         if self.infos['Type']=='AMPA':
             self.analyse_neg_peak()
         elif self.infos['Type']=='NMDA':
