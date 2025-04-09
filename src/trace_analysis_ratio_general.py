@@ -54,10 +54,17 @@ class DataFile:
             print(f'Recordings were not loaded: {e}')
             return -1
 
+    def get_std_baseline(self):
+        baseline = self.response[0:50]
+
+        return 0
+
+
     def get_average_recordings_aligned(self):
         try:
             avg_data = np.mean(self.response, axis=0)
             avg_baseline = np.mean(avg_data[0:50])
+            
             average_data_aligned = avg_data - avg_baseline
             self.avg_response = average_data_aligned
             print("OK average_recordings_aligned found")
@@ -78,22 +85,35 @@ class DataFile:
     
     def fill_infos(self, info_df):
         try:
-           
-            meta_info_df = info_df.loc[info_df['Files'] == self.filename]
+
+            meta_info_df = info_df.loc[(info_df['subfile1'] == self.filename) | (info_df['subfile2'] == self.filename)]
 
             if len(meta_info_df) != 1:
                 raise ValueError(f"Expected one matching row for filename {self.filename}, but found {len(meta_info_df)}.")
-        
-            self.infos = {'SampleInterval' : self.pxp[1]['root'][b'SampleInterval'],
-                          'SamplesPerWave' : self.pxp[1]['root'][b'SamplesPerWave'],
-                          'FileDate' : self.pxp[1]['root'][b'FileDate'],
-                          'FileTime' : self.pxp[1]['root'][b'FileTime'],
-                          'Type': str(meta_info_df["Type"].item()),
-                          'Euthanize method':str(meta_info_df["euthanize method"].item()),
-                          'Holding (mV)': str(meta_info_df["Holding (mV)"].item()),
-                          'Drug1':str(meta_info_df["Drug1"].item()),
-                          'Drug2': str(meta_info_df["Drug2"].item())
-                          }
+
+            if (info_df['subfile1'] == self.filename).any():
+                self.infos = {'SampleInterval' : self.pxp[1]['root'][b'SampleInterval'],
+                            'SamplesPerWave' : self.pxp[1]['root'][b'SamplesPerWave'],
+                            'FileDate' : self.pxp[1]['root'][b'FileDate'],
+                            'FileTime' : self.pxp[1]['root'][b'FileTime'],
+                            'Type': 'AMPA',
+                            'Euthanize method':str(meta_info_df["Euthanizing method"].item()),
+                            'Holding (mV)': '-70',
+                            'Drug1': 'PTX',
+                            'Drug2': ''
+                            }
+                
+            elif (info_df['subfile2'] == self.filename).any():
+                self.infos = {'SampleInterval' : self.pxp[1]['root'][b'SampleInterval'],
+                            'SamplesPerWave' : self.pxp[1]['root'][b'SamplesPerWave'],
+                            'FileDate' : self.pxp[1]['root'][b'FileDate'],
+                            'FileTime' : self.pxp[1]['root'][b'FileTime'],
+                            'Type': 'NMDA',
+                            'Euthanize method':str(meta_info_df["Euthanizing method"].item()),
+                            'Holding (mV)': '40',
+                            'Drug1': 'PTX',
+                            'Drug2': 'NBQX'
+                            }
             print('OK infos were filled correctly')
         except Exception as e:
             print(f"Infos were not filled correctly: {e}")
@@ -291,13 +311,13 @@ class DataFile:
         
         decay_time = np.abs(time - 601.70)
 
-        '''
+        
         print("Amplitude response 1 (nA) : ", amp_resp1 )
         print("Amplitude response 2 (nA) : ", amp_resp2 )
         print("Paired pulse ratio Amp2/Amp1: ", PPR )
         print("Rise_time 10-90% : ", rise_time, "ms.")
         print("Decay time 50% : ", decay_time, " ms.")
-        '''
+        
         
         self.amp_resp1 = amp_resp1
         self.amp_resp2 = amp_resp2
@@ -402,7 +422,7 @@ class DataFile:
         if decay_time > out_value:
             decay_time = out_value
 
-        '''
+        
         print("Amplitude response 1 (nA) : ", amp_resp1 )
         print("Amplitude response 2 (nA) : ", amp_resp2 )
         print("Paired pulse ratio Amp2/Amp1: ", PPR )
@@ -410,7 +430,7 @@ class DataFile:
         print("Decay time 50% : ", decay_time, " ms.")
 
 
-        '''
+        
 
         self.amp_resp1 = amp_resp1
         self.amp_resp2 = amp_resp2
