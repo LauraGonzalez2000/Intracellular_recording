@@ -6,29 +6,37 @@ from trace_analysis_ratio_general import DataFile
 import matplotlib.pylab as plt
 import pandas as pd
 import openpyxl
-from openpyxl.utils import get_column_letter
-import numpy as np
+from pathlib import Path
 
 ###get values
 def find_nm_files(root_folder):
     nm_paths = []
-    
     # Walk through all directories and files in the root_folder
     for folder, _, files in os.walk(root_folder):
         # Check each file in the current directory
         for file in files:
-
             # Skip files with specific extensions
             if any(ext in file for ext in ['HDF5', 'txt', 'pdf', 'log', 'xlsx']):
                 break
             # Construct the full path of the file
             file_path = os.path.join(folder, file)
+            #print(file_path)
             normalized_path = os.path.normpath(file_path)
             forward_slash_path = normalized_path.replace("\\", "/")
             nm_paths.append(forward_slash_path)
             print('-', file)
-
+    if not nm_paths:
+        print("Problem finding files")
     return nm_paths
+
+def final_names(files):
+    files_id = []
+    for file_path in files : 
+        file_id = file_path.split('/')[-1].replace('.pxp', '')[2:13]
+        files_id.append(file_id) 
+        used = set()
+        files_id_ = [x for x in files_id if x not in used and (used.add(x) or True)]
+    return files_id_
 
 def get_datafiles(files, info_df):
     datafiles = []
@@ -45,78 +53,40 @@ def get_meta_info(meta_info_directory):
     info_df = pd.read_csv(file_meta_info, header=0, sep=';')
     return info_df
 
-def final_names(files):
-    files_id = []
-    for file_path in files : 
-        file_id = file_path.split('/')[-1].replace('.pxp', '')[2:13]
-        files_id.append(file_id) 
-        used = set()
-        files_id_ = [x for x in files_id if x not in used and (used.add(x) or True)]
-    return files_id_
-
-def analyse_datafiles(datafiles, data_list, files_id, info_df, debug=False, bis=False, PDF=False, Excel1=False, final_excel=False, barplots=False, STATS=False):
-    
+def get_data_list(datafiles):
+    data_list = []
     for datafile in datafiles:
-
-        datafile.calc_values(bis)
-
+        datafile.calc_values(bis=False)
         try:
-            if bis:
-                data_dict = {'Filename': datafile.filename,
-                            'Id (A)': datafile.Id_A,
-                            'Rm (Ohm)': datafile.Rm,
-                            'Ra (Ohm)': datafile.Ra,
-                            'Cm (F)': datafile.Cm,
-                            'AMPA component (nA)': datafile.amp_resp1,
-                            'NMDA component (nA)': datafile.amp_resp2,
-                            'NMDA/AMPA ratio': datafile.PPR,
-                            'Rise_time 10-90% (ms)': datafile.rise_time,
-                            'Decay time 50% (ms)': datafile.decay_time,
-                            'Group': datafile.infos['Euthanize method']}
-            else:
-                data_dict = {'Filename': datafile.filename,
-                             'Baseline mean (A)' : datafile.baseline, 
-                             #'Baseline STD': datafile.baseline_std,
-                             'Id (A)': datafile.Id_A,
-                             'Rm (Ohm)': datafile.Rm,
-                             'Ra (Ohm)': datafile.Ra,
-                             'Cm (F)': datafile.Cm,
-                             'Amplitude response 1 (nA)': datafile.amp_resp1,
-                             'Amplitude response 2 (nA)': datafile.amp_resp2,
-                             'Paired pulse ratio Amp2/Amp1': datafile.PPR,
-                             'Rise_time 10-90% (ms)': datafile.rise_time,
-                             'Decay time 50% (ms)': datafile.decay_time,
-                             'Group': datafile.infos['Euthanize method']}
-
+            data_dict = {'Filename': datafile.filename,
+                         'Baseline mean (A)' : datafile.baseline, 
+                         'Baseline STD': datafile.baseline_std,
+                         'Id (A)': datafile.Id_A,
+                         'Rm (Ohm)': datafile.Rm,
+                         'Ra (Ohm)': datafile.Ra,
+                         'Cm (F)': datafile.Cm,
+                         'Amplitude response 1 (nA)': datafile.amp_resp1,
+                         'Amplitude response 2 (nA)': datafile.amp_resp2,
+                         'Paired pulse ratio Amp2/Amp1': datafile.PPR,
+                         'Rise_time 10-90% (ms)': datafile.rise_time,
+                         'Decay time 50% (ms)': datafile.decay_time,
+                         'Group': datafile.infos['Euthanize method']}
             data_list.append(data_dict)
-
-            #if PDF==True:
-            #    create_pdf(datafile,bis)
-            
-            #if Excel1==True:
-            #    create_excel(data_list, bis)
-
         except Exception as e:
             print(f"Error analysing this file : {e}")
-    
-    #if not bis:
-    #if final_excel==True:
-    #    create_final_excel(datafiles, files_id, info_df)
-
-    #if barplots==True:
-    #    create_final_barplots(STATS, bis)
-
     return 0
 
 ###create output
-def create_pdf(datafiles, bis):
+def create_pdf(datafiles):
     try:
         for datafile in datafiles:
-            datafile.calc_values(bis)
+            datafile.calc_values(bis=False)
             pdf = PdfPage(debug=False)
-            pdf.fill_PDF(datafile, debug=False, bis=bis)
+            pdf.fill_PDF(datafile, debug=False, bis=False)
+            output_path = (Path.home()/ "Output_expe"/ "In_Vitro"/ "ratio"/ "Ratio_PDFs"/ f"{datafile.filename}.pdf")
+            plt.savefig(output_path)
             #plt.savefig(f'C:/Users/laura.gonzalez/Output_expe/ratio/Ratio_PDFs/{datafile.filename}.pdf')  #plt.savefig(f'C:/Users/LauraGonzalez/Output_expe/Ratio_PDFs/{datafile.filename}.pdf') #laptop
-            plt.savefig(f'C:/Users/sofia/Output_expe/In_Vitro/ratio/Ratio_PDFs/{datafile.filename}.pdf')
+            #plt.savefig(f'C:/Users/sofia/Output_expe/In_Vitro/ratio/Ratio_PDFs/{datafile.filename}.pdf')
             print("Individual PDF File saved successfully :", datafile.filename, '\n')
     except Exception as e:
         print(f"Error creating the individual PDF file : {e}")
@@ -192,7 +162,10 @@ def create_final_excel(datafiles, files_id, info_df):
 
         data_for_excel = pd.DataFrame(data)
 
-        with pd.ExcelWriter('C:/Users/sofia/Output_expe/In_Vitro/ratio/final_excel.xlsx', engine='openpyxl') as writer:
+        excel_path = (Path.home()/ "Output_expe"/ "In_Vitro"/ "ratio"/ "final_excel.xlsx")
+
+        with pd.ExcelWriter(excel_path, engine='openpyxl') as writer:
+        #with pd.ExcelWriter('C:/Users/sofia/Output_expe/In_Vitro/ratio/final_excel.xlsx', engine='openpyxl') as writer:
     
             data_for_excel.to_excel(writer, sheet_name='Data analysis', index=False)
             # Access the workbook and the sheets
@@ -211,10 +184,11 @@ def create_final_excel(datafiles, files_id, info_df):
     except Exception as e:
         print(f"ERROR when saving the file to final excel : {e}")
 
-def create_final_barplots(STATS, bis=False):
+def create_final_barplots(STATS, debug=False):
     try:
         
-        final_excel_path = 'C:/Users/sofia/Output_expe/In_Vitro/ratio/final_excel.xlsx' #compare with IGOR results
+        final_excel_path = (Path.home()/ "Output_expe"/ "In_Vitro"/ "ratio"/ "final_excel.xlsx")
+        #final_excel_path = 'C:/Users/sofia/Output_expe/In_Vitro/ratio/final_excel.xlsx' #compare with IGOR results
 
         metrics = ["1 AMPA Amplitude (pA)", 
                    "1 AMPA rise time (10-90%)", 
@@ -227,93 +201,36 @@ def create_final_barplots(STATS, bis=False):
                    "1 NMDA/AMPA", 
                    "2 NMDA/AMPA"]  
         
-        pdf = PdfPage(debug=False)
+        pdf = PdfPage(debug=debug)
         pdf.fill_PDF_barplots(final_excel_path, metrics, STATS)
-        plt.savefig(f'C:/Users/sofia/Output_expe/In_Vitro/ratio/Ratio_PDFs/auto_barplots.pdf')
+
+        output_path = (Path.home()/ "Output_expe"/ "In_Vitro"/ "ratio"/ "Ratio_PDFs"/ "auto_barplots.pdf")
+        plt.savefig(output_path)
+
+        #plt.savefig(f'C:/Users/sofia/Output_expe/In_Vitro/ratio/Ratio_PDFs/auto_barplots.pdf')
         print("Final barolots PDF file saved successfully.")
 
     except Exception as e:
         print(f"Error saving the barplots : {e}")
     return 0
 
-
-
-
-'''
-def create_excel(data_list, bis=False):
-    try:
-        data_for_excel = pd.DataFrame(data_list)
-        #print("data for individual results excel : ", data_for_excel)
-        # Create a Pandas Excel writer using openpyxl as the engine  
-        if bis:
-            #path = 'C:/Users/laura.gonzalez/Output_expe/ratio/ratio_prog_bis.xlsx'
-            path = 'C:/Users/sofia/Output_expe/In_Vitro/ratio/ratio_prog_bis.xlsx'
-        else:
-            #path = 'C:/Users/laura.gonzalez/Output_expe/ratio/ratio_prog.xlsx'
-            path = 'C:/Users/sofia/Output_expe/In_Vitro/ratio/ratio_prog.xlsx'
-        
-        with pd.ExcelWriter(path, engine='openpyxl') as writer: #with pd.ExcelWriter('C:/Users/LauraGonzalez/Output_expe/ratio_prog.xlsx', engine='openpyxl') as writer:
-            data_for_excel.to_excel(writer, sheet_name='Data analysis', index=False)
-            worksheet = writer.sheets['Data analysis']
-
-            # Adjust column widths for data_for_excel
-            for column in data_for_excel:
-                column_length = max(data_for_excel[column].astype(str).map(len).max(), len(column))
-                col_idx = data_for_excel.columns.get_loc(column)
-                worksheet.column_dimensions[openpyxl.utils.get_column_letter(col_idx + 1)].width = column_length
-
-        print("ratio prog file saved successfully.")
-
-    except Exception as e:
-        print(f"ERROR when saving the file to ratio prog : {e}")
-'''
-
 ###### MAIN ######################################################
 
 if __name__=='__main__':
     debug = True
-    bis   = False #if true, 2nd version of AMPA NMDA ratio is calculated
-
-    if bis: 
-        #files_directory = 'C:/Users/laura.gonzalez/DATA/Ratio_experiment/RAW_DATA_AMPA_NMDA_RATIO-bis'
-        #meta_info_directory = 'C:/Users/laura.gonzalez/DATA/Ratio_experiment/Files-bis.csv'
-        files_directory = 'C:/Users/sofia/DATA/In_Vitro_experiments/Ratio_experiment/RAW_DATA_AMPA_NMDA_RATIO-bis'
-        meta_info_directory = 'C:/Users/sofia/DATA/In_Vitro_experiments/Ratio_experiment/Files-bis.csv'
-
-    else:
-        #files_directory = 'C:/Users/laura.gonzalez/DATA/Ratio_experiment/RAW_DATA_AMPA_NMDA_RATIO'  #PC   #files_directory = 'C:/Users/LauraGonzalez/DATA/Ratio_experiment/RAW_DATA_AMPA_NMDA_RATIO-q' #laptop
-        #meta_info_directory = 'C:/Users/laura.gonzalez/DATA/Ratio_experiment/Files.csv'
-        files_directory = 'C:/Users/sofia/DATA/In_Vitro_experiments/Ratio_experiment/RAW_DATA_AMPA_NMDA_RATIO-qq'  #PC   #files_directory = 'C:/Users/LauraGonzalez/DATA/Ratio_experiment/RAW_DATA_AMPA_NMDA_RATIO-q' #laptop
-        #meta_info_directory = 'C:/Users/sofia/DATA/In_Vitro_experiments/Ratio_experiment/Files.csv'
-        meta_info_directory = 'C:/Users/sofia/DATA/In_Vitro_experiments/data_general.csv'
-        
+    files_directory = Path.home() / "DATA" / "In_Vitro_experiments" / "Ratio_experiment" / "RAW_DATA_AMPA_NMDA_RATIO-q"
+    meta_info_directory = Path.home() / "DATA" / "In_Vitro_experiments" / "data_general.csv" 
     files = find_nm_files(files_directory)
     info_df = get_meta_info(meta_info_directory)
-    
     datafiles = get_datafiles(files, info_df)
     data_list = []
     files_id = final_names(files)
-
-    #Choose as True what you want to plot
-    analyse_datafiles(datafiles, 
-                      data_list, 
-                      files_id, 
-                      info_df,
-                      debug=debug,
-                      bis=bis, 
-                      PDF=False, 
-                      Excel1=True, 
-                      final_excel=True, 
-                      barplots=False, 
-                      STATS=False)
+    data_list = get_data_list(datafiles)
     
-
     #Create output 
-    create_pdf(datafiles, bis=False)
-    
+    create_pdf(datafiles)
     create_final_excel(datafiles, files_id, info_df)
-
-    create_final_barplots(STATS=False, bis=False)
+    create_final_barplots(STATS=False, debug=False)
 
 
 

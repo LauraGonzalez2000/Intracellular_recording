@@ -21,6 +21,8 @@ class DataFile:
         self.fill_infos(info_df)
         self.fill_stim()
         self.get_time()
+        self.get_mem_values_across_time(self.time)
+        
         
 
     #Methods to extract data
@@ -224,6 +226,8 @@ class DataFile:
             Rm_list.append(values[3]/1e6)
             Cm_list.append(values[4]*1e12)
             
+        self.baseline_std = np.std(baseline_list)
+        print("aaa", self.baseline_std)
         return Id_list, Ra_list, Rm_list, Cm_list
              
     def calc_values(self, bis=False):
