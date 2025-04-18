@@ -2,6 +2,7 @@
 import os
 
 from PdfPage_ratio_general import PdfPage
+
 from trace_analysis_ratio_general import DataFile
 import matplotlib.pylab as plt
 import pandas as pd
@@ -85,8 +86,6 @@ def create_pdf(datafiles):
             pdf.fill_PDF(datafile, debug=False, bis=False)
             output_path = (Path.home()/ "Output_expe"/ "In_Vitro"/ "ratio"/ "Ratio_PDFs"/ f"{datafile.filename}.pdf")
             plt.savefig(output_path)
-            #plt.savefig(f'C:/Users/laura.gonzalez/Output_expe/ratio/Ratio_PDFs/{datafile.filename}.pdf')  #plt.savefig(f'C:/Users/LauraGonzalez/Output_expe/Ratio_PDFs/{datafile.filename}.pdf') #laptop
-            #plt.savefig(f'C:/Users/sofia/Output_expe/In_Vitro/ratio/Ratio_PDFs/{datafile.filename}.pdf')
             print("Individual PDF File saved successfully :", datafile.filename, '\n')
     except Exception as e:
         print(f"Error creating the individual PDF file : {e}")
@@ -104,7 +103,7 @@ def create_final_excel(datafiles, files_id, info_df):
             Group.append(datafile.infos['Euthanize method'])
             if datafile.filename in info_df['subfile1'].values:
                 bsl_m_amp.append(datafile.baseline)
-                bsl_std_amp.append(datafile.baseline_sd)
+                bsl_std_amp.append(datafile.baseline_std)
                 Id_A_amp.append(datafile.Id_A)
                 Rm_O_amp.append(datafile.Rm)
                 Cm_F_amp.append(datafile.Cm)
@@ -115,7 +114,7 @@ def create_final_excel(datafiles, files_id, info_df):
       
             elif datafile.filename in info_df['subfile2'].values:
                 bsl_m_nmda.append(datafile.baseline)
-                bsl_std_nmda.append(datafile.baseline_sd)
+                bsl_std_nmda.append(datafile.baseline_std)
                 Id_A_nmda.append(datafile.Id_A)
                 Rm_O_nmda.append(datafile.Rm)
                 Cm_F_nmda.append(datafile.Cm)
@@ -124,14 +123,12 @@ def create_final_excel(datafiles, files_id, info_df):
                 Nmda_decay.append(datafile.decay_time)
                 Nmda2amp.append(round(datafile.amp_resp2*1000, 2))
 
-            
-
         data = {'Files_ID'   : files_id,
                 "Baseline mean (AMPA rec)":bsl_m_amp,
                 "Baseline std (AMPA rec)":bsl_std_amp,
                 "1 AMPA Amplitude (pA)":Ampa1amp , 
-                "1 AMPA rise time (10-90%)": Ampa_rise, 
-                "1 AMPA decay time (50%)": Ampa_decay, 
+                "1 AMPA rise time (10-90%) (sec)": Ampa_rise, 
+                "1 AMPA decay time (50%) (sec)": Ampa_decay, 
                 "2 AMPA Amplitude (pA)": Ampa2amp,
                 "Id (A) (AMPA rec)":Id_A_amp,
                 "Rm (Ohm) (AMPA rec)":Rm_O_amp,
@@ -139,8 +136,8 @@ def create_final_excel(datafiles, files_id, info_df):
                 "Baseline mean (NMDA rec)": bsl_m_nmda,
                 "Baseline std (NMDA rec)":bsl_std_nmda,
                 "1 NMDA Amplitude (pA)": Nmda1amp, 
-                "1 NMDA rise time (10-90%)": Nmda_rise, 
-                "1 NMDA decay time (50%)": Nmda_decay, 
+                "1 NMDA rise time (10-90%) (sec)": Nmda_rise, 
+                "1 NMDA decay time (50%) (sec)": Nmda_decay, 
                 "2 NMDA Amplitude (pA)": Nmda2amp,
                 "Id (A) (AMPA rec)":Id_A_nmda,
                 "Rm (Ohm) (AMPA rec)":Rm_O_nmda,
@@ -165,11 +162,8 @@ def create_final_excel(datafiles, files_id, info_df):
         excel_path = (Path.home()/ "Output_expe"/ "In_Vitro"/ "ratio"/ "final_excel.xlsx")
 
         with pd.ExcelWriter(excel_path, engine='openpyxl') as writer:
-        #with pd.ExcelWriter('C:/Users/sofia/Output_expe/In_Vitro/ratio/final_excel.xlsx', engine='openpyxl') as writer:
     
             data_for_excel.to_excel(writer, sheet_name='Data analysis', index=False)
-            # Access the workbook and the sheets
-            workbook  = writer.book
             worksheet = writer.sheets['Data analysis']
 
             # Adjust column widths for data_mem_for_excel
@@ -180,7 +174,6 @@ def create_final_excel(datafiles, files_id, info_df):
     
         print("Final Excel file saved successfully.")
 
-
     except Exception as e:
         print(f"ERROR when saving the file to final excel : {e}")
 
@@ -188,8 +181,7 @@ def create_final_barplots(STATS, debug=False):
     try:
         
         final_excel_path = (Path.home()/ "Output_expe"/ "In_Vitro"/ "ratio"/ "final_excel.xlsx")
-        #final_excel_path = 'C:/Users/sofia/Output_expe/In_Vitro/ratio/final_excel.xlsx' #compare with IGOR results
-
+    
         metrics = ["1 AMPA Amplitude (pA)", 
                    "1 AMPA rise time (10-90%)", 
                    "1 AMPA decay time (50%)", 
@@ -206,8 +198,6 @@ def create_final_barplots(STATS, debug=False):
 
         output_path = (Path.home()/ "Output_expe"/ "In_Vitro"/ "ratio"/ "Ratio_PDFs"/ "auto_barplots.pdf")
         plt.savefig(output_path)
-
-        #plt.savefig(f'C:/Users/sofia/Output_expe/In_Vitro/ratio/Ratio_PDFs/auto_barplots.pdf')
         print("Final barolots PDF file saved successfully.")
 
     except Exception as e:
@@ -223,7 +213,6 @@ if __name__=='__main__':
     files = find_nm_files(files_directory)
     info_df = get_meta_info(meta_info_directory)
     datafiles = get_datafiles(files, info_df)
-    data_list = []
     files_id = final_names(files)
     data_list = get_data_list(datafiles)
     

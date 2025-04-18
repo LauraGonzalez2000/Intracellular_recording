@@ -1,0 +1,25 @@
+
+
+{
+  "bsl_start" : 0,
+  "bsl_end" : 50,
+  "gauss_sigma" : 4,
+  "keys_stimulation" : ["nmStimSofia1", "nmStimSofia"],
+  "timestep_" : 0.01 ,
+  "datapoints_" : 100000,
+  "time_stim1" : 600,
+  "time_stim2" : 700,
+  "bound1_start" : 601,
+  "bound1_end" : 649,
+  "bound2_start" : 701,
+  "bound2_end" : 749,
+  "peak_rise_start" : 600.4,
+  "peak_decay_start" : 601.70,
+  "peak_decay_start_pos" : 605,
+  "Id_bound_start" : 10000,
+  "Id_bound_stop"  : 11000,
+  "Idss_bound_start" : 16000,
+  "Idss_bound_stop" : 19000,
+  "start_fit" : 10007,
+  "end_fit" : 20000
+}

@@ -7,8 +7,9 @@ from scipy import stats as stats_
 
 import sys
 import os
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
-from utils.my_math import calc_stats
+
+sys.path.append('../utils')
+from my_math import calc_stats ####problem for later
 
 class PdfPage:
 
@@ -79,25 +80,30 @@ class PdfPage:
         return ax
 
     def fill_PDF(self, datafile, debug=False, bis=False): 
+        print("1")
 
         time = datafile.time
 
         for key in self.AXs:
             if key=='Notes':
+             
                 txt = f"ID file: {datafile.filename} \n Number of recordings: {len(datafile.response)} \n"
                 self.AXs[key].annotate(txt,(0, 1), va='top', xycoords='axes fraction')
                 
             elif key=='V_cmd0':
+            
                 self.AXs[key].set_xlabel("time (ms)")
                 self.AXs[key].annotate("voltage (V)", (-0.12, -0.2), xycoords='axes fraction', rotation=90)
                 self.AXs[key].plot(time, datafile.stim['Cmd1'])  
                 
             elif key=='V_cmd1':
+               
                 self.AXs[key].set_xlabel("time (ms)")
                 self.AXs[key].annotate("voltage (V)", (-0.12, -0.8), xycoords='axes fraction', rotation=90)
                 self.AXs[key].plot(time, datafile.stim['Cmd2'])  
                 
             elif key=='FullResp':
+              
                 self.AXs[key].set_xlabel("time (ms)")
                 self.AXs[key].annotate("current (A)", (-0.12, 0.1), xycoords='axes fraction', rotation=90)
                 stim1, _, stim2, _ = datafile.get_boundaries()
@@ -105,12 +111,14 @@ class PdfPage:
                 self.AXs[key].plot(time[~artefact_cond], datafile.avg_response[~artefact_cond]) 
                 
             elif key=='MemTest':
+             
                 self.AXs[key].set_xlabel("time (ms)")
                 self.AXs[key].annotate("current (A)", (-0.30, 0.4), xycoords='axes fraction', rotation=90)
                 time_mem = time[9900:11000]
                 resp_mem = datafile.avg_response[9900:11000]
                 self.AXs[key].plot(time_mem, resp_mem, label = "Data")
                 my_range = (10007, 11000)
+               
                 try :
                     my_func = cf.model_biexponential1  
                     x,y = cf.get_fit(my_range, my_func, time, datafile.avg_response)
@@ -123,8 +131,8 @@ class PdfPage:
                         self.AXs[key].plot(x,y, color="red", label = "fit")
                     except: 
                         print("error with curve fitting with exponential")
-                
-                Id_avg, Ra_avg, Rm_avg, Cm_avg  = datafile.get_mem_values(datafile.avg_response, time)
+               
+                baseline_A, Id_avg, Ra_avg, Rm_avg, Cm_avg  = datafile.get_mem_values(datafile.avg_response, time)
                 txt = (f"Id : {Id_avg*1e12:.1f} pA \n Rm : {Rm_avg/1e6:.1f} M$\\Omega$ \n Ra : {Ra_avg/1e6:.1f} M$\\Omega$ \n Cm : {Cm_avg*1e12:.1f} pF \n")
                 self.AXs[key].annotate(txt,(0.35, 0.5), va='top', xycoords='axes fraction')
                 try: 
@@ -134,7 +142,7 @@ class PdfPage:
                     params_exp = cf.get_params_function(cf.model_exponential, 10007, 20000, datafile.avg_response, time)
                     #print(params_exp)
                     self.AXs[key].fill_between(time_mem,cf.model_exponential(time_mem,params_exp[0],params_exp[1],params_exp[2],params_exp[3]), cf.model_function_constant(time_mem, params_exp[3] ),where=((time_mem >= 100) & (time_mem <= 200)), alpha=0.3, color='skyblue')
-                
+
             elif key=='Leak (pA)':
                 txt = f"Leak \n(A)"
                 self.AXs[key].annotate(txt, (-0.29, 0.2), xycoords='axes fraction', rotation=0)
@@ -258,6 +266,7 @@ class PdfPage:
                 values_kx = IGOR_results_df.loc[IGOR_results_df['Group']=='ketaxyla',  metric].values
                 values_kxe = IGOR_results_df.loc[IGOR_results_df['Group']=='keta xyla euthasol',  metric].values
                 stats = calc_stats(metric, values_xe, values_kx, values_kxe)
+                print(stats)
                 stats_for_excel.append(stats)
 
                 y_pos_m = 0

@@ -4,9 +4,70 @@ import Curve_fit as cf
 from igor2.packed import load as loadpxp
 from scipy.ndimage import gaussian_filter1d
 
+import json
+
+
+
+'''
+####CONSTANTS #############
+
+#window to calculate baseline 
+bsl_start = 0
+bsl_end = 50
+
+#sigma for the gaussian filter
+gauss_sigma = 4
+
+#name/names of stimulation protocol in IGOR (change to yours, you can put a list of them)
+keys_stimulation = [b'nmStimSofia1', b'nmStimSofia']
+
+#timestep data acquisition in Igor (0.01 ms) - only used for corrupted file
+timestep_ = 0.01 
+
+#amount of datapoints acquired (200 000) - only used for corrupted file
+datapoints_ = 100000
+
+#timepoints of the electrical stimulation
+time_stim1 = 600
+time_stim2 = 700
+
+#window to calculate amplitude of first peak (sec)
+bound1_start = 601
+bound1_end = 649
+
+#window to calculate amplitude of second peak (sec)
+bound2_start = 701
+bound2_end = 749
+
+#start to calculate the rise time (to avoid artefact)
+peak_rise_start = 600.4
+
+#start to calculate the decay time (to avoid artefact) (negative peak vs positive peak)
+peak_decay_start = 601.70
+peak_decay_start_pos = 605
+
+#window to calculate Id (peak of membrane test)
+Id_bound_start = 10000
+Id_bound_stop  = 11000
+
+#window to calculate Idss (plateau in between peaks of membrane test)
+Idss_bound_start = 16000
+Idss_bound_stop  = 19000
+
+#segment used to fit the membrane peak to characterise membrane properties
+start_fit = 10007
+end_fit = 20000
+
+###########################################################################
+'''
+
 class DataFile:
     #Constructor
     def __init__(self, file_path, info_df):
+        # Load the config file
+        with open('config/config.json', 'r') as f:
+            self.config = json.load(f)
+
         self.file_path = file_path
         self.filename = self.file_path.split('/')[-1].replace('.pxp', '')
         self.infos = {}
@@ -19,9 +80,10 @@ class DataFile:
         self.get_average_recordings_aligned()
         self.smooth_gauss_avg()
         self.fill_infos(info_df)
-        self.fill_stim()
+        self.get_stim_traces()
         self.get_time()
         self.get_mem_values_across_time(self.time)
+        #self.get_std_baseline()
         
         
 
@@ -56,17 +118,12 @@ class DataFile:
             print(f'Recordings were not loaded: {e}')
             return -1
 
-    def get_std_baseline(self):
-        baseline = self.response[0:50]
-
-        return 0
-
-
     def get_average_recordings_aligned(self):
         try:
             avg_data = np.mean(self.response, axis=0)
-            avg_baseline = np.mean(avg_data[0:50])
-            
+            bsl_start = self.config["bsl_start"]
+            bsl_end = self.config["bsl_end"]
+            avg_baseline = np.mean(avg_data[bsl_start:bsl_end])
             average_data_aligned = avg_data - avg_baseline
             self.avg_response = average_data_aligned
             print("OK average_recordings_aligned found")
@@ -75,9 +132,9 @@ class DataFile:
             return -1
         return average_data_aligned
     
-    
-    def smooth_gauss_avg(self, sigma=4):
+    def smooth_gauss_avg(self):
         try: 
+            sigma = self.config["gauss_sigma"]
             smooth_avg = gaussian_filter1d(self.avg_response, sigma)
             self.smooth_avg_response = smooth_avg
             print("OK smoothing of average_recordings_aligned")
@@ -120,33 +177,36 @@ class DataFile:
         except Exception as e:
             print(f"Infos were not filled correctly: {e}")
 
-    def fill_stim(self):
-        try: 
-            pulse_DAC0 = self.pxp[1]['root'][b'nmStimSofia1'][b'DAC_0_0'].wave['wave']['wData']
-            pulse_DAC1 = self.pxp[1]['root'][b'nmStimSofia1'][b'DAC_1_0'].wave['wave']['wData']
-            self.stim = {'Cmd1' : pulse_DAC0,
-                         'Cmd2' : pulse_DAC1}
-            print("OK stimulation traces found")
-        except:
+    def get_stim_traces(self):
+        
+        possible_keys = [s.encode() for s in self.config["keys_stimulation"]]
+        for key in possible_keys:
             try:
-                pulse_DAC0 = self.pxp[1]['root'][b'nmStimSofia'][b'DAC_0_0'].wave['wave']['wData']
-                pulse_DAC1 = self.pxp[1]['root'][b'nmStimSofia'][b'DAC_1_0'].wave['wave']['wData']
-                self.stim = {'Cmd1' : pulse_DAC0,
-                             'Cmd2' : pulse_DAC1}
-                print("OK stimulation traces found")
+                group = self.pxp[1]['root'][key]
+                pulse_DAC0 = group[b'DAC_0_0'].wave['wave']['wData']
+                pulse_DAC1 = group[b'DAC_1_0'].wave['wave']['wData']
+                self.stim = {'Cmd1': pulse_DAC0, 'Cmd2': pulse_DAC1}
+                print(f"OK stimulation traces found ({key.decode()})")
+                return
+            except KeyError:
+                continue
             except Exception as e:
-                print(f"stimulation parameters not found : {e}")
+                print(f"Unexpected error while accessing {key}: {e}")
+                return
+        print("Stimulation parameters not found in any known key.")
 
-    def get_time(self, timestep_ = 0.01, datapoints_ = 100000): 
+    def get_time(self): 
         try:
-            timestep = self.infos['SampleInterval'] #timestep data acquisition in Igor (0.01 ms)
-            datapoints = self.infos['SamplesPerWave'].astype(int)  #amount of datapoints acquired (200 000)
+            timestep = self.infos['SampleInterval'] 
+            datapoints = self.infos['SamplesPerWave'].astype(int)
             tot_time = np.round(timestep * datapoints).astype(int) 
             time = np.linspace(0, tot_time, num=datapoints)
             print("OK time scale found")
             self.time=time
             return time
-        except BaseException: ## if information not present in file for some reason    
+        except BaseException: ## if information not present in file for some reason   
+            timestep_ = self.config["timestep_"] 
+            datapoints_ = self.config["datapoints_"] 
             tot_time_ = np.round(timestep_ * datapoints_).astype(int) 
             time_ = np.linspace(0, tot_time_, num=datapoints_)
             print("Error getting time scale, by default 0-2000 ms with 0.01 timestep")
@@ -159,46 +219,54 @@ class DataFile:
     def get_baselines(self):
         averages_baselines = []
         for recording in self.response: 
-            recording_baseline = recording[0:50]
+            bsl_start = self.config["bsl_start"]
+            bsl_end = self.config["bsl_end"]
+            recording_baseline = recording[bsl_start:bsl_end]
             average_baseline = np.mean(recording_baseline)
             averages_baselines.append(average_baseline)
         return averages_baselines
 
     def get_boundaries(self): #to FIX
-        return 600, 650, 700, 750
+        bound1_start = self.config["bound1_start"]
+        bound1_end = self.config["bound1_end"] 
+        bound2_start = self.config["bound2_start"]
+        bound2_end = self.config["bound2_end"]
+        return bound1_start, bound1_end, bound2_start, bound2_end
 
     def get_mem_values(self, recording, time, delta_v = 5*1e-3): 
-
-        Id = np.abs(np.min(recording[10000:11000])) #in nano amperes, check if work
+        Id_bound_start = self.config["Id_bound_start"]
+        Id_bound_stop = self.config["Id_bound_stop"]
+        Id = np.abs(np.min(recording[Id_bound_start:Id_bound_stop])) #in nano amperes, check if work
         Id_A = Id * 1e-9   # in amperes
 
         Ra = np.abs(delta_v/Id_A)  #in ohm   (volts/amperes)
 
-        baseline = np.abs(np.mean(recording[0:50]))      # in nano amperes
-        Idss = np.abs(np.mean(recording[16000:19000]))   # in nano amperes
-        #print("Idss ",Idss)
+        bsl_start = self.config["bsl_start"]
+        bsl_end = self.config["bsl_end"]
+        Idss_bound_start = self.config["Idss_bound_start"]
+        Idss_bound_stop = self.config["Idss_bound_stop"]
+        baseline = np.abs(np.mean(recording[bsl_start:bsl_end]))      # in nano amperes
+        Idss = np.abs(np.mean(recording[Idss_bound_start:Idss_bound_stop]))   # in nano amperes
         Idss2 = Idss - baseline
-        #print("Idss2 ",Idss2)
         Idss_A = Idss2 * 1e-9   # in amperes
         baseline_A = baseline * 1e-9  # in amperes
 
-        
         #Rm = (delta_v - Ra * Idss_A) / Idss_A #in Ohm
         Rm = delta_v / Idss_A #in Ohm
 
-
+        start_fit = self.config["start_fit"]
+        end_fit = self.config["end_fit"]
         try:
-            params_exp1 = cf.get_params_function(cf.model_biexponential1, 10007, 20000, recording, time)
+            params_exp1 = cf.get_params_function(cf.model_biexponential1, start_fit, end_fit, recording, time)
             
         except: 
-            params_exp1 = cf.get_params_function(cf.model_exponential, 10007, 20000, recording, time)
+            params_exp1 = cf.get_params_function(cf.model_exponential, start_fit, end_fit, recording, time)
         
         #print( params_exp1[2])
         tau = np.abs(params_exp1[2])  #in ms
         tau_s = tau * 1e-3  #in s
         #print(tau)
         Cm = np.abs(tau_s / (1/(1/Ra + 1/Rm)) ) #in F
-
 
         #print("mem values")
         #print("Id ", Id_A)
@@ -213,7 +281,7 @@ class DataFile:
         self.Rm = Rm
         self.Cm = Cm
 
-        return Id_A, Ra, Rm, Cm
+        return baseline_A, Id_A, Ra, Rm, Cm
 
     def get_mem_values_across_time(self, time):
         baseline_list, Id_list, Ra_list, Rm_list, Cm_list = [], [], [], [], []
@@ -226,13 +294,12 @@ class DataFile:
             Rm_list.append(values[3]/1e6)
             Cm_list.append(values[4]*1e12)
             
-        self.baseline_std = np.std(baseline_list)
-        print("aaa", self.baseline_std)
+        self.baseline_std = np.std(baseline_list)  #compare with self.baseline_sd
+        print("std : ", self.baseline_std)
         return Id_list, Ra_list, Rm_list, Cm_list
              
     def calc_values(self, bis=False):
-        self.get_mem_values(self.avg_response, self.time)
-        #print("calc_values ", self.infos['Type'])
+        self.get_mem_values(self.avg_response, self.time)  #useless here?
         if self.infos['Type']=='AMPA':
             self.analyse_neg_peak()
         elif self.infos['Type']=='NMDA':
@@ -242,34 +309,21 @@ class DataFile:
         return 0
 
     def analyse_neg_peak(self):
-        #print("neg called")
+        
         peak = "negative"
         
         start, stop, start2, stop2 = self.get_boundaries()
-        #start_ = (start+1)*100
-        start_ = (start+1)*100
-        stop_ = (stop-1)*100
-        start2_ = (start2+1)*100
-        stop2_ = (stop2-1)*100
-        #check this with new boundary function
-
-        #print("start", start_)
-        #print("stop", stop_)
-
-        #100500
-        #print("values where to look for min ", self.avg_response[start_:stop_])
+        start_ = start*100
+        stop_ = stop*100
+        start2_ = start2*100
+        stop2_ = stop2*100
+        
         amp_resp1 = np.min(self.smooth_avg_response[start_:stop_])  ## stimulation at 100 000th datapoint aka 1 000 ms
-        #print("min found : ", amp_resp1)
         time_peak_resp1 = np.argmin(self.smooth_avg_response[start_:stop_])
+        #print("min found : ", amp_resp1)
         #print(time_peak_resp1)
-        #105500
+    
         amp_resp2 = np.min(self.smooth_avg_response[start2_:stop2_])  ## stimulation at 105 000th datapoint aka 1 050 ms
-
-        '''
-        amp_resp1 = np.min(average_data_aligned[100100:100500])  ## stimulation at 100 000th datapoint aka 1 000 ms
-        time_peak_resp1 = np.argmin(average_data_aligned[100100:100500])
-        amp_resp2 = np.min(average_data_aligned[105100:105500])  ## stimulation at 105 000th datapoint aka 1 050 ms
-        '''
         PPR = amp_resp2/amp_resp1
         
         #####################################################################
@@ -281,8 +335,10 @@ class DataFile:
         
         range = self.smooth_avg_response[start_:stop_]
         
-        i = 600.4
-        j = 600.4
+        peak_rise_start = self.config["peak_rise_start"]
+        i = peak_rise_start
+        j = peak_rise_start
+
         time1 = 0
         time2 = 0
         for value in range : 
@@ -304,7 +360,8 @@ class DataFile:
         bound = 0.5 * amp_resp1
         range = self.smooth_avg_response[start_ + time_peak_resp1 : stop_]
         
-        k = 601.70 
+
+        k = self.config["peak_decay_start"]
         time = 0
 
         for value in range : 
@@ -313,15 +370,13 @@ class DataFile:
                 break;
             k+= 0.01 
         
-        decay_time = np.abs(time - 601.70)
+        decay_time = np.abs(time - self.config["peak_decay_start"])
 
-        
         print("Amplitude response 1 (nA) : ", amp_resp1 )
         print("Amplitude response 2 (nA) : ", amp_resp2 )
         print("Paired pulse ratio Amp2/Amp1: ", PPR )
         print("Rise_time 10-90% : ", rise_time, "ms.")
         print("Decay time 50% : ", decay_time, " ms.")
-        
         
         self.amp_resp1 = amp_resp1
         self.amp_resp2 = amp_resp2
@@ -329,42 +384,28 @@ class DataFile:
         self.rise_time = rise_time
         self.decay_time = decay_time
 
-
         return peak, amp_resp1, amp_resp2, PPR, rise_time, decay_time
 
-    def analyse_pos_peak(self, bis=False):
+    def analyse_pos_peak(self):
         
-        #print("pos called")
         peak = "positive"
-        #data = get_data(path)
-        #average_data = get_average_recordings(get_recordings(data))
-        #average_data_aligned = get_data_aligned(average_data)
-
         
         start, stop, start2, stop2 = self.get_boundaries()
-        start_ = (start+1)*100   #usually, 100100
-        stop_ = (stop-1)*100     #usually, 104900
-        start2_ = (start2+1)*100 #usually, 105100
-        stop2_ = (stop2-1)*100   #usually, 109900
+        start_ = start*100
+        stop_ = stop*100
+        start2_ = start2*100
+        stop2_ = stop2*100
         
-        #print("hey")
-        #print("start_ : ", start_, "stop_ : ", stop_)
-        #print("len ",len(self.avg_response))
-        #print("values where to look for maximum ",self.avg_response[start_:stop_])
         amp_resp1 = np.max(self.smooth_avg_response[start_:stop_])  ## stimulation at 100 000th datapoint aka 1 000 ms   #changed to max
-        #print("max found : ", amp_resp1)
         index_peak_resp1 = np.argmax(self.smooth_avg_response[start_:stop_])  
         time_peak_resp1 = (start_ + index_peak_resp1)/100
         
+        #print("max found : ", amp_resp1)
         #print(index_peak_resp1)
-        
         #print("time peak response 1: ", time_peak_resp1)
         
-        if bis==False:
-            amp_resp2 = np.max(self.smooth_avg_response[start2_:stop2_])  ## stimulation at 105 000th datapoint aka 1 050 ms   #changed to max
-        elif bis==True:
-            amp_resp2 = np.mean(self.smooth_avg_response[start_+5990:start_+6090])  ## stimulation 60 ms after
-
+        amp_resp2 = np.max(self.smooth_avg_response[start2_:stop2_])  ## stimulation at 105 000th datapoint aka 1 050 ms   #changed to max
+        
         PPR = amp_resp2/amp_resp1
         #####################################################################
         
@@ -375,8 +416,8 @@ class DataFile:
         
         range = self.smooth_avg_response[start_:stop_]  #generalize boundaries
         
-        l = 600.4  #generalize
-        m = 600.4  #generalize
+        l = self.config['peak_rise_start']  #generalize
+        m = self.config['peak_rise_start']  #generalize
         time1 = 0
         time2 = 0
         
@@ -394,8 +435,6 @@ class DataFile:
             
         rise_time = np.abs(time2-time1)    
         
-        
-        
         #####################################################################
         
         ##decay time 50%
@@ -406,35 +445,26 @@ class DataFile:
         #print(start_)
         #print(start_ + index_peak_resp1)
         #print(stop_)
-        k = 605 
+        k = self.config['peak_decay_start_pos'] 
         time = 0
         for value in range : 
-            
             if value < bound:
                 time = k
                 break;
             k+= 0.01 
             
-
-        #print("time50", time)
-        #print("time peak", time_peak_resp1)
-        #print("decay_time", time - time_peak_resp1)
         decay_time = np.abs(time - time_peak_resp1)
 
-        out_value = np.abs(700 - time_peak_resp1)
+        out_value = np.abs(self.config["time_stim2"] - time_peak_resp1)
         #print("out_value " ,out_value)
         if decay_time > out_value:
             decay_time = out_value
 
-        
         print("Amplitude response 1 (nA) : ", amp_resp1 )
         print("Amplitude response 2 (nA) : ", amp_resp2 )
         print("Paired pulse ratio Amp2/Amp1: ", PPR )
         print("Rise_time 10-90% : ", rise_time, "ms.")
         print("Decay time 50% : ", decay_time, " ms.")
-
-
-        
 
         self.amp_resp1 = amp_resp1
         self.amp_resp2 = amp_resp2
@@ -445,3 +475,11 @@ class DataFile:
         return peak, amp_resp1, amp_resp2, PPR, rise_time, decay_time
        
 
+    
+    '''
+    def get_std_baseline(self):
+        baseline = self.response[bsl_start:bsl_end]
+        self.baseline_sd = baseline
+        print("sd", self.baseline_sd)
+        return 0
+    '''
