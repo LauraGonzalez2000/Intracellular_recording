@@ -1,13 +1,16 @@
 
-import os
+import os, sys
 
-from PdfPage_ratio_general import PdfPage
 
 from trace_analysis_ratio_general import DataFile
 import matplotlib.pylab as plt
 import pandas as pd
 import openpyxl
 from pathlib import Path
+#sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+from PdfPage_ratio_general import PdfPage
+
+
 
 ###get values
 def find_nm_files(root_folder):
@@ -219,7 +222,7 @@ if __name__=='__main__':
     #Create output 
     create_pdf(datafiles)
     create_final_excel(datafiles, files_id, info_df)
-    create_final_barplots(STATS=False, debug=False)
+    create_final_barplots(STATS=True, debug=False)
 
 
 

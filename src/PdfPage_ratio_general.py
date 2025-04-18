@@ -5,11 +5,7 @@ import pandas as pd
 import openpyxl
 from scipy import stats as stats_
 
-import sys
-import os
-
-sys.path.append('../utils')
-from my_math import calc_stats ####problem for later
+from utils.my_math import calc_stats 
 
 class PdfPage:
 

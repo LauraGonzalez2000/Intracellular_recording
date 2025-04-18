@@ -6,68 +6,12 @@ from scipy.ndimage import gaussian_filter1d
 
 import json
 
-
-
-'''
-####CONSTANTS #############
-
-#window to calculate baseline 
-bsl_start = 0
-bsl_end = 50
-
-#sigma for the gaussian filter
-gauss_sigma = 4
-
-#name/names of stimulation protocol in IGOR (change to yours, you can put a list of them)
-keys_stimulation = [b'nmStimSofia1', b'nmStimSofia']
-
-#timestep data acquisition in Igor (0.01 ms) - only used for corrupted file
-timestep_ = 0.01 
-
-#amount of datapoints acquired (200 000) - only used for corrupted file
-datapoints_ = 100000
-
-#timepoints of the electrical stimulation
-time_stim1 = 600
-time_stim2 = 700
-
-#window to calculate amplitude of first peak (sec)
-bound1_start = 601
-bound1_end = 649
-
-#window to calculate amplitude of second peak (sec)
-bound2_start = 701
-bound2_end = 749
-
-#start to calculate the rise time (to avoid artefact)
-peak_rise_start = 600.4
-
-#start to calculate the decay time (to avoid artefact) (negative peak vs positive peak)
-peak_decay_start = 601.70
-peak_decay_start_pos = 605
-
-#window to calculate Id (peak of membrane test)
-Id_bound_start = 10000
-Id_bound_stop  = 11000
-
-#window to calculate Idss (plateau in between peaks of membrane test)
-Idss_bound_start = 16000
-Idss_bound_stop  = 19000
-
-#segment used to fit the membrane peak to characterise membrane properties
-start_fit = 10007
-end_fit = 20000
-
-###########################################################################
-'''
-
 class DataFile:
     #Constructor
     def __init__(self, file_path, info_df):
         # Load the config file
         with open('config/config.json', 'r') as f:
             self.config = json.load(f)
-
         self.file_path = file_path
         self.filename = self.file_path.split('/')[-1].replace('.pxp', '')
         self.infos = {}
@@ -83,9 +27,6 @@ class DataFile:
         self.get_stim_traces()
         self.get_time()
         self.get_mem_values_across_time(self.time)
-        #self.get_std_baseline()
-        
-        
 
     #Methods to extract data
     def load_data(self):
